@@ -1,4 +1,9 @@
-"""Per-node numpy DQN. Each Learner owns its policy, target, optimizer, replay and RNG."""
+"""Per-node numpy DQN: the REGRESSION BASELINE for the PyTorch learner (torch_dqn.TorchLearner).
+
+Each Learner owns its policy, target, optimizer, replay and RNG. It is kept unchanged in behavior;
+only the peer-compatibility surface (params_numpy/load_params_numpy/sync_target and header
+attributes) was added so peer.encode/offer/rollback treat both backends alike.
+"""
 
 from __future__ import annotations
 
@@ -8,10 +13,16 @@ from pathlib import Path
 
 import numpy as np
 
+from .compat import ACTION_SPACE, REWARD_ID, encoder_sha256, param_shapes, validate_params
+
 ENCODER = "grid-flat-v0"
 
 
 class Learner:
+    backend = "numpy"
+    reward_id = REWARD_ID
+    action_space = ACTION_SPACE
+
     def __init__(
         self,
         node_id,
@@ -27,6 +38,7 @@ class Learner:
     ):
         assert mode in ("independent", "information_only", "mixing")
         self.node_id, self.mode, self.encoder = node_id, mode, encoder
+        self.encoder_sha256 = encoder_sha256(encoder)
         self.obs_dim, self.n_actions, self.hidden = obs_dim, n_actions, hidden
         self.lr, self.gamma, self.capacity = lr, gamma, capacity
         self.rng = np.random.default_rng(seed)
@@ -58,6 +70,18 @@ class Learner:
             "t": 0,
             **{f"{s}_{k}": np.zeros_like(v) for k, v in self.params.items() for s in "mv"},
         }
+
+    def params_numpy(self):
+        """param-map-v1 export: independent float32 copies."""
+        return {k: v.copy() for k, v in self.params.items()}
+
+    def load_params_numpy(self, d):
+        """Replace the policy parameters only (target/optimizer/version are the caller's job)."""
+        new = validate_params(d, param_shapes(self.obs_dim, self.hidden, self.n_actions))
+        self.params = new
+
+    def sync_target(self):
+        self.target = {k: v.copy() for k, v in self.params.items()}
 
     @staticmethod
     def forward(p, x):
