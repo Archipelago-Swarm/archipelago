@@ -1,0 +1,92 @@
+# T37 pre-registration. Committed BEFORE any comparison run; the commit sha is recorded in
+# experiments/out/T37/selection.json and summary.md. Code: experiments/t37.py.
+# Command (everything, seeded, ~25 min on 4 cores):
+#   PYTHONPATH=packages/learning:packages/sim:experiments uv run python experiments/t37.py all
+id: T37
+question: >
+  Under the v0 observation/reward the decentralized DQN learners do no better than idle
+  (experiments/diagnosis/idle_vs_learners.md). Does any versioned observation/reward/learner
+  variant make learning demonstrably help, against idle, a random policy, an untrained
+  network of the same architecture, and the rule explorer?
+world: {size: 16, n_agents: 2, n_targets: 8, max_ticks: 150, scenario: connected}
+note_scope: >
+  Fault scenarios (partition, node failure, telemetry outage) and p2p model transfer are NOT part of
+  T37 and are not run. info sharing = the non-model InfoBus (map cells, markers, and for the
+  -shared observation the stood-on-cell summary).
+
+observation_ids:
+  grid-flat-v0: "25 crop + 2 pose/size + 1 battery = 28 (frozen)"
+  grid-flat-v2-visits: "v0 28 | 25 own stand-on counts (min(c,4)/4) | 4 frontier fractions = 57"
+  grid-flat-v2-visits-shared: "v2-visits 57 | 25 peer-reported stood-on flags (InfoBus) = 82"
+reward_ids:
+  rew-v0: "new 1.0, target 5.0 (split), step -0.01, collision -0.5, invalid -0.1; spawn targets paid"
+  rew-v1: "new 0.5, target 5.0 (split), step -0.01, collision -2.0 (wall+agent), invalid -0.1, revisit -0.25; targets sensed at reset earn nothing"
+reference_reward: >
+  Every policy (learners trained under any reward, idle, rule, random, untrained) is scored with the
+  same reference return: rew-v1 components re-scored from environment counters (new cells, revisits,
+  wall+agent collisions, agent ticks, targets found AFTER spawn). Reward variants are therefore
+  compared on one yardstick. Note the reference return penalises standing still (revisit -0.25 per
+  tick), so idle is strongly negative on it by construction; coverage gain and targets-after-spawn
+  are reward-free and are reported with it.
+learner_fixed: {hidden: 32, gamma: 0.95, batch: 32, target_sync_steps: 50, optimizer: adam, updates: "one per recorded transition", backend: numpy}
+epsilon_schedule_semantics: "epsilon(i) = start + (end-start)*min(1, i/(frac*episodes)) per training episode i; frac 0 means constant"
+
+seeds:
+  training_world_seeds: "1000 + seed*episodes + i  (< 5000 asserted)"
+  selection_worlds: {validation: "100-104", heldout_training_range: "5000-5019", note: "never trained on; pooled 25 worlds for selection, 100-104 also reported alone"}
+  frozen_test: "200-219, used ONCE by `t37.py test` for the single selected config + baselines (guarded by TEST_DONE marker); never read by stageA/stageB/select"
+  experiment_seeds: {stage_a: 4, stage_b: 10}
+
+stage_a:   # successive halving, round 1: one-factor-at-a-time grid around BASE
+  episodes: 200
+  seeds: 4
+  keep: 4          # by mean reference return over the 25 selection worlds and seeds
+stage_b:   # round 2: finalists at 2.5x budget + control
+  episodes: 500
+  seeds: 10
+  checkpoints: 10  # greedy eval on VAL (100-104) at 10 points for learning curves (not for selection)
+
+# BASE = v2-visits | rew-v1 | eps 1.0->0.05 over first 50% | lr 1e-3 | replay 50000 | double DQN
+stage_a_configs:
+  - {obs: grid-flat-v2-visits, reward: rew-v1, eps_start: 1.0, eps_end: 0.05, eps_frac: 0.5, lr: 0.001, replay: 50000, double: true}                       # BASE
+  - {obs: grid-flat-v2-visits-shared, reward: rew-v1, eps_start: 1.0, eps_end: 0.05, eps_frac: 0.5, lr: 0.001, replay: 50000, double: true}               # shared summary
+  - {obs: grid-flat-v0, reward: rew-v1, eps_start: 1.0, eps_end: 0.05, eps_frac: 0.5, lr: 0.001, replay: 50000, double: true}                            # old obs, new reward
+  - {obs: grid-flat-v2-visits, reward: rew-v0, eps_start: 1.0, eps_end: 0.05, eps_frac: 0.5, lr: 0.001, replay: 50000, double: true}                     # new obs, old reward
+  - {obs: grid-flat-v2-visits, reward: rew-v1, eps_start: 0.2, eps_end: 0.2, eps_frac: 0.0, lr: 0.001, replay: 50000, double: true}                       # constant eps
+  - {obs: grid-flat-v2-visits, reward: rew-v1, eps_start: 1.0, eps_end: 0.1, eps_frac: 0.3, lr: 0.001, replay: 50000, double: true}                       # faster decay
+  - {obs: grid-flat-v2-visits, reward: rew-v1, eps_start: 1.0, eps_end: 0.05, eps_frac: 0.5, lr: 0.01, replay: 50000, double: true}                       # lr 1e-2
+  - {obs: grid-flat-v2-visits, reward: rew-v1, eps_start: 1.0, eps_end: 0.05, eps_frac: 0.5, lr: 0.003, replay: 50000, double: true}                      # lr 3e-3
+  - {obs: grid-flat-v2-visits, reward: rew-v1, eps_start: 1.0, eps_end: 0.05, eps_frac: 0.5, lr: 0.001, replay: 5000, double: true}                       # small replay
+  - {obs: grid-flat-v2-visits, reward: rew-v1, eps_start: 1.0, eps_end: 0.05, eps_frac: 0.5, lr: 0.001, replay: 50000, double: false}                     # plain DQN
+  - {obs: grid-flat-v2-visits-shared, reward: rew-v1, eps_start: 1.0, eps_end: 0.05, eps_frac: 0.5, lr: 0.003, replay: 50000, double: true}              # shared + lr 3e-3
+stage_b_controls:   # reference only, never selectable
+  - {obs: grid-flat-v0, reward: rew-v0, eps_start: 0.2, eps_end: 0.2, eps_frac: 0.0, lr: 0.01, replay: 5000, double: false}   # the v0 learner of the diagnosis
+
+baselines: [idle, rule, random, untrained]   # untrained = selected config, zero training episodes, random-init greedy
+
+metrics:
+  primary: [ref_return, coverage_gain, targets_after_spawn]   # mean per episode; coverage_gain = coverage - coverage at spawn
+  reported: [wall_collisions, revisit_rate, ticks]
+selection_rule: >
+  Stage A: rank the 11 candidate configs by mean ref_return over 4 seeds x 25 selection worlds,
+  keep the top 4. Stage B: train the 4 finalists (+ control) with 10 seeds at 500 episodes; select the
+  single finalist with the highest mean ref_return over 10 seeds x 25 selection worlds. Ties: higher
+  coverage_gain. The control is not selectable. The choice is written to selection.json before the
+  test stage runs and is not revisited whatever the test shows.
+statistics: >
+  Paired differences against deterministic baselines on identical worlds. 95% percentile bootstrap,
+  4000 resamples, seed 0: HIERARCHICAL (resample experiment seeds and worlds) is the decision CI;
+  the seed-only CI (average over worlds, resample seeds) is also reported. Untrained baseline is
+  averaged over the 10 experiment seeds' random inits per world.
+decision:
+  learning_helps: >
+    TRUE iff, on the frozen TEST worlds for the selected config, the hierarchical CI lower bound of
+    (learner - idle) is > 0 on ALL THREE primary metrics AND (learner - untrained) > 0 on ref_return
+    AND (learner - random) > 0 on ref_return. Otherwise the claim is NOT supported.
+  beats_rule: >
+    TRUE iff learning_helps AND (learner - rule) CI lower bound > 0 on ref_return AND the upper bound
+    of (learner - rule) is >= 0 on all three metrics. Otherwise "does not beat rule"; a CI containing
+    zero is reported as inconclusive, a CI entirely below zero as the learner being worse.
+negative_results: >
+  Reported as-is. All Stage A and Stage B runs are kept in the outputs (no run dropped, no re-seeding).
+  No tuning on TEST seeds; the TEST stage runs once.
