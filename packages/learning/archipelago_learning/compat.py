@@ -6,6 +6,8 @@ import hashlib
 
 import numpy as np
 
+from . import encoders
+
 PARAM_MAP = "param-map-v1"
 KEYS = ("w1", "b1", "w2", "b2")
 REWARD_ID = "rew-v0"
@@ -17,15 +19,13 @@ ENCODER_DEFS = {
     "grid-flat-v0": (
         "grid-flat-v0: crop row-major flatten (-1 unknown,0 free,1 wall), x/size, y/size, battery"
     ),
-    "grid-flat-v1": (
-        "grid-flat-v1: float32[28] = crop row-major (radius 2), "
-        "floor(x)/size, floor(y)/size, battery"
-    ),
 }
 
 
 def encoder_sha256(encoder: str) -> str:
-    text = ENCODER_DEFS.get(encoder, f"unregistered-encoder:{encoder}")
+    """Hash of the canonical definition; grid-flat-v1-s{size}-r{radius} ids come from encoders."""
+    enc = encoders.parse(encoder)
+    text = enc.definition if enc else ENCODER_DEFS.get(encoder, f"unregistered-encoder:{encoder}")
     return hashlib.sha256(text.encode()).hexdigest()
 
 
