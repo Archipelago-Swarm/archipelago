@@ -14,6 +14,7 @@ from typing import Any, Literal
 from archipelago_contracts.adapter import SimulatorAdapter
 from archipelago_contracts.models import RunConfig
 
+from .eventlog import EventLog
 from .persistence import Persister
 from .settings import Settings
 
@@ -75,9 +76,11 @@ class RunManager:
         self.runs: dict[str, Run] = {}
         self.keys: dict[str, tuple[str, str]] = {}  # idempotency key -> (config hash, run id)
         self._file = settings.data_dir / "runs.json"
+        self.log = EventLog(settings.data_dir)
         self._recover()
 
-    # persistence: metadata only; events and checkpoints are not recovered (marked interrupted)
+    # persistence: run metadata in runs.json, events in per-run JSONL files (see eventlog.py).
+    # Adapter state is not recovered: active runs are marked interrupted.
     def _recover(self) -> None:
         self.s.data_dir.mkdir(parents=True, exist_ok=True)
         if not self._file.exists():
@@ -90,6 +93,7 @@ class RunManager:
                 d["reason"],
                 d["tick"],
             )
+            run.events, run.seq = self.log.load(run.config.run_id, self.s.event_log_size)
             if run.status in ACTIVE:
                 run.status, run.reason = "interrupted", "process_restart"
                 run.revision += 1
@@ -131,6 +135,7 @@ class RunManager:
         run.seq += 1
         ev = {"sequence": run.seq, "type": kind, "tick": run.tick, "status": run.status, **extra}
         run.events.append(ev)
+        self.log.append(run.config.run_id, ev, sync=kind == "status")
         if self.sink is not None:
             self.sink.record_event(run.config.run_id, ev)
         while len(run.events) > self.s.event_log_size:

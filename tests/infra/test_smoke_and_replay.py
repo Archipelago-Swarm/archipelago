@@ -1,11 +1,10 @@
 """T10 acceptance check 4: smoke.sh passes on the real stack and run state survives an api restart.
 
-Specified behaviour (agents/architecture/interfaces.md, services/api runs.py): only run METADATA
-(status, revision, completion reason, tick) is persisted in /data/runs.json. Events are held in
-memory and are NOT recovered. After a restart a finished run keeps its terminal status, a run that
-was active is reported honestly as `interrupted`, and the events endpoint must not invent events.
-Known gap: the event log (replay) itself is lost on restart until T08 persists it; the test asserts
-the honest behaviour and does not pretend otherwise.
+Specified behaviour (agents/architecture/interfaces.md, services/api runs.py): run METADATA
+(status, revision, completion reason, tick) is persisted in /data/runs.json and each run's events
+in an append-only JSON Lines file under /data/events. After a restart a finished run keeps its
+terminal status AND its replay (`GET /v1/runs/{id}/events` returns exactly the events captured
+before the restart), and a run that was active is reported honestly as `interrupted`.
 """
 
 import json
@@ -197,10 +196,9 @@ def test_smoke_script_passes_and_run_state_survives_api_restart(stack):
     # is what marks it.
     assert after_live["completion_reason"] == "process_shutdown"
 
-    # KNOWN GAP (T10 acceptance check 4 is NOT met): the event log is memory-only, so replay of a
-    # finished run is lost on restart. This pins the current behaviour exactly so the gap is
-    # visible; when events are persisted (T08 wiring) this assertion must be replaced by
-    # `replay == before`.
+    # Replay of a finished run is durable: identical events, in order, same latest sequence.
     replay = call("GET", "/v1/runs/run-t10-done/events?limit=500")
-    assert replay["events"] == []
-    assert replay["latest_sequence"] == 0
+    assert [e["sequence"] for e in replay["events"]] == seqs
+    assert replay["events"] == before["events"]
+    assert replay["latest_sequence"] == before["latest_sequence"]
+    assert replay["oldest_sequence"] == before["oldest_sequence"]
