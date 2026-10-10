@@ -126,8 +126,13 @@ def run_cell(mode, scenario, seed, episodes, steps):
 
     act0 = act
 
+    # central_online executes through the controller, so it needs the link at test time (the
+    # final-episode link state); ctde runs decentralised copies and is link-independent.
+    no_ctl = mode == "central_online" and not link_up(scenario, episodes - 1, episodes)
+
     def act(a, o):  # node_failure: node-1 is down at test too, so it just stays put
-        return 0 if scenario == "node_failure" and a == agents[1] else act0(a, o)
+        down = scenario == "node_failure" and a == agents[1]
+        return 0 if down or no_ctl else act0(a, o)
 
     res = [rollout(env, act, s) for s in TEST]
     return {

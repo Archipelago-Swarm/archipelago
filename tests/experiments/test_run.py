@@ -100,3 +100,15 @@ def copy_params(learner):
     import pickle
 
     return hashlib.sha256(pickle.dumps(learner.snapshot())).hexdigest()
+
+
+def test_central_online_inference_needs_link_but_ctde_does_not():
+    kw = dict(seed=0, episodes=4, steps=[0])
+    off = run.run_cell("central_online", "split", **kw)
+    on = run.run_cell("central_online", "connected", **kw)
+    assert off["replay_hashes"] != on["replay_hashes"]
+    assert off["mean"] == run.run_cell("central_online", "split", **{**kw, "steps": [0]})["mean"]
+    assert (
+        run.run_cell("ctde", "split", **kw)["replay_hashes"]
+        == (run.run_cell("ctde", "connected", **kw)["replay_hashes"])
+    )

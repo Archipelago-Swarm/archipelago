@@ -35,9 +35,9 @@
  "rerun": "PYTHONPATH=packages/learning:packages/sim python experiments/run.py --seeds 12 --episodes 150 --out agents/handoffs/T09/evidence",
  "train_env_steps": 1650636,
  "note": "n=12 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0.",
- "wall_s": 225.32928559998618,
+ "wall_s": 308.61978719997205,
  "sha256": {
-  "raw.jsonl": "66f716d864535452f59f630e119ff07d87e82dc53f3d54423de3a4c3a64313e3",
-  "summary.json": "fd3946f413b530e91164437a45c549046af78baf2dce146673e466db40c671f2"
+  "raw.jsonl": "f71df4bf605a8c2812fbeaa28bdc1cd812775de7f0e4b4ca495af9653e6faf2d",
+  "summary.json": "01436f1cb7708c90b133dff66927a4b696fa6702e41bee2124916b06a3f5a3cf"
  }
 }

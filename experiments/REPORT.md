@@ -19,7 +19,7 @@ Output: `raw.jsonl` (returns + action-replay sha256 per test episode), `summary.
 - `rule` beats every learner at this budget: +11.9 to +14.3, CI excludes 0 everywhere.
 - `p2p`: connected +5.3 (2.0..8.9), rejoin +4.5 (0.6..8.4) exclude 0; split 0 by design; node_failure +0.9 (includes 0).
 - `information_only`: rejoin +4.3 (0.3..8.9) barely excludes 0; connected +1.9, node_failure -1.1 include 0. Not a robust claim.
-- `central_online` (negative/null): split -5.6 (-11.0..0.1), node_failure -0.9, rejoin +0.2, connected +2.8; all CIs include 0.
+- `central_online` (null except split): connected +2.8 (-2.0..8.0), rejoin +0.2 (-4.1..4.8), node_failure +1.6 (-0.4..3.7) include 0. Split +4.3 (0.9..7.9) is an artifact: with the link down at test the controller is unreachable, so every drone idles, and idling beats the `independent` learner trained on 150 split episodes. Read it as an `independent` weakness, not a central benefit. Since this run, `central_online` inference requires the final-episode link (`no_ctl` in run.py); `ctde` does not.
 - `ctde` +2.8 (-2.0..8.0) in connected/split/rejoin: identical across link schedules, so it does not lose inference when the link is down. Null vs independent.
 
 ## Not supported / open
