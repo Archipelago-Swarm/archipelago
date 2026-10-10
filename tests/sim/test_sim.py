@@ -2,8 +2,9 @@ import json
 import random
 
 import pytest
+from archipelago_contracts.models import Pose
 from archipelago_sim.env import GridWorld, explorer_policy
-from archipelago_sim2d.adapter import replay_final_hash
+from archipelago_sim2d.adapter import Sim2DAdapter, replay_final_hash
 from archipelago_sim2d.smoke import make_config, run_explorer
 
 
@@ -104,3 +105,68 @@ def test_pettingzoo_parallel_api():
     from pettingzoo.test import parallel_api_test
 
     parallel_api_test(GridParallelEnv(), num_cycles=300)
+
+
+def test_dead_drone_blocks_cell():
+    w = GridWorld(n_agents=2, n_targets=0)
+    w.reset(1, starts={"node-0": (5, 5), "node-1": (6, 5)})
+    w.obstacles.clear()
+    w.drones["node-1"].battery = 0.0005
+    w.step({"node-0": "stay", "node-1": "stay"})  # node-1 dies
+    assert w.agents == ["node-0"]
+    w.step({"node-0": "east"})
+    assert w.drones["node-0"].pos == (5, 5)
+
+
+def test_terminates_when_all_targets_found():
+    w = GridWorld(n_agents=1, n_targets=1, sense_radius=20)
+    w.reset(1)
+    _, _, term, _, _ = w.step({})
+    assert all(term.values()) and not w.agents and w.found_targets == set(w.targets)
+
+
+def test_later_observation_hides_hidden_targets():
+    w = GridWorld(n_agents=1, n_targets=1, sense_radius=1, size=16)
+    w.reset(1, starts={"node-0": (0, 0)})
+    w.targets = [(15, 15)]
+    obs, *_ = w.step({"node-0": "stay"})
+    assert obs["node-0"]["visible_markers"] == []
+    assert (15, 15) not in w.drones["node-0"].known
+
+
+def test_per_tick_state_hashes_replay(tmp_path):
+    kw = {"n_targets": 0, "battery_scale": 10.0}
+    ad = run_explorer(2, 40, **kw)
+    ad.write_replay(tmp_path)
+    recs = [json.loads(x) for x in (tmp_path / "replay.jsonl").read_text().splitlines()]
+    twin = type(ad)(**kw)
+    twin.reset(make_config(2, 40))
+    from archipelago_sim2d.smoke import make_action
+
+    for r in recs:
+        twin.step({n: make_action(n, r["tick"], c) for n, c in r["actions"].items() if c})
+        assert twin.replay[-1]["state_hash"] == r["state_hash"]
+
+
+def test_start_pose_outside_grid_rejected():
+    cfg = make_config(1, 5)
+    cfg = cfg.model_copy(
+        update={"nodes": [cfg.nodes[0].model_copy(update={"start_pose": Pose(x=-1, y=0)})]}
+    )
+    with pytest.raises(ValueError, match="inside the grid"):
+        Sim2DAdapter().reset(cfg)
+
+
+def test_finished_run_reports_completed_and_manifest_has_world_kwargs(tmp_path):
+    ad = run_explorer(1, 900)  # default world: all targets found long before 900
+    assert ad.snapshot().run_status == "completed"
+    m = json.loads(ad.write_replay(tmp_path).read_text())
+    assert m["world_kwargs"] == {} and m["simulator_version"] == "0.1.0"
+
+
+def test_cli_default_runs_full_900_ticks(tmp_path, monkeypatch):
+    from archipelago_sim2d.__main__ import main
+
+    monkeypatch.setattr("sys.argv", ["x", "--seed", "1", "--out", str(tmp_path)])
+    main()
+    assert json.loads((tmp_path / "manifest.json").read_text())["ticks"] == 900
