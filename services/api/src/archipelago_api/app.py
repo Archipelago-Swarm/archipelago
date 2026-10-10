@@ -185,6 +185,14 @@ def create_app(settings: Settings, factory: AdapterFactory) -> FastAPI:
     return app
 
 
+def sim2d_factory(_: Path | None = None) -> AdapterFactory:
+    from archipelago_sim2d.adapter import Sim2DAdapter  # optional: only when T03 is installed
+
+    return lambda _cfg: Sim2DAdapter()
+
+
 def create_app_from_env() -> FastAPI:
+    if os.environ.get("ARCHIPELAGO_ADAPTER") == "sim2d":
+        return create_app(Settings.from_env(), sim2d_factory())
     fixtures = Path(os.environ.get("ARCHIPELAGO_FIXTURE_DIR", "packages/contracts/fixtures/good"))
     return create_app(Settings.from_env(), fixture_factory(fixtures))

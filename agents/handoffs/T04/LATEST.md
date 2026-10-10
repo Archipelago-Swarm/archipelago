@@ -70,3 +70,21 @@ pyproject.toml (workspace member, deps, mypy files), scripts/check.sh (ruff path
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Run 20261010T063026Z (A worker, no commits)
+- T03 adapter now present (packages/adapters/sim2d). Added `sim2d_factory()` in services/api app.py; `create_app_from_env` uses it when `ARCHIPELAGO_ADAPTER=sim2d`. Added `test_real_sim2d_run_streams_and_completes` (importorskip; real GridWorld run through start/pause/step/stream/budget completion).
+- Verified: with PYTHONPATH=packages/adapters/sim2d;packages/sim, `.venv/Scripts/python -m pytest tests/api -q` -> 12 passed. Without that path (sim2d not a workspace member) the real test skips.
+- Needs supervisor/A (shared file): add packages/adapters/sim2d and packages/sim as workspace members/deps of services/api in pyproject.toml so the real test runs under plain `uv run pytest`. Not run: ruff/mypy, scripts/check.sh. Final real-run review still pending T01/T03 merge.
+
+## Supervisor checkpoint 2026-10-10T06:40:36Z
+
+- Run: 20261010T063026Z
+- Machine: A
+- Task/branch: T04 / agent/A/20261010T063026Z/T04
+- Base: a5076ce701a3a7a99a7c3d147779d98c36270f28
+- Round: 1
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.

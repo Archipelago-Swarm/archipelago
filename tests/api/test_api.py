@@ -206,3 +206,22 @@ def test_clean_shutdown_marks_interrupted(tmp_path: Path) -> None:
         start(c)
     with make(tmp_path) as c2:
         assert c2.get("/v1/runs/run-a").json()["status"] == "interrupted"
+
+
+def test_real_sim2d_run_streams_and_completes(tmp_path: Path) -> None:
+    pytest.importorskip("archipelago_sim2d")
+    from archipelago_api.app import sim2d_factory
+    from archipelago_sim2d.smoke import make_config
+
+    s = Settings(api_token=TOKEN, data_dir=tmp_path, tick_interval=None)
+    with TestClient(create_app(s, sim2d_factory()), headers=AUTH) as c:
+        body = make_config(7, 3).model_dump(mode="json")
+        r = c.post("/v1/runs", json=body, headers={"Idempotency-Key": "real"})
+        assert r.status_code == 201, r.text
+        run = cmd(c, r.json(), "pause", "p").json()
+        with c.websocket_connect(f"/v1/runs/{run['run_id']}/stream") as ws:
+            assert ws.receive_json()["snapshot"]["poses"]
+            for i in range(3):
+                run = cmd(c, run, "step", f"s{i}").json()
+            assert ws.receive_json()["type"] == "delta"
+        assert (run["status"], run["completion_reason"]) == ("completed", "max_ticks")
