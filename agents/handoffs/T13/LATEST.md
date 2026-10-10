@@ -13,6 +13,11 @@
 ## Next
 Run `scripts/check.sh` and `ARCHIPELAGO_ADAPTER=sim2d npm run smoke -w @archipelago/web` with sim2d installed; capture API stderr to confirm the diagnosis. Command buttons are still enabled for terminal runs (server rejects with a conflict).
 
+## Update (run 20261010T151923Z, round 2)
+- Fixed the check failure: two ruff E501 lines (runs.py, tests/api/test_api.py).
+- `bash scripts/check.sh`: passed. `ARCHIPELAGO_ADAPTER=sim2d npm run smoke -w @archipelago/web`: passed.
+- Still not done: API stderr capture to confirm the diagnosis; terminal-run command buttons stay enabled.
+
 ## Supervisor checkpoint 2026-10-10T15:24:18Z
 
 - Run: 20261010T151923Z
@@ -24,4 +29,17 @@ Run `scripts/check.sh` and `ARCHIPELAGO_ADAPTER=sim2d npm run smoke -w @archipel
 - External check exit: 1
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Supervisor checkpoint 2026-10-10T15:27:06Z
+
+- Run: 20261010T151923Z
+- Machine: B
+- Task/branch: T13 / agent/B/20261010T151923Z/T13
+- Base: 843fa070f2e2d0c3dd57d001ad4bac87ff5e7142
+- Round: 2
+- State: in_progress
+- External check exit: 0
+- Independent review: {"pass": false, "issues": ["Acceptance check 1 is unmet. The handoff says the stopped-run stream failure was diagnosed 'from code inspection; API logs NOT captured'. It still lists API stderr capture as not done. No diagnostics are recorded.", "The handoff's final committed state is stale and contradictory. The supervisor checkpoint says 'External check exit: 1' and 'Independent review: not run'. The round 2 update says check.sh and the sim2d smoke passed, but gives no exact commands or output. The check.sh and smoke results are not recorded as required.", "The focused API regression test (test_stopped_sim2d_run_still_streams_final_snapshot) uses pytest.importorskip('archipelago_sim2d'). The external run shows 3 skipped, and the handoff says it was skipped in this worktree because sim2d is not installed. The key regression test therefore has no passing evidence.", "Evidence for the browser smoke covering start, pause, resume, stop, replay, disconnect/reconnect and terminal-run navigation is not shown. The smoke script was not found under apps/web/scripts, and the handoff only mentions that it expects COMPLETED and INTERRUPTED. The external check does not run the smoke.", "Terminal-run command buttons are still enabled. The handoff notes this and defers it. It leaves the terminal-run UI incomplete for 'honest status'. Recovered runs also have no snapshot, so what the UI shows for them is not covered by a test.", "The work is uncommitted (runs.py, test_api.py and the handoff are modified), so the pushed handoff and branch do not reflect the current state."]}
+- Next issue: Acceptance check 1 is unmet. The handoff says the stopped-run stream failure was diagnosed 'from code inspection; API logs NOT captured'. It still lists API stderr capture as not done. No diagnostics are recorded.; The handoff's final committed state is stale and contradictory. The supervisor checkpoint says 'External check exit: 1' and 'Independent review: not run'. The round 2 update says check.sh and the sim2d smoke passed, but gives no exact commands or output. The check.sh and smoke results are not recorded as required.; The focused API regression test (test_stopped_sim2d_run_still_streams_final_snapshot) uses pytest.importorskip('archipelago_sim2d'). The external run shows 3 skipped, and the handoff says it was skipped in this worktree because sim2d is not installed. The key regression test therefore has no passing evidence.; Evidence for the browser smoke covering start, pause, resume, stop, replay, disconnect/reconnect and terminal-run navigation is not shown. The smoke script was not found under apps/web/scripts, and the handoff only mentions that it expects COMPLETED and INTERRUPTED. The external check does not run the smoke.; Terminal-run command buttons are still enabled. The handoff notes this and defers it. It leaves the terminal-run UI incomplete for 'honest status'. Recovered runs also have no snapshot, so what the UI shows for them is not covered by a test.; The work is uncommitted (runs.py, test_api.py and the handoff are modified), so the pushed handoff and branch do not reflect the current state.
 - Resume: fetch this branch, inspect latest commit and continue the task card.

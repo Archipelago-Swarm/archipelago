@@ -234,7 +234,8 @@ def test_stopped_sim2d_run_still_streams_final_snapshot(tmp_path: Path) -> None:
 
     s = Settings(api_token=TOKEN, data_dir=tmp_path, tick_interval=None)
     with TestClient(create_app(s, sim2d_factory()), headers=AUTH) as c:
-        r = c.post("/v1/runs", json=make_config(7, 3).model_dump(mode="json"), headers={"Idempotency-Key": "k"})
+        body = make_config(7, 3).model_dump(mode="json")
+        r = c.post("/v1/runs", json=body, headers={"Idempotency-Key": "k"})
         run = cmd(c, cmd(c, r.json(), "pause", "p").json(), "stop", "x").json()
         assert run["status"] == "completed"
         with c.websocket_connect(f"/v1/runs/{run['run_id']}/stream") as ws:

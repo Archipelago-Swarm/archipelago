@@ -53,7 +53,7 @@ class Run:
     subs: set[Subscriber] = field(default_factory=set)
     commands: dict[str, dict[str, Any]] = field(default_factory=dict)
     task: asyncio.Task[None] | None = None
-    final: dict[str, Any] | None = None  # last snapshot, kept because close() clears the adapter world
+    final: dict[str, Any] | None = None  # kept: close() clears the adapter world
 
     def view(self) -> dict[str, Any]:
         return {
