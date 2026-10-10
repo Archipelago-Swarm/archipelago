@@ -58,7 +58,10 @@ def test_information_only_flagged_stub_and_bytes_counted():
 
 
 def test_committed_evidence_hashes_match():
-    import hashlib, json, pathlib
+    import hashlib
+    import json
+    import pathlib
+
     d = pathlib.Path(__file__).resolve().parents[2] / "agents/handoffs/T09/evidence"
     if not (d / "manifest.json").exists():
         return
