@@ -41,9 +41,16 @@ def test_headless_flight_and_collision_metric() -> None:
     assert ad.collisions == 0
 
     # a drone parked on top of another must register a physics contact
-    ad.reset(cfg.model_copy(update={"nodes": [
-        cfg.nodes[0], cfg.nodes[1].model_copy(update={"start_pose": cfg.nodes[0].start_pose}),
-    ]}))
+    ad.reset(
+        cfg.model_copy(
+            update={
+                "nodes": [
+                    cfg.nodes[0],
+                    cfg.nodes[1].model_copy(update={"start_pose": cfg.nodes[0].start_pose}),
+                ]
+            }
+        )
+    )
     ad.step({})
     assert ad.collisions > 0
     ad.close()
