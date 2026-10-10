@@ -14,8 +14,11 @@ ROOT = Path(__file__).resolve().parents[2]
 RT = ROOT / ".agent-runtime"
 STATE = RT / "driver.json"
 COORD = "agent-coordination"
-MAX_ATTEMPTS = 3
+MAX_ATTEMPTS = 6
 B_WAIT_MIN = 90
+# T06 forked from main after a carry-name collision. Preserve the complete
+# earlier implementation until a later T06 branch descends from this recovery.
+RECOVERY_SOURCES = {"T06": "agent/B/T06/reconciled-20261010"}
 
 
 def sh(*a, check=True, cwd=ROOT, **k):
@@ -89,11 +92,14 @@ def save(s):
 
 
 def gate():
-    bash = shutil.which("bash")
-    if not bash and shutil.which("git"):
-        candidate = Path(shutil.which("git")).resolve().parents[1] / "bin" / "bash.exe"
-        if candidate.is_file():
-            bash = str(candidate)
+    bash = None
+    if sys.platform == "win32":
+        git_exe = shutil.which("git")
+        candidates = [Path(git_exe).resolve().parents[1] / "bin" / "bash.exe"] if git_exe else []
+        candidates += [Path("C:/Program Files/Git/bin/bash.exe"), Path("C:/msys64/usr/bin/bash.exe")]
+        bash = next((str(candidate) for candidate in candidates if candidate.is_file()), None)
+    else:
+        bash = shutil.which("bash")
     if not bash:
         raise RuntimeError("Git Bash is required for scripts/check.sh")
     return sh(bash, "scripts/check.sh", check=False, timeout=1800).returncode == 0
@@ -142,19 +148,32 @@ def next_plan(run_hint, last, s):
             if not refs and m == "B":
                 continue
             if refs:
-                prior_ref = refs[0]
+                prior_ref = recovery_ref(task, refs[0])
                 carry = f"agent/{m}/{task}/carry-{run_hint or now().strftime('%Y%m%dT%H%M%S')}"
                 if sh("git", "push", "-q", "origin", f"{prior_ref}:refs/heads/{carry}", check=False).returncode:
                     continue
                 entry["source_branch"] = carry
         if prior:  # keep the previous owner; carry over the previous run's branch, never restart from main
             entry["machine"] = prior[0]
-            carry = f"agent/{prior[0]}/{task}/carry{s['attempts'].get(task, 0)}"
-            r = sh("git", "push", "-q", "origin", f"origin/agent/{prior[0]}/{run_hint}/{task}:refs/heads/{carry}", check=False)
-            if r.returncode == 0:
-                entry["source_branch"] = carry
+            carry = f"agent/{prior[0]}/{task}/carry-{run_hint}-{s['attempts'].get(task, 0)}"
+            source_ref = recovery_ref(task, f"origin/agent/{prior[0]}/{run_hint}/{task}")
+            r = sh("git", "push", "-q", "origin", f"{source_ref}:refs/heads/{carry}", check=False)
+            if r.returncode:
+                log(f"{task}: could not preserve {run_hint} checkpoint; skipping task")
+                continue
+            entry["source_branch"] = carry
         tasks.append(entry)
     return tasks
+
+
+def recovery_ref(task, candidate):
+    source = RECOVERY_SOURCES.get(task)
+    if not source:
+        return candidate
+    recovery = f"origin/{source}"
+    if sh("git", "merge-base", "--is-ancestor", recovery, candidate, check=False).returncode == 0:
+        return candidate
+    return recovery
 
 
 def publish(tasks):

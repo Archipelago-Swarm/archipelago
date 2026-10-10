@@ -346,15 +346,19 @@ def parse_result(output: str) -> dict[str, Any]:
 
 
 def bash_executable() -> str:
+    if os.name == "nt":
+        git_exe = shutil.which("git")
+        candidates = [Path(git_exe).resolve().parents[1] / "bin" / "bash.exe"] if git_exe else []
+        candidates += [Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git/bin/bash.exe",
+                       Path("C:/msys64/usr/bin/bash.exe")]
+        for candidate in candidates:
+            if candidate.is_file():
+                return str(candidate)
+        raise NightError("Git Bash is required for scripts/check.sh")
     found = shutil.which("bash")
     if found:
         return found
-    git_exe = shutil.which("git")
-    if git_exe and os.name == "nt":
-        adjacent = Path(git_exe).resolve().parents[1] / "bin" / "bash.exe"
-        if adjacent.is_file():
-            return str(adjacent)
-    raise NightError("Git Bash is required for scripts/check.sh")
+    raise NightError("bash is required for scripts/check.sh")
 
 
 def bootstrap_worktree(path: Path, task: dict[str, Any], plan: dict[str, Any]) -> None:
