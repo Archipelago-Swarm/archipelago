@@ -49,3 +49,21 @@ Working dir: C:\archipelago\.agent-runtime\worktrees\T10prep.
 2. Build api and web images; fix any path/lock issues; run local smoke.
 3. After node entrypoint lands, build node image; extend smoke.sh with the designed checks.
 4. Follow `infra/runbooks/vultr-deploy.md` only after the gates.
+
+## Update run 20261010T154653Z (machine B)
+
+- Added `tests/infra/test_compose.py`: runs real `docker compose config --format json` (dummy secrets, `.env.example`) for default and `local` profiles; asserts only `proxy` publishes ports and the four nodes have distinct volumes and sit only on the internal `peers` network. `py -m pytest tests/infra -q`: 3 passed.
+- `docker compose config` is now actually verified (it needs `ARCHIPELAGO_API_TOKEN` and `GRAFANA_ADMIN_PASSWORD` set). Still NOT RUN: image builds, smoke.sh, restart recovery, rollback, any Vultr/TigerData step.
+
+## Supervisor checkpoint 2026-10-10T15:47:01Z
+
+- Run: 20261010T154653Z
+- Machine: B
+- Task/branch: T10 / agent/B/20261010T154653Z/T10
+- Base: 45bdc473257fb74683742baf82491ac07808a592
+- Round: 1
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
