@@ -103,12 +103,41 @@ def decode(payload: bytes, learner):
     return meta, tensors
 
 
-def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None, sender=None):
+class OfferWindow:
+    """One exchange window (A1): at most one acceptance; candidates after it are not evaluated.
+
+    Also memoises the current-policy score (keyed on learner.version) so it is evaluated at most
+    once per window; ``evaluations`` counts every eval_fn call made through this window.
+    """
+
+    def __init__(self):
+        self.accepted = 0
+        self.evaluations = 0
+        self.offers = 0
+        self._cur: tuple[int, float] | None = None
+
+    def current_score(self, learner, eval_fn, own):
+        if self._cur is None or self._cur[0] != learner.version:
+            self.evaluations += 1
+            self._cur = (learner.version, eval_fn(own))
+        return self._cur[1]
+
+    def candidate_score(self, eval_fn, cand):
+        self.evaluations += 1
+        return eval_fn(cand)
+
+
+WINDOW_LIMIT = "window_limit"
+
+
+def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None, sender=None, window=None):
     """Accept the candidate only if eval_fn(params) beats the current policy by > margin.
 
     eval_fn receives a param-map-v1 dict of float32 NumPy arrays.
     alpha (mixing mode only, <=0.5) blends instead of replacing; mixing mode requires it.
     sender (transport source), if given, must match the node id the payload claims.
+    window (OfferWindow, optional): after the window's first acceptance every further candidate is
+    rejected with reason "window_limit" before decoding or evaluation (no validation cost).
     Returns the logged event.
     """
     ev = {
@@ -120,6 +149,10 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None, sender=None)
         "margin_required": margin,
     }
     try:
+        if window is not None:
+            window.offers += 1
+            if window.accepted:
+                raise PeerError(WINDOW_LIMIT)
         if learner.mode == "information_only":
             raise PeerError("information_only mode never loads parameters")
         meta, cand = decode(payload, learner)
@@ -138,7 +171,11 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None, sender=None)
                 raise PeerError("mixing needs mode=mixing and 0<alpha<=0.5")
             cand = {k: ((1 - alpha) * own[k] + alpha * cand[k]).astype(np.float32) for k in KEYS}
         t0 = time.perf_counter()
-        cur, new = eval_fn(own), eval_fn(cand)
+        if window is None:
+            cur, new = eval_fn(own), eval_fn(cand)
+        else:
+            cur = window.current_score(learner, eval_fn, own)
+            new = window.candidate_score(eval_fn, cand)
         ev["validation_seconds"] = time.perf_counter() - t0
         if not (np.isfinite(cur) and np.isfinite(new)):
             raise PeerError("nonfinite eval score")
@@ -148,6 +185,8 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None, sender=None)
     except PeerError as e:
         ev.update(accepted=False, reason=str(e))
     else:
+        if window is not None:
+            window.accepted += 1
         learner.previous = own
         learner.load_params_numpy(cand)
         learner.sync_target()

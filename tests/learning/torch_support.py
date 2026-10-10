@@ -3,7 +3,7 @@
 import numpy as np
 from archipelago_learning import Learner, TorchLearner
 
-ENC = "grid-flat-v1"
+ENC = "grid-flat-v1-s8-r2"
 
 
 def numpy_learner(node="n", seed=0, **kw):

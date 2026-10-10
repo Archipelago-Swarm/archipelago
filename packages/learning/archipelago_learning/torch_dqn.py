@@ -30,7 +30,7 @@ from .compat import (
     validate_params,
 )
 
-ENCODER = "grid-flat-v1"
+ENCODER = "grid-flat-v1-s8-r2"
 CKPT_SCHEMA = "torch-ckpt-v1"
 _PREFIX = "extra."
 MAX_CKPT_EVENTS = 1000  # newest events kept in a checkpoint; bounds size and write time

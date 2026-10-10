@@ -147,3 +147,60 @@ def read_latest(root) -> tuple[dict, dict[str, bytes]]:
         if got is not None:
             return got
     raise CheckpointError(f"no loadable checkpoint generation under {root}")
+
+
+# A17 fixed file names and cadence (live-runtime.md section 13).
+FILE_POLICY = "policy.npz"
+FILE_TARGET = "target.npz"
+FILE_OPTIMIZER = "optimizer.npz"
+FILE_REPLAY = "replay.npz"
+FILE_RNG = "rng.json"
+FILE_COUNTERS = "counters.json"
+CHECKPOINT_FILES = (FILE_POLICY, FILE_TARGET, FILE_OPTIMIZER, FILE_REPLAY, FILE_RNG, FILE_COUNTERS)
+CHECKPOINT_EVERY_FEEDBACK_STEPS = 200  # plus one generation at each episode_end
+
+
+def replay_max_bytes(capacity: int, obs_dim: int) -> int:
+    """Replay file size bound from A17: capacity * obs_dim * 4 * 2."""
+    return capacity * obs_dim * 4 * 2
+
+
+def checkpoint_due(feedback_steps: int) -> bool:
+    return feedback_steps > 0 and feedback_steps % CHECKPOINT_EVERY_FEEDBACK_STEPS == 0
+
+
+# A3: crash-safe monotonic sequence numbers. The persisted value is a ceiling: every number
+# below it may already have been issued. A new process starts at the persisted ceiling and
+# reserves the next block before issuing from it, so a crash can waste numbers but never reuse.
+SEQUENCE_BLOCK = 1000
+
+
+class SequenceAllocator:
+    """Block-reserved sequence allocator. ``state_path`` holds JSON {"ceiling": n}."""
+
+    def __init__(self, state_path, io: DurableIO | None = None, block: int = SEQUENCE_BLOCK):
+        self._path = Path(state_path)
+        self._io = io or DurableIO()
+        self._block = block
+        try:
+            self._ceiling = int(json.loads(self._path.read_bytes())["ceiling"])
+        except FileNotFoundError:
+            self._ceiling = 0
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            raise CheckpointError(f"unreadable sequence state {self._path}: {e}") from e
+        self._next = self._ceiling  # numbers below the old ceiling may have been issued
+
+    @property
+    def ceiling(self) -> int:
+        return self._ceiling
+
+    def next(self) -> int:
+        if self._next >= self._ceiling:
+            new = self._ceiling + self._block
+            self._io.mkdir(self._path.parent)
+            self._io.write_file(self._path, json.dumps({"ceiling": new}).encode())
+            self._io.fsync_dir(self._path.parent)
+            self._ceiling = new
+        n = self._next
+        self._next += 1
+        return n
