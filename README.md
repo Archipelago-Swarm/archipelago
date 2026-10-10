@@ -31,3 +31,5 @@ Both developers clone this repository and authenticate their own Claude/GitHub a
 No credentials belong in Git. No cloud resources or paid agent runs have been created by this initialization. License choice remains an owner decision before a public open-source release.
 
 Validate this planning foundation with `python tools/check_foundation.py`. Application install/run commands will be established and documented by T01.
+
+For an unattended two-computer coding run after T01 and T02 merge, use the [executable night-runner instructions](agents/operations/night-runner.md). It publishes a fixed task plan, runs one worker per computer, verifies each slice, and leaves review branches and morning reports.

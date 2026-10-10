@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "tasks": [
+    {"id": "T03", "machine": "A", "paths": ["packages/sim/", "packages/adapters/sim2d/", "tests/sim/"]},
+    {"id": "T05", "machine": "A", "paths": ["packages/transport/", "packages/node/peer/", "tests/transport/"]},
+    {"id": "T04", "machine": "B", "source_branch": "agent/B/T04/run-api", "paths": ["services/api/", "tests/api/"]},
+    {"id": "T06", "machine": "B", "paths": ["apps/web/", "tests/web/"]},
+    {"id": "T08", "machine": "B", "paths": ["packages/storage/", "observability/", "tests/storage/"]}
+  ]
+}
