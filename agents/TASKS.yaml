@@ -914,13 +914,13 @@ tasks:
   name: Live-runtime interface agreement and task registration
   description: Integrator-authored interface agreement (agents/architecture/live-runtime.md), ADR-0008,
     ownership domains and ledger entries T24-T31 for the live decentralized-learning experiment.
-  state: REVIEW
+  state: INTEGRATION
   priority: 0
   owner: A/integrator
   machine: A
   branch: agent/T24-live-runtime-interface-agreement
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:32:10Z'
+  updated_at: '2026-10-10T20:48:28Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -967,6 +967,12 @@ tasks:
     from: ACTIVE
     to: REVIEW
     by: A/integrator
+    note: ''
+  - at: '2026-10-10T20:48:28Z'
+    event: verify_pass
+    from: REVIEW
+    to: INTEGRATION
+    by: cloud/verifier
     note: ''
 - id: T25
   name: Make the legacy runners safe to leave on disk
