@@ -413,3 +413,21 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A update (run 20261010T141700Z)
+- No code change. `pytest tests/experiments tests/learning` -> 27 passed on a clean tree.
+- Still open, unchanged: real CTDE actor/critic (design-sized, needs scope decision; `packages/learning` is reserved), real node loss (sim outside reserved paths), compute-cap approval, task card status, `*.jsonl eol=lf`. Evidence bundle unchanged (PRELIMINARY n=12; no superiority claim). Not committed or pushed by the worker.
+- Next action: integrator picks CTDE scope (joint-obs critic + per-node actors in numpy) so the next run can implement it.
+
+## Supervisor checkpoint 2026-10-10T14:18:49Z
+
+- Run: 20261010T141700Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T141700Z/T09
+- Base: fadac6f612890eb24d1100dda15bded8a08231a6
+- Round: 1
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
