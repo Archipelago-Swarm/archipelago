@@ -35,8 +35,8 @@ def episode(env, learners, seed, eps=0.0, train=True):
     while env.agents:
         acts = {a: learners[a].act(_norm(obs[a]), eps) for a in env.agents}
         nxt, rew, term, trunc, _ = env.step(acts)
-        for a in acts:
-            learners[a].observe(_norm(obs[a]), acts[a], rew[a], _norm(nxt[a]), term[a] or trunc[a])
+        for a in acts:  # done=term only: time-limit truncation must still bootstrap
+            learners[a].observe(_norm(obs[a]), acts[a], rew[a], _norm(nxt[a]), term[a])
             total[a] += rew[a]
             if train:
                 learners[a].train_step()

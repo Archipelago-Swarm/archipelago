@@ -1,3 +1,7 @@
+import io
+import json
+import zipfile
+
 import numpy as np
 import pytest
 from archipelago_learning import Learner, PeerError, decode, encode, offer, rollback
@@ -85,7 +89,7 @@ def test_information_only_and_mixing_bounds():
     assert not offer(mix, encode(good), score, alpha=0.9)["accepted"]
 
 
-def test_islands_continue_and_restart_restores(tmp_path):
+def test_checkpoint_restart_restores_state(tmp_path):
     a = trained(0)
     a.save(tmp_path)
     for _ in range(5):
@@ -99,13 +103,70 @@ def test_islands_continue_and_restart_restores(tmp_path):
     assert all(np.array_equal(a.params[k], b.params[k]) for k in a.params)
 
 
+def test_checkpoint_restores_rollback_events_paused_and_checks_shape(tmp_path):
+    good, fresh = trained(0, "good"), Learner("fresh", 3, 3, seed=5)
+    assert offer(fresh, encode(good), score)["accepted"]
+    fresh.paused = True
+    fresh.save(tmp_path)
+    assert not list(tmp_path.glob("*.tmp"))
+    r = Learner("fresh", 3, 3, seed=1)
+    r.load(tmp_path)
+    assert r.paused and r.events == fresh.events and r.previous is not None
+    assert rollback(r) and score(r.params) < 1.0  # rollback survives restart
+    with pytest.raises(ValueError, match="shape"):
+        Learner("x", 3, 3, hidden=8).load(tmp_path)
+
+
+def _npz(meta: bytes, compressed=False, **extra):
+    a = Learner("a", 3, 3)
+    buf = io.BytesIO()
+    (np.savez_compressed if compressed else np.savez)(
+        buf, _meta=np.frombuffer(meta, np.uint8), **{**a.params, **extra}
+    )
+    return buf.getvalue()
+
+
+def test_decode_rejects_nonobject_meta_and_inflation_bomb():
+    a = Learner("a", 3, 3)
+    for m in (b"[1]", b"null"):
+        with pytest.raises(PeerError, match="malformed"):
+            decode(_npz(m), a)
+    bomb = _npz(json.dumps({"node": "b"}).encode(), True, junk=np.zeros(1 << 25, np.uint8))
+    assert len(bomb) < (1 << 20)  # passes the compressed-size check
+    with pytest.raises(PeerError, match="inflates"):
+        decode(bomb, a)
+    assert not offer(a, bomb, score)["accepted"]
+    assert zipfile.is_zipfile(io.BytesIO(bomb))
+
+
+def test_offer_rejects_spoofed_sender_unbounded_mixing_and_nonfinite_score():
+    good = trained(0, "good")
+    p = encode(good)
+    fresh = Learner("f", 3, 3, seed=5)
+    ev = offer(fresh, p, score, sender="mallory")
+    assert not ev["accepted"] and "sender" in ev["reason"]
+    mix = Learner("m", 3, 3, seed=5, mode="mixing")
+    assert not offer(mix, p, score)["accepted"]  # alpha=None would full-replace
+    ev = offer(fresh, p, lambda q: float("inf") if q is not fresh.params else 0.0)
+    assert not ev["accepted"] and "nonfinite" in ev["reason"] and "candidate_score" not in ev
+
+
+def test_time_limit_truncation_is_not_stored_as_terminal():
+    from archipelago_learning.rollout import episode, make_env, make_learner
+
+    env = make_env()
+    ls = dict.fromkeys(env.possible_agents, make_learner("a", 0))
+    episode(env, ls, 5, eps=1.0, train=False)  # seed 5 runs to the time limit, no terminal
+    L = ls[env.possible_agents[0]]
+    assert env.world.tick >= 60 and L.n > 0 and L.replay["d"][: L.n].sum() == 0
+
+
 def test_transfer_vs_no_transfer_control():
-    # Same-seed control trains nothing; reports both scores honestly.
+    # Untrained control vs a student that accepted a perfect teacher: transfer must help here.
     teacher = trained(0, "t")
     control, treated = Learner("c", 3, 3, seed=5), Learner("t2", 3, 3, seed=5)
-    offer(treated, encode(teacher), score)
-    print(f"transfer-eval: control={score(control.params):.2f} treated={score(treated.params):.2f}")
-    assert score(treated.params) >= score(control.params)
+    assert offer(treated, encode(teacher), score)["accepted"]
+    assert score(control.params) < 1.0 and score(treated.params) == 1.0
 
 
 # --- grid sim, transport, contract events -------------------------------------------------
@@ -128,8 +189,9 @@ def test_grid_transfer_multiseed_reports_and_gates():
     for r in rows:
         print(f"grid-transfer {r}")
     print(f"mean delta={np.mean([r['delta'] for r in rows]):+.3f}")
-    # A rejected offer leaves the arms identical (delta 0); any other delta is honest signal.
-    assert all(np.isfinite(r["delta"]) and (r["accepted"] or r["delta"] == 0) for r in rows)
+    # Gate check: a rejected offer must leave the student exactly as the control (delta 0).
+    assert all(np.isfinite(r["delta"]) for r in rows)
+    assert all(r["delta"] == 0 for r in rows if not r["accepted"])
 
 
 def test_mixing_accepted_is_bounded_and_changes_policy():

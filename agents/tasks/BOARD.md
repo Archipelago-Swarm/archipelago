@@ -5,17 +5,17 @@ This is the dependency plan. T01 is complete and the initial T02 runner is integ
 | Task | Planned computer | Depends on | Initial state | Scope |
 |---|---|---|---|---|
 | [T01](T01.md) | A | none | done (PR #1) | Bootstrap the executable workspace and freeze shared contracts |
-| [T02](T02.md) | A | T01 | initial runner merged (PR #2); trial pending | Implement durable coordination and the bounded overnight supervisor |
-| [T03](T03.md) | A | T01 | waiting | Implement the seeded 2D environment and adapter |
-| [T04](T04.md) | B | T01 | provisional after T01 review | Build run lifecycle API and live/replay streaming |
-| [T05](T05.md) | A | T01 | waiting | Implement peer transport and seeded network faults |
-| [T06](T06.md) | B | T01 | waiting | Build the 2D dashboard and replay controls |
-| [T07](T07.md) | A | T03, T05 | waiting | Implement independent learners and validated peer learning |
-| [T08](T08.md) | B | T01 | waiting | Add TigerData persistence and Grafana observability |
+| [T02](T02.md) | A | T01 | done | Implement durable coordination and the bounded overnight supervisor |
+| [T03](T03.md) | A | T01 | done | Implement the seeded 2D environment and adapter |
+| [T04](T04.md) | B | T01 | done | Build run lifecycle API and live/replay streaming |
+| [T05](T05.md) | A | T01 | done | Implement peer transport and seeded network faults |
+| [T06](T06.md) | B | T01 | in_progress | Build the 2D dashboard and replay controls |
+| [T07](T07.md) | A | T03, T05 | done | Implement independent learners and validated peer learning |
+| [T08](T08.md) | B | T01 | review: merged, real-DB checks NOT RUN (needs Docker) | Add TigerData persistence and Grafana observability |
 | [T09](T09.md) | A | T07, T08 | waiting | Run fair baselines and reproducible partition experiments |
 | [T10](T10.md) | B | T03, T04, T05, T06, T08 | waiting | Package and deploy the working stack to Vultr |
 | [T11](T11.md) | B | T09, T10 | waiting | Create the measured demo narrative and optional Remotion video |
-| [T12](T12.md) | A | T07 | waiting | Prove the open-source 3D adapter path |
+| [T12](T12.md) | A | T07 | in_progress | Prove the open-source 3D adapter path |
 
 ## Dispatch rules
 
