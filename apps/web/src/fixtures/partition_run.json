@@ -1,0 +1,478 @@
+[
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 0,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 1,
+  "kind": "world_snapshot",
+  "event_id": "ev-1",
+  "source_node_id": null,
+  "run_status": "running",
+  "poses": {
+   "node-01": {
+    "x": 1,
+    "y": 2,
+    "z": 0,
+    "heading_rad": 0
+   },
+   "node-02": {
+    "x": 5,
+    "y": 0,
+    "z": 0,
+    "heading_rad": 0
+   }
+  },
+  "obstacles": [
+   [
+    3,
+    3
+   ]
+  ],
+  "coverage": 0.05,
+  "topology": {
+   "links": [
+    [
+     "node-01",
+     "node-02"
+    ]
+   ]
+  }
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 0,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 2,
+  "kind": "metric_sample",
+  "event_id": "ev-2",
+  "source_node_id": null,
+  "metric": "fault_phase",
+  "value": 0,
+  "unit": "state",
+  "phase": "other"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 1,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 3,
+  "kind": "metric_sample",
+  "event_id": "ev-3",
+  "source_node_id": "node-01",
+  "metric": "rss_bytes",
+  "value": 104857600,
+  "unit": "bytes",
+  "phase": "train"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 1,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 4,
+  "kind": "metric_sample",
+  "event_id": "ev-4",
+  "source_node_id": "node-01",
+  "metric": "telemetry_backlog",
+  "value": 2,
+  "unit": "events",
+  "phase": "train"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 1,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 5,
+  "kind": "metric_sample",
+  "event_id": "ev-5",
+  "source_node_id": "node-01",
+  "metric": "telemetry_dropped",
+  "value": 0,
+  "unit": "events",
+  "phase": "train"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 1,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 6,
+  "kind": "metric_sample",
+  "event_id": "ev-6",
+  "source_node_id": "node-02",
+  "metric": "rss_bytes",
+  "value": 115343360,
+  "unit": "bytes",
+  "phase": "train"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 1,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 7,
+  "kind": "metric_sample",
+  "event_id": "ev-7",
+  "source_node_id": "node-01",
+  "metric": "replay_size",
+  "value": 64,
+  "unit": "transitions",
+  "phase": "train"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 1,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 8,
+  "kind": "metric_sample",
+  "event_id": "ev-8",
+  "source_node_id": "node-01",
+  "metric": "episode_return",
+  "value": -3,
+  "unit": "return",
+  "phase": "train"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 2,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 9,
+  "kind": "learning_event",
+  "event_id": "ev-9",
+  "source_node_id": "node-01",
+  "wall_seconds": 0.02,
+  "update_count": 10,
+  "loss": 0.5,
+  "previous_version": 1,
+  "new_version": 2,
+  "transfer": "accepted",
+  "reason": "score_improved",
+  "candidate_score": 0.8,
+  "bytes": 2048
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 2,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 10,
+  "kind": "learning_event",
+  "event_id": "ev-10",
+  "source_node_id": "node-02",
+  "wall_seconds": 0.02,
+  "update_count": 8,
+  "loss": 0.75,
+  "previous_version": 1,
+  "new_version": 1,
+  "transfer": "rejected",
+  "reason": "score_below_tolerance",
+  "candidate_score": -0.5,
+  "bytes": 1024
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 3,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 11,
+  "kind": "world_snapshot",
+  "event_id": "ev-11",
+  "source_node_id": null,
+  "run_status": "running",
+  "poses": {
+   "node-01": {
+    "x": 2,
+    "y": 2,
+    "z": 0,
+    "heading_rad": 0
+   },
+   "node-02": {
+    "x": 5,
+    "y": 1,
+    "z": 0,
+    "heading_rad": 0
+   }
+  },
+  "obstacles": [
+   [
+    3,
+    3
+   ]
+  ],
+  "coverage": 0.125,
+  "topology": {
+   "links": [
+    [
+     "node-01",
+     "node-02"
+    ]
+   ]
+  }
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 3,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 12,
+  "kind": "metric_sample",
+  "event_id": "ev-12",
+  "source_node_id": "node-01",
+  "metric": "episode_return",
+  "value": 1,
+  "unit": "return",
+  "phase": "eval"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 4,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 13,
+  "kind": "metric_sample",
+  "event_id": "ev-13",
+  "source_node_id": null,
+  "metric": "fault_phase",
+  "value": 1,
+  "unit": "state",
+  "phase": "partition"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 4,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 14,
+  "kind": "world_snapshot",
+  "event_id": "ev-14",
+  "source_node_id": null,
+  "run_status": "running",
+  "poses": {
+   "node-01": {
+    "x": 3,
+    "y": 2,
+    "z": 0,
+    "heading_rad": 0
+   },
+   "node-02": {
+    "x": 5,
+    "y": 2,
+    "z": 0,
+    "heading_rad": 0
+   }
+  },
+  "obstacles": [
+   [
+    3,
+    3
+   ]
+  ],
+  "coverage": 0.25,
+  "topology": {
+   "links": []
+  }
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 4,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 15,
+  "kind": "metric_sample",
+  "event_id": "ev-15",
+  "source_node_id": null,
+  "metric": "node_unavailable",
+  "value": 0,
+  "unit": "nodes",
+  "phase": "partition"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 5,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 16,
+  "kind": "metric_sample",
+  "event_id": "ev-16",
+  "source_node_id": "node-01",
+  "metric": "telemetry_backlog",
+  "value": 7,
+  "unit": "events",
+  "phase": "partition"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 5,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 17,
+  "kind": "metric_sample",
+  "event_id": "ev-17",
+  "source_node_id": "node-01",
+  "metric": "telemetry_dropped",
+  "value": 1,
+  "unit": "events",
+  "phase": "partition"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 6,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 18,
+  "kind": "metric_sample",
+  "event_id": "ev-18",
+  "source_node_id": null,
+  "metric": "fault_phase",
+  "value": 2,
+  "unit": "state",
+  "phase": "recovery"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 6,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 19,
+  "kind": "world_snapshot",
+  "event_id": "ev-19",
+  "source_node_id": null,
+  "run_status": "running",
+  "poses": {
+   "node-01": {
+    "x": 3,
+    "y": 3,
+    "z": 0,
+    "heading_rad": 0
+   },
+   "node-02": {
+    "x": 4,
+    "y": 2,
+    "z": 0,
+    "heading_rad": 0
+   }
+  },
+  "obstacles": [
+   [
+    3,
+    3
+   ]
+  ],
+  "coverage": 0.375,
+  "topology": {
+   "links": [
+    [
+     "node-01",
+     "node-02"
+    ]
+   ]
+  }
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 7,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 20,
+  "kind": "metric_sample",
+  "event_id": "ev-20",
+  "source_node_id": null,
+  "metric": "fault_phase",
+  "value": 0,
+  "unit": "state",
+  "phase": "other"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 7,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 21,
+  "kind": "metric_sample",
+  "event_id": "ev-21",
+  "source_node_id": "node-01",
+  "metric": "episode_return",
+  "value": 2,
+  "unit": "return",
+  "phase": "train"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 7,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 22,
+  "kind": "metric_sample",
+  "event_id": "ev-22",
+  "source_node_id": "node-01",
+  "metric": "episode_return",
+  "value": 3,
+  "unit": "return",
+  "phase": "eval"
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 8,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 23,
+  "kind": "learning_event",
+  "event_id": "ev-23",
+  "source_node_id": "node-02",
+  "wall_seconds": 0.02,
+  "update_count": 16,
+  "loss": 0.25,
+  "previous_version": 1,
+  "new_version": 3,
+  "transfer": "accepted",
+  "reason": "score_improved",
+  "candidate_score": 1.5,
+  "bytes": 4096
+ },
+ {
+  "schema_version": "0.1.0",
+  "run_id": "run-partition-001",
+  "sim_tick": 8,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 24,
+  "kind": "world_snapshot",
+  "event_id": "ev-24",
+  "source_node_id": null,
+  "run_status": "running",
+  "poses": {
+   "node-01": {
+    "x": 3,
+    "y": 3,
+    "z": 0,
+    "heading_rad": 0
+   },
+   "node-02": {
+    "x": 4,
+    "y": 3,
+    "z": 0,
+    "heading_rad": 0
+   }
+  },
+  "obstacles": [
+   [
+    3,
+    3
+   ]
+  ],
+  "coverage": 0.5,
+  "topology": {
+   "links": [
+    [
+     "node-01",
+     "node-02"
+    ]
+   ]
+  }
+ }
+]

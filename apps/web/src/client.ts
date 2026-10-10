@@ -38,15 +38,19 @@ export async function sendCommand(id: string, command: string, f: Fetch = fetch)
 }
 
 // Replays by paging the events endpoint; the result is recorded history, never live state.
-export async function loadReplay(id: string, f: Fetch = fetch): Promise<WorldSnapshot[]> {
-  const frames: WorldSnapshot[] = [];
+export async function loadReplayRecords(id: string, f: Fetch = fetch): Promise<Record<string, unknown>[]> {
+  const records: Record<string, unknown>[] = [];
   let after = 0;
   for (;;) {
-    const p = await call<{ events: { sequence: number; snapshot?: WorldSnapshot }[]; latest_sequence: number }>(f, `/v1/runs/${id}/events?after_sequence=${after}&limit=500`);
-    for (const e of p.events) if (e.snapshot?.kind === "world_snapshot") frames.push(e.snapshot);
-    if (!p.events.length || p.events[p.events.length - 1].sequence >= p.latest_sequence) return frames;
+    const p = await call<{ events: ({ sequence: number; snapshot?: unknown; event?: unknown } & Record<string, unknown>)[]; latest_sequence: number }>(f, `/v1/runs/${id}/events?after_sequence=${after}&limit=500`);
+    for (const e of p.events) records.push((e.snapshot ?? e.event ?? e) as Record<string, unknown>);
+    if (!p.events.length || p.events[p.events.length - 1].sequence >= p.latest_sequence) return records;
     after = p.events[p.events.length - 1].sequence;
   }
+}
+
+export async function loadReplay(id: string, f: Fetch = fetch): Promise<WorldSnapshot[]> {
+  return (await loadReplayRecords(id, f)).filter((r) => r.kind === "world_snapshot") as unknown as WorldSnapshot[];
 }
 
 // Health is derived only from the topology we are given: a drone with no link is reported isolated.

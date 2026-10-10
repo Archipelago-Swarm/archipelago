@@ -2,7 +2,8 @@ import { useEffect, useReducer, useState } from "react";
 import type { WorldSnapshot } from "@archipelago/contracts";
 import runConfig from "../../../packages/contracts/fixtures/good/run_config.json";
 import snapshot from "../../../packages/contracts/fixtures/good/world_snapshot.json";
-import { ApiError, getRun, loadReplay, login, sendCommand, startRun } from "./client";
+import { ApiError, getRun, loadReplayRecords, login, sendCommand, startRun } from "./client";
+import { emptyPanels, panelsReducer, recordOf } from "./live";
 import { commandsDisabled, connectStream, liveReducer, type Source } from "./status";
 import { View } from "./View";
 
@@ -15,6 +16,8 @@ export function App() {
   const runId = params.get("run");
   const source: Source = runId ? (params.get("replay") ? "replay" : "live") : "fixture";
   const [live, dispatch] = useReducer(liveReducer, { snap: null, conn: "disconnected" });
+  const [panels, pdispatch] = useReducer(panelsReducer, undefined, emptyPanels);
+  const [now, setNow] = useState(() => Date.now());
   const [frames, setFrames] = useState<WorldSnapshot[]>([]);
   const [frame, setFrame] = useState(0);
   const [error, setError] = useState("");
@@ -24,14 +27,22 @@ export function App() {
 
   useEffect(() => {
     if (!runId || source !== "live") return;
-    const stop = connectStream(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/v1/runs/${runId}/stream`, dispatch);
+    const stop = connectStream(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/v1/runs/${runId}/stream`, (e) => {
+      dispatch(e);
+      if (e.t === "message") { try { pdispatch({ t: "record", record: recordOf(JSON.parse(e.data)), at: Date.now() }); } catch { /* unparseable frames are ignored, as in liveReducer */ } }
+    });
     getRun(runId).catch(fail);
-    return stop;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => { stop(); clearInterval(tick); };
   }, [runId, source]);
 
   useEffect(() => {
     if (!runId || source !== "replay") return;
-    loadReplay(runId).then((f) => { setFrames(f); setFrame(0); }).catch(fail);
+    loadReplayRecords(runId).then((records) => {
+      pdispatch({ t: "reset" });
+      for (const r of records) pdispatch({ t: "record", record: r, at: 0 });
+      setFrames(records.filter((r) => r.kind === "world_snapshot") as unknown as WorldSnapshot[]); setFrame(0);
+    }).catch(fail);
   }, [runId, source]);
 
   const snap = source === "fixture" ? fixture : source === "replay" ? frames[frame] ?? null : live.snap;
@@ -50,7 +61,7 @@ export function App() {
           .then((r) => { location.search = `?run=${r.run_id}`; }).catch(fail); }}>
         <label>Seed <input name="seed" type="number" min={0} step={1} defaultValue={1} required /></label> <button>Start run</button>
       </form>
-      <View source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} status={source === "live" ? live.status : undefined} />
+      <View source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : panels} now={now} status={source === "live" ? live.status : undefined} />
       {source === "replay" && frames.length > 0 && (
         <label>Frame {frame + 1}/{frames.length} <input type="range" min={0} max={frames.length - 1} value={frame} onChange={(e) => setFrame(+e.target.value)} /></label>
       )}
