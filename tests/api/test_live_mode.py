@@ -394,3 +394,28 @@ def test_sink_outage_never_blocks_ingest_or_the_event_log(stack: Callable[..., S
         wait_for(
             lambda: db.execute("SELECT count(*) FROM events").fetchall()[0][0] > 0, "recovery flush"
         )
+
+
+def test_a_stop_command_never_shows_completed_before_the_final_events_are_pulled(
+    stack: Callable[..., Stack],
+) -> None:
+    """The command reply must not finish the run: the driver does, after draining events."""
+    s = stack()
+    with TestClient(s.app) as c:
+        rid = s.post_run(c).json()["run_id"]
+        run = s.app.state.manager.runs[rid]
+        wait_for(
+            lambda: c.get(f"/v1/runs/{rid}", headers=AUTH).json()["status"] == "paused", "pause"
+        )
+        rev = c.get(f"/v1/runs/{rid}", headers=AUTH).json()["revision"]
+        stop = {"command_id": "stop-1", "command": "stop", "expected_revision": rev}
+        reply = c.post(f"/v1/runs/{rid}/commands", json=stop, headers=AUTH)
+        assert reply.status_code == 200
+        assert reply.json()["status"] != "completed"  # the reply itself never terminates the run
+        wait_for(lambda: run.status == "completed", "driver finishes the run")
+        count = len(c.get(f"/v1/runs/{rid}/events?limit=500", headers=AUTH).json()["events"])
+        # once completed is visible the event log is final: no further events arrive
+        time.sleep(0.3)
+        assert (
+            len(c.get(f"/v1/runs/{rid}/events?limit=500", headers=AUTH).json()["events"]) == count
+        )
