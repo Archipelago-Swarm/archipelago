@@ -59,11 +59,17 @@ class Sim2DAdapter:
 
     def reset(self, config: RunConfig) -> dict[str, Observation]:
         nodes = sorted(n.node_id for n in config.nodes)
-        self.world = GridWorld(n_agents=len(nodes), max_ticks=config.budgets.max_ticks, **self.kw)
+        self.world = GridWorld(
+            n_agents=len(nodes),
+            max_ticks=config.budgets.max_ticks,
+            **{"reward_id": config.reward_id, **self.kw},
+        )
         self.world.possible_agents = nodes  # contract node ids replace default names
         self._run_id, self._seq, self.replay, self._cfg = config.run_id, 0, [], config
-        # shortcut: start_pose ignored (seeded random starts), honour it when scenarios need it
-        raw = self.world.reset(seed=config.seeds["env"])
+        starts = {n.node_id: (int(n.start_pose.x), int(n.start_pose.y)) for n in config.nodes}
+        if len(set(starts.values())) != len(starts):
+            raise ValueError("node start poses must be distinct")
+        raw = self.world.reset(seed=config.seeds["env"], starts=starts)
         return {n: self._obs(n, o) for n, o in raw.items()}
 
     def step(self, actions: dict[str, Action]) -> StepResult:
@@ -113,3 +119,14 @@ class Sim2DAdapter:
 
     def close(self) -> None:
         self.world = None
+
+
+def replay_final_hash(config: RunConfig, records: list[dict], **world_kwargs) -> str:
+    """Re-execute recorded actions on a fresh world; return its final state hash."""
+    from .smoke import make_action  # local: smoke imports this module
+
+    ad = Sim2DAdapter(**world_kwargs)
+    ad.reset(config)
+    for r in records:
+        ad.step({n: make_action(n, r["tick"], c) for n, c in r["actions"].items() if c})
+    return ad.world.trace_hash()  # type: ignore[union-attr]

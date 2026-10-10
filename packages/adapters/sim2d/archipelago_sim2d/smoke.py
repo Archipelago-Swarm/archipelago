@@ -19,7 +19,7 @@ def make_config(seed: int, ticks: int, n: int = 4) -> RunConfig:
         simulator_version="0.1.0",
         scenario_hash="0" * 64,
         seeds={"env": seed, "topology": 0, "learner": 0, "exploration": 0},
-        nodes=[{"node_id": f"node-{i}", "start_pose": {"x": 0, "y": 0}} for i in range(n)],
+        nodes=[{"node_id": f"node-{i}", "start_pose": {"x": i, "y": 0}} for i in range(n)],
         observation_id="obs-v0",
         action_id="act-v0",
         reward_id="rew-v0",
@@ -44,9 +44,9 @@ def make_action(node: str, tick: int, command: str) -> Action:
     )
 
 
-def run_explorer(seed: int, ticks: int, n: int = 4, silent: frozenset[str] = frozenset()):
+def run_explorer(seed: int, ticks: int, n: int = 4, silent: frozenset[str] = frozenset(), **kw):
     """Run to termination; nodes in `silent` never send actions (node timeout)."""
-    ad = Sim2DAdapter()
+    ad = Sim2DAdapter(**kw)
     obs = ad.reset(make_config(seed, ticks, n))
     rng, visits, t = random.Random(seed), {k: {} for k in obs}, 0
     while obs:

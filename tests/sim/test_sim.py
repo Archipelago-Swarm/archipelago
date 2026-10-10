@@ -3,7 +3,8 @@ import random
 
 import pytest
 from archipelago_sim.env import GridWorld, explorer_policy
-from archipelago_sim2d.smoke import run_explorer
+from archipelago_sim2d.adapter import replay_final_hash
+from archipelago_sim2d.smoke import make_config, run_explorer
 
 
 def run(seed, ticks=60):
@@ -77,3 +78,22 @@ def test_parallel_api_shape():
     assert w.possible_agents == w.agents and set(w.action_spaces) == set(w.agents)
     with pytest.raises(RuntimeError):
         GridWorld().step({})
+
+
+def test_full_900_ticks_replay_reexecutes_and_start_poses(tmp_path):
+    kw = {"n_targets": 0, "battery_scale": 10.0}  # no target to end the run early
+    ad = run_explorer(5, 900, **kw)
+    m = json.loads(ad.write_replay(tmp_path).read_text())
+    assert m["ticks"] == 900
+    records = [json.loads(line) for line in (tmp_path / "replay.jsonl").read_text().splitlines()]
+    assert replay_final_hash(make_config(5, 900), records, **kw) == m["final_state_hash"]
+    fresh = type(ad)(**kw)
+    fresh.reset(make_config(5, 900))
+    assert [(o.x, o.y) for o in fresh.snapshot().poses.values()] == [
+        (i + 0.5, 0.5) for i in range(4)
+    ]
+
+
+def test_unknown_reward_id_rejected():
+    with pytest.raises(ValueError):
+        GridWorld(reward_id="nope")

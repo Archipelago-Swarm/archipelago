@@ -14,7 +14,9 @@ from dataclasses import dataclass, field
 ACTIONS = ("stay", "north", "east", "south", "west")
 DELTA = {"stay": (0, 0), "north": (0, -1), "east": (1, 0), "south": (0, 1), "west": (-1, 0)}
 UNKNOWN, FREE, WALL = -1, 0, 1
-R_NEW_CELL, R_TARGET, R_STEP, R_COLLISION, R_INVALID = 1.0, 5.0, -0.01, -0.5, -0.1
+REWARD_SPECS = {  # reward_id -> (new_cell, target, step, collision, invalid)
+    "rew-v0": (1.0, 5.0, -0.01, -0.5, -0.1),
+}
 MOVE_COST, STAY_COST = 0.004, 0.001
 
 
@@ -40,7 +42,13 @@ class GridWorld:
         sense_radius: int = 2,
         max_ticks: int = 900,
         battery_scale: float = 1.0,
+        reward_id: str = "rew-v0",
     ):
+        if reward_id not in REWARD_SPECS:
+            raise ValueError(f"unknown reward_id {reward_id!r}")
+        self.r_new_cell, self.r_target, self.r_step, self.r_collision, self.r_invalid = (
+            REWARD_SPECS[reward_id]
+        )
         self.size, self.n_targets, self.radius = size, n_targets, sense_radius
         self.density, self.max_ticks, self.battery_scale = (
             obstacle_density,
@@ -74,6 +82,13 @@ class GridWorld:
         for a in self.agents:
             self._sense(a)
         return {a: self.observe(a) for a in self.agents}
+
+    def observation_space(self, agent: str) -> dict:
+        r = 2 * self.radius + 1
+        return {"crop": (r, r), "pose": 2, "battery": 1}
+
+    def action_space(self, agent: str) -> int:
+        return len(ACTIONS)
 
     def _cell(self, c):
         in_bounds = 0 <= c[0] < self.size and 0 <= c[1] < self.size
@@ -114,12 +129,12 @@ class GridWorld:
             raise RuntimeError("step() on a finished episode; call reset()")
         self.tick += 1
         ev = self.events
-        rewards = {a: R_STEP for a in self.agents}
+        rewards = {a: self.r_step for a in self.agents}
         cmds: dict[str, str] = {}
         for a in self.agents:
             c = actions.get(a)
             if c not in ACTIONS:  # invalid or missing (node timeout) -> stay
-                rewards[a] += R_INVALID
+                rewards[a] += self.r_invalid
                 ev.append(
                     {
                         "tick": self.tick,
@@ -134,7 +149,7 @@ class GridWorld:
         for a in self.agents:
             if self._cell(want[a]) == WALL:
                 want[a] = pos[a]
-                rewards[a] += R_COLLISION
+                rewards[a] += self.r_collision
                 ev.append({"tick": self.tick, "node": a, "event": "wall_collision"})
         # Fixpoint: shared destination, swap, or moving into a node that stays -> mover stays.
         while True:
@@ -156,18 +171,18 @@ class GridWorld:
                 break
             for a in sorted(blocked):
                 want[a] = pos[a]
-                rewards[a] += R_COLLISION
+                rewards[a] += self.r_collision
                 ev.append({"tick": self.tick, "node": a, "event": "agent_collision"})
         before = set(self.found_targets)
         for a in self.agents:
             d = self.drones[a]
             d.pos = want[a]
             d.battery -= STAY_COST if cmds[a] == "stay" else MOVE_COST
-            rewards[a] += R_NEW_CELL * self._sense(a)
+            rewards[a] += self.r_new_cell * self._sense(a)
             self.found_targets |= d.found
         for _ in self.found_targets - before:
             for a in self.agents:
-                rewards[a] += R_TARGET / len(self.agents)
+                rewards[a] += self.r_target / len(self.agents)
         done = bool(self.targets) and len(self.found_targets) == len(self.targets)
         terms = {a: done or not self.drones[a].alive for a in self.agents}
         for a in self.agents:
