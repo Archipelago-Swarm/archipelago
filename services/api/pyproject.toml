@@ -1,0 +1,16 @@
+[project]
+name = "archipelago-api"
+version = "0.0.0"
+description = "Archipelago run lifecycle API and live/replay streaming"
+requires-python = ">=3.12"
+dependencies = ["archipelago-contracts", "fastapi>=0.115", "uvicorn>=0.30"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/archipelago_api"]
+
+[tool.uv.sources]
+archipelago-contracts = { workspace = true }

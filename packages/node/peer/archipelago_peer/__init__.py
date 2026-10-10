@@ -34,9 +34,13 @@ class PeerServer:
         class H(BaseHTTPRequestHandler):
             def do_POST(self):
                 n = int(self.headers.get("Content-Length", 0))
+                # Always consume the request body before replying: closing with unread bytes
+                # makes Windows reset the socket, so the client sees WinError 10053 instead
+                # of the status. Oversized bodies are drained in bounded chunks and dropped.
+                body = self.rfile.read(n) if n <= 2 * MAX_PAYLOAD else self._drain(n)
                 if self.path == "/catchup":  # a reconnected peer asks for the newest update
                     try:
-                        who = json.loads(self.rfile.read(n))["node"]
+                        who = json.loads(body)["node"]
                     except (ValueError, KeyError, TypeError):
                         return self._reply(400)
                     if outer.on_catchup is None:
@@ -48,7 +52,7 @@ class PeerServer:
                 if n > 2 * MAX_PAYLOAD:
                     return self._reply(413)
                 try:
-                    d = json.loads(self.rfile.read(n))
+                    d = json.loads(body)
                     payload = base64.b64decode(d["payload"])
                     env = Envelope(
                         d["src"], outer.node, d["seq"], payload, d["version"], d["digest"]
@@ -56,6 +60,15 @@ class PeerServer:
                 except (ValueError, KeyError, TypeError):
                     return self._reply(400)
                 self._reply(outer.accept(env))
+
+            def _drain(self, n):
+                left = min(n, 8 * MAX_PAYLOAD)
+                while left > 0:
+                    chunk = self.rfile.read(min(65536, left))
+                    if not chunk:
+                        break
+                    left -= len(chunk)
+                return b""
 
             def _reply(self, code):
                 self.send_response(code)
