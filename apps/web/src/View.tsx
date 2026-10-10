@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { WorldSnapshot } from "@archipelago/contracts";
+import type { LearningEvent, WorldSnapshot } from "@archipelago/contracts";
 import { nodeHealth } from "./client";
 import { sourceLabel, type Conn, type Source } from "./status";
 
@@ -28,7 +28,7 @@ function draw(c: HTMLCanvasElement, s: WorldSnapshot) {
   }
 }
 
-export function View({ source, conn, snap }: { source: Source; conn: Conn; snap: WorldSnapshot | null }) {
+export function View({ source, conn, snap, learning = {} }: { source: Source; conn: Conn; snap: WorldSnapshot | null; learning?: Record<string, LearningEvent> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => { if (canvas.current && snap) draw(canvas.current, snap); }, [snap]);
   const health = snap ? nodeHealth(snap) : {};
@@ -41,7 +41,7 @@ export function View({ source, conn, snap }: { source: Source; conn: Conn; snap:
           <canvas ref={canvas} width={20 * CELL} height={20 * CELL} aria-label="World map: drones, obstacles, links" style={{ maxWidth: "100%" }} />
           <ul aria-label="Drones">
             {Object.entries(snap.poses).map(([id, p]) => (
-              <li key={id}>{id}: ({p.x}, {p.y}) cells · link: {health[id]} · policy version: not reported</li>
+              <li key={id}>{id}: ({p.x}, {p.y}) cells · link: {health[id]} · {learning[id] ? `policy version: ${learning[id].new_version} · last transfer: ${learning[id].transfer}${learning[id].reason ? ` (${learning[id].reason})` : ""}` : "policy version: not reported"}</li>
             ))}
           </ul>
         </>

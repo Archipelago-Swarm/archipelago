@@ -1,7 +1,8 @@
 import { useEffect, useReducer, useState } from "react";
 import type { WorldSnapshot } from "@archipelago/contracts";
+import runConfig from "../../../packages/contracts/fixtures/good/run_config.json";
 import snapshot from "../../../packages/contracts/fixtures/good/world_snapshot.json";
-import { ApiError, getRun, loadReplay, login, sendCommand } from "./client";
+import { ApiError, getRun, loadReplay, login, sendCommand, startRun } from "./client";
 import { liveReducer, type Source } from "./status";
 import { View } from "./View";
 
@@ -52,7 +53,11 @@ export function App() {
           <label>API token <input name="token" type="password" /></label> <button>Sign in</button>
         </form>
       )}
-      <View source={source} conn={conn} snap={snap} />
+      <form onSubmit={(e) => { e.preventDefault(); setError(""); startRun(runConfig, +String(new FormData(e.currentTarget).get("seed")))
+          .then((r) => { location.search = `?run=${r.run_id}`; }).catch(fail); }}>
+        <label>Seed <input name="seed" type="number" min={0} step={1} defaultValue={1} required /></label> <button>Start run</button>
+      </form>
+      <View source={source} conn={conn} snap={snap} learning={live.learning} />
       {source === "replay" && frames.length > 0 && (
         <label>Frame {frame + 1}/{frames.length} <input type="range" min={0} max={frames.length - 1} value={frame} onChange={(e) => setFrame(+e.target.value)} /></label>
       )}

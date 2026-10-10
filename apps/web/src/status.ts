@@ -8,8 +8,8 @@ export function sourceLabel(source: Source, conn: Conn): string {
   return conn === "connected" ? "LIVE" : "DISCONNECTED (showing stale state)";
 }
 
-import type { WorldSnapshot } from "@archipelago/contracts";
-export interface Live { snap: WorldSnapshot | null; conn: Conn }
+import type { LearningEvent, WorldSnapshot } from "@archipelago/contracts";
+export interface Live { snap: WorldSnapshot | null; conn: Conn; learning?: Record<string, LearningEvent> }
 export type LiveEvent = { t: "open" } | { t: "close" } | { t: "message"; data: string };
 
 // Disconnect drops the snapshot so stale state cannot be mistaken for live; the server re-sends one on reconnect.
@@ -18,6 +18,10 @@ export function liveReducer(s: Live, e: LiveEvent): Live {
   if (e.t === "close") return { snap: null, conn: "disconnected" };
   try {
     const m = JSON.parse(e.data);
-    return m.snapshot?.kind === "world_snapshot" ? { ...s, snap: m.snapshot } : s;
+    const r = m.snapshot ?? m.event ?? m;
+    if (r?.kind === "world_snapshot") return { ...s, snap: r };
+    // Latest event per node: its new_version is the node's reported policy version.
+    if (r?.kind === "learning_event") return { ...s, learning: { ...s.learning, [r.source_node_id]: r } };
+    return s;
   } catch { return s; }
 }
