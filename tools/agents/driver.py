@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RT = ROOT / ".agent-runtime"
 STATE = RT / "driver.json"
 COORD = "agent-coordination"
-MAX_ATTEMPTS = 3
+MAX_ATTEMPTS = 6
 B_WAIT_MIN = 90
 
 
@@ -152,10 +152,12 @@ def next_plan(run_hint, last, s):
                 entry["source_branch"] = carry
         if prior:  # keep the previous owner; carry over the previous run's branch, never restart from main
             entry["machine"] = prior[0]
-            carry = f"agent/{prior[0]}/{task}/carry{s['attempts'].get(task, 0)}"
+            carry = f"agent/{prior[0]}/{task}/carry-{run_hint}-{s['attempts'].get(task, 0)}"
             r = sh("git", "push", "-q", "origin", f"origin/agent/{prior[0]}/{run_hint}/{task}:refs/heads/{carry}", check=False)
-            if r.returncode == 0:
-                entry["source_branch"] = carry
+            if r.returncode:
+                log(f"{task}: could not preserve {run_hint} checkpoint; skipping task")
+                continue
+            entry["source_branch"] = carry
         tasks.append(entry)
     return tasks
 
