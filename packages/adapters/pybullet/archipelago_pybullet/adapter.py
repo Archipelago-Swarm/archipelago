@@ -1,13 +1,14 @@
-"""Headless PyBullet SimulatorAdapter: 2-4 point-mass drones with real rigid-body collisions.
+"""Headless SimulatorAdapter on gym-pybullet-drones (CF2X rotor dynamics, DSLPIDControl).
 
-Not yet gym-pybullet-drones (rotor dynamics/controllers); see agents/handoffs/T12/LATEST.md.
-Contract Pose pins z to 0, so true 3D poses are exposed via poses3d() until the contract allows z.
+Upstream pinned in requirements.txt. Contract Pose pins z to 0, so true 3D poses are exposed
+via poses3d() until the contract allows z.
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import numpy as np
 from archipelago_contracts.adapter import SimulatorCapabilities, StepResult
 from archipelago_contracts.models import (
     SCHEMA_VERSION,
@@ -22,13 +23,13 @@ from archipelago_contracts.models import (
 ACTION_SPACE = "act3d-v0"
 ENCODER = "drone3d-v0"  # distinct from the 2D "grid-flat-v0" so peer model updates are rejected
 EPOCH = datetime(2026, 1, 1, tzinfo=UTC)
-HOVER_Z, SPEED, RADIUS, SUBSTEPS = 1.0, 1.0, 0.1, 24  # m, m/s, m, 240Hz physics per 0.1s tick
+HOVER_Z, SPEED, RADIUS, SUBSTEPS = 1.0, 1.0, 0.05, 24  # m, m/s, m, 240Hz physics per 0.1s tick
 DIRS = {"stay": (0, 0), "north": (0, 1), "east": (1, 0), "south": (0, -1), "west": (-1, 0)}
 
 
 class PyBullet3DAdapter:
     def __init__(self) -> None:
-        self.cid: int | None = None
+        self.env = None
         self.bodies: dict[str, int] = {}
         self.collisions = 0
         self.target_z = HOVER_Z
@@ -58,11 +59,9 @@ class PyBullet3DAdapter:
         self.target_z = RADIUS
 
     def poses3d(self) -> dict[str, tuple[float, float, float]]:
-        import pybullet as p
-
         return {
-            n: tuple(p.getBasePositionAndOrientation(b, physicsClientId=self.cid)[0])
-            for n, b in self.bodies.items()
+            n: tuple(float(v) for v in self.env._getDroneStateVector(i)[:3])
+            for i, n in enumerate(self.bodies)
         }
 
     def _obs(self, node: str) -> Observation:
@@ -77,26 +76,24 @@ class PyBullet3DAdapter:
         )
 
     def reset(self, config: RunConfig) -> dict[str, Observation]:
-        import pybullet as p
+        from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
+        from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
+        from gym_pybullet_drones.utils.enums import DroneModel
 
         self.close()
         if not 2 <= len(config.nodes) <= 4:
             raise ValueError("3D adapter supports 2-4 drones")
-        self.cid = p.connect(p.DIRECT)  # headless
-        p.setGravity(0, 0, 0, physicsClientId=self.cid)  # hover controller replaces lift
-        p.setTimeStep(1 / 240, physicsClientId=self.cid)
-        ground = p.createCollisionShape(p.GEOM_PLANE, physicsClientId=self.cid)
-        p.createMultiBody(0, ground, physicsClientId=self.cid)
-        shape = p.createCollisionShape(p.GEOM_SPHERE, radius=RADIUS, physicsClientId=self.cid)
-        self.bodies = {
-            n.node_id: p.createMultiBody(
-                1.0,
-                shape,
-                basePosition=(n.start_pose.x, n.start_pose.y, HOVER_Z),
-                physicsClientId=self.cid,
-            )
-            for n in sorted(config.nodes, key=lambda n: n.node_id)
-        }
+        nodes = sorted(config.nodes, key=lambda n: n.node_id)
+        self.env = CtrlAviary(  # gui=False: DIRECT physics, a viewer would not count
+            drone_model=DroneModel.CF2X,
+            num_drones=len(nodes),
+            initial_xyzs=np.array([(n.start_pose.x, n.start_pose.y, HOVER_Z) for n in nodes]),
+            pyb_freq=240,
+            ctrl_freq=240,
+            gui=False,
+        )
+        self.ctrl = [DSLPIDControl(DroneModel.CF2X) for _ in nodes]
+        self.bodies = {n.node_id: int(i) for n, i in zip(nodes, self.env.DRONE_IDS, strict=True)}
         self._run_id, self._tick, self._seq, self.collisions = config.run_id, 0, 0, 0
         self.target_z = HOVER_Z
         return {n: self._obs(n) for n in self.bodies}
@@ -104,20 +101,24 @@ class PyBullet3DAdapter:
     def step(self, actions: dict[str, Action]) -> StepResult:
         import pybullet as p
 
-        if self.cid is None:
+        if self.env is None:
             raise RuntimeError("reset() first")
-        ids = list(self.bodies.values())
+        ids, cid = list(self.bodies.values()), self.env.getPyBulletClient()
+        rpm = np.zeros((len(ids), 4))
         for _ in range(SUBSTEPS):
-            z = {n: pos[2] for n, pos in self.poses3d().items()}
-            for n, b in self.bodies.items():
+            for i, n in enumerate(self.bodies):
+                s = self.env._getDroneStateVector(i)
                 a = actions.get(n)
                 dx, dy = DIRS[a.command] if a else (0, 0)
-                vz = max(-SPEED, min(SPEED, 5 * (self.target_z - z[n])))
-                p.resetBaseVelocity(b, (dx * SPEED, dy * SPEED, vz), physicsClientId=self.cid)
-            p.stepSimulation(physicsClientId=self.cid)
+                vel = np.array([dx * SPEED, dy * SPEED, 0.0])
+                target = np.array([s[0], s[1], self.target_z]) + vel * 0.1  # 0.1 s lookahead
+                rpm[i], _, _ = self.ctrl[i].computeControl(
+                    1 / 240, s[0:3], s[3:7], s[10:13], s[13:16], target, target_vel=vel
+                )
+            self.env.step(rpm)
             # drone-drone contacts only; the ground plane is not a collision metric
             self.collisions += sum(
-                bool(p.getContactPoints(a, b, physicsClientId=self.cid))
+                bool(p.getContactPoints(a, b, physicsClientId=cid))
                 for i, a in enumerate(ids)
                 for b in ids[i + 1 :]
             )
@@ -142,8 +143,6 @@ class PyBullet3DAdapter:
         )
 
     def close(self) -> None:
-        if self.cid is not None:
-            import pybullet as p
-
-            p.disconnect(physicsClientId=self.cid)
-        self.cid, self.bodies = None, {}
+        if self.env is not None:
+            self.env.close()
+        self.env, self.bodies = None, {}
