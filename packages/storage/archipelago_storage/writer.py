@@ -7,6 +7,7 @@ from collections import deque
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
 MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
 
@@ -23,11 +24,37 @@ SQL = {
 DROPPED = "INSERT INTO dropped_metrics (run_id, kind, dropped) VALUES (%s,%s,%s)"
 
 
+LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "timescaledb"})
+FK_VIOLATION = "23503"
+
+
+SAFE_SSLMODES = frozenset({"require", "verify-ca", "verify-full"})
+
+
+def validate_url(url: str) -> None:
+    """Raise ValueError unless every effective host is local, or sslmode forces TLS.
+
+    libpq lets `?host=`/`?hostaddr=` override the URL host, so those are the hosts that count.
+    """
+    parts = urlsplit(url)
+    query = parse_qs(parts.query)
+    hosts = [h for v in (query.get("host", []) + query.get("hostaddr", [])) for h in v.split(",")]
+    if not hosts:
+        hosts = [parts.hostname or ""]
+    if all(h.strip().lower() in LOCAL_HOSTS for h in hosts):
+        return
+    modes = query.get("sslmode", [])
+    if not modes or any(m not in SAFE_SSLMODES for m in modes):
+        raise ValueError(
+            "non-local TIGERDATA_URL must set sslmode to one of: "
+            + ", ".join(sorted(SAFE_SSLMODES))
+        )
+
+
 def connect_from_env() -> Any:
-    """TIGERDATA_URL must set sslmode (require/verify-full) unless it points at localhost."""
+    """TIGERDATA_URL must set sslmode (require/verify-full) unless it points at a local host."""
     url = os.environ["TIGERDATA_URL"]
-    if "localhost" not in url and "127.0.0.1" not in url and "sslmode=" not in url:
-        raise ValueError("non-local TIGERDATA_URL must set sslmode (require or verify-full)")
+    validate_url(url)
     import psycopg
 
     return psycopg.connect(url, connect_timeout=5)
@@ -71,11 +98,18 @@ class Writer:
                     if k != kind or len(rows) >= self._batch:
                         break
                     rows.append(row)
-                with self._conn.cursor() as cur:
-                    cur.executemany(SQL[kind], rows)
-                self._conn.commit()
-                for _ in rows:
-                    self._q.popleft()
+                try:
+                    with self._conn.cursor() as cur:
+                        cur.executemany(SQL[kind], rows)
+                    self._conn.commit()
+                    for _ in rows:
+                        self._q.popleft()
+                except Exception as exc:
+                    # A batch is all-or-nothing; isolate FK-poisoned rows (parent run row shed)
+                    # so they cannot stall every later row. Any other error is an outage.
+                    self._conn.rollback()
+                    if not self._salvage(kind, len(rows), exc):
+                        raise
             if self.dropped:
                 with self._conn.cursor() as cur:
                     cur.executemany(DROPPED, [(r, k, n) for (r, k), n in self.dropped.items()])
@@ -90,6 +124,25 @@ class Writer:
                 pass
             self._conn = None
             return False
+
+    def _salvage(self, kind: str, n: int, exc: Exception) -> bool:
+        """Retry the failed batch row by row, quarantining rows that violate a foreign key."""
+        if getattr(exc, "sqlstate", None) != FK_VIOLATION:
+            return False
+        for _ in range(n):
+            _, run_id, row = self._q[0]
+            try:
+                with self._conn.cursor() as cur:
+                    cur.executemany(SQL[kind], [row])
+                self._conn.commit()
+            except Exception as row_exc:
+                self._conn.rollback()
+                if getattr(row_exc, "sqlstate", None) != FK_VIOLATION:
+                    raise
+                self.dropped[(run_id, kind)] = self.dropped.get((run_id, kind), 0) + 1
+                self.dropped_total += 1
+            self._q.popleft()
+        return True
 
     def __len__(self) -> int:
         return len(self._q)
