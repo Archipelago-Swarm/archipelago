@@ -21,8 +21,6 @@ from archipelago_api.live import LiveConfigError
 from archipelago_api.persistence import Persister
 from archipelago_api.settings import Settings
 from archipelago_storage import Writer, queries
-from fakedb import SqliteConn  # type: ignore[import-not-found,unused-ignore]
-from fastapi.testclient import TestClient
 from coord_harness import (  # type: ignore[import-not-found,unused-ignore]
     ADMIN_TOKEN,
     COORD_TOKEN,
@@ -31,6 +29,8 @@ from coord_harness import (  # type: ignore[import-not-found,unused-ignore]
     make_nodes,
     run_body,
 )
+from fakedb import SqliteConn  # type: ignore[import-not-found,unused-ignore]
+from fastapi.testclient import TestClient
 
 LOGIN = "login-test-only-credential"
 TELEMETRY = "telemetry-test-only-credential"
