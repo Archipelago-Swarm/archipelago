@@ -15,8 +15,11 @@ See `agents/reports/AUTONOMY_READINESS.md` (implemented / convention / future / 
 - `SKIP_DOCKER=1 make check-integration` exit 0.
 - `uv run python agents/controller.py validate` exit 0.
 
+## Added after review request
+`agents/launch.py` (tick/start/status/stop/schedule), `controller.py --remote` (shared-ledger publishing), ADR-0007, tasks T20 (now depends on T23) and T23 (live launcher trial, human-blocked). PR: https://github.com/Archipelago-Swarm/archipelago/pull/8 (subscribed for CI/review events).
+
 ## Not verified
-GitHub Actions run of the new `ci.yml`; Docker-marked tests; `make check-full`. No live agent has been driven through the ledger.
+GitHub Actions run of the new `ci.yml`; any real `claude -p` session driven by `launch.py` (fake binary only); Docker-marked tests; `make check-full`. No live agent has been driven through the ledger.
 
 ## Decisions
 Directory is `agents/` not `.agents/` (ADR-0006). Legacy runner kept pending T20; `mail_watch.py` and `idle_watch.py` removed. T09 reclassified as scope-reduced COMPLETE with remaining acceptance in T17 (reversible; the reasoning is in the ledger note).

@@ -4,7 +4,8 @@ Reads and edits agents/TASKS.yaml. It is a CLI that runs once and exits: it laun
 agents, starts no background process and keeps no state outside Git. Every transition is
 validated against the lifecycle below and recorded in the task's history.
 
-    python agents/controller.py validate
+    python agents/controller.py --remote status   # shared ledger on origin/main, writes publish
+    python agents/controller.py validate [--files]
     python agents/controller.py status
     python agents/controller.py next [--machine A|B] [--limit N]
     python agents/controller.py deps T10
@@ -24,8 +25,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -34,10 +39,13 @@ import jsonschema
 import yaml
 
 AGENTS = Path(__file__).resolve().parent
-ROOT = AGENTS.parent
-LEDGER = AGENTS / "TASKS.yaml"
-OWNERSHIP = AGENTS / "OWNERSHIP.yaml"
+ROOT = Path(os.environ.get("ARCHIPELAGO_ROOT") or AGENTS.parent)  # repo checkout to operate on
+LEDGER = ROOT / "agents" / "TASKS.yaml"
+OWNERSHIP = ROOT / "agents" / "OWNERSHIP.yaml"
 SCHEMAS = AGENTS / "schemas"
+REMOTE: str | None = None  # --remote: read and publish the ledger on origin/<branch>
+CURRENT_CMD = "update"
+PUBLISH_ATTEMPTS = 4
 
 LEDGER_HEADER = (
     "# Canonical task ledger. Edit through agents/controller.py; see agents/PROTOCOL.md.\n"
@@ -88,9 +96,24 @@ def load_schema(name: str) -> dict[str, Any]:
     return data
 
 
+def git_out(
+    *args: str, cwd: Path | None = None, check: bool = True
+) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(["git", *args], cwd=cwd or ROOT, capture_output=True, text=True)
+    if check and result.returncode:
+        raise ControllerError(
+            f"git {' '.join(args)}: {result.stderr.strip() or result.stdout.strip()}"
+        )
+    return result
+
+
 def load_ledger(path: Path | None = None) -> dict[str, Any]:
+    if path is None and REMOTE:
+        text = git_out("show", f"origin/{REMOTE}:agents/TASKS.yaml").stdout
+    else:
+        text = (path or LEDGER).read_text(encoding="utf-8")
     path = path or LEDGER
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = yaml.safe_load(text)
     if not isinstance(data, dict) or not isinstance(data.get("tasks"), list):
         raise ControllerError(f"{path}: expected a mapping with a 'tasks' list")
     return data
@@ -418,9 +441,11 @@ def build_run_summary(data: dict[str, Any], run_id: str) -> dict[str, Any]:
 # ---------------------------------------------------------------- CLI
 
 
-def cmd_validate(_: argparse.Namespace) -> int:
+def cmd_validate(a: argparse.Namespace) -> int:
+    # Handoffs and blocker reports live on task branches, so file checks are opt-in (--files, run
+    # from the task branch checkout). The ledger branch is validated without them.
     data = load_ledger()
-    errors = validate_ledger(data)
+    errors = validate_ledger(data, check_files=a.files)
     if errors:
         print("\n".join(f"ERROR {e}" for e in errors))
         return 1
@@ -475,7 +500,66 @@ def cmd_deps(a: argparse.Namespace) -> int:
     return 0
 
 
+def publish(action: Any) -> int:
+    """Apply `action` to the ledger on origin/<REMOTE> as one commit and push it.
+
+    A rejected push (another writer got there first) refetches and re-applies the action, so a
+    lost claim race surfaces as the action's own error ("not runnable"). This is the only lock.
+    """
+    global LEDGER, REMOTE
+    branch = REMOTE or "main"
+    name = git_out("config", "user.name", check=False).stdout.strip() or "archipelago-agent"
+    email = (
+        git_out("config", "user.email", check=False).stdout.strip() or "agent@archipelago.invalid"
+    )
+    for _ in range(PUBLISH_ATTEMPTS):
+        git_out("fetch", "-q", "origin", branch)
+        tmp = Path(tempfile.mkdtemp(prefix="ledger-"))
+        git_out("worktree", "add", "-q", "--detach", str(tmp), f"origin/{branch}")
+        old_ledger, old_remote = LEDGER, REMOTE
+        LEDGER, REMOTE = tmp / "agents" / "TASKS.yaml", None
+        try:
+            data = load_ledger()
+            action(data)
+            errors = validate_ledger(data, check_files=False)
+            if errors:
+                print("\n".join(f"ERROR {e}" for e in errors))
+                print("ledger NOT written")
+                return 1
+            save_ledger(data)
+            git_out("add", "agents/TASKS.yaml", cwd=tmp)
+            if not git_out("diff", "--cached", "--quiet", cwd=tmp, check=False).returncode:
+                return 0
+            git_out(
+                "-c",
+                f"user.name={name}",
+                "-c",
+                f"user.email={email}",
+                "commit",
+                "-q",
+                "-m",
+                f"ledger: {CURRENT_CMD}",
+                cwd=tmp,
+            )
+            if (
+                git_out(
+                    "push", "-q", "origin", f"HEAD:refs/heads/{branch}", cwd=tmp, check=False
+                ).returncode
+                == 0
+            ):
+                return 0
+        finally:
+            LEDGER, REMOTE = old_ledger, old_remote
+            git_out("worktree", "remove", "--force", str(tmp), check=False)
+            shutil.rmtree(tmp, ignore_errors=True)
+    raise ControllerError(
+        f"could not publish the ledger to origin/{branch} after {PUBLISH_ATTEMPTS} attempts"
+    )
+
+
 def mutate(action: Any) -> int:
+    if REMOTE:
+        return publish(action)
     data = load_ledger()
     action(data)
     errors = validate_ledger(data, check_files=False)
@@ -736,8 +820,19 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    p.add_argument(
+        "--remote",
+        action="store_true",
+        help="read the ledger from origin/<ledger-branch> and publish every change there as one "
+        "fast-forward commit. Use this for all multi-machine work.",
+    )
+    p.add_argument("--ledger-branch", default="main", help="branch with the shared ledger")
     sub = p.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("validate").set_defaults(fn=cmd_validate)
+    v0 = sub.add_parser("validate")
+    v0.add_argument(
+        "--files", action="store_true", help="also require handoff/BLOCKER files on disk"
+    )
+    v0.set_defaults(fn=cmd_validate)
     sub.add_parser("status").set_defaults(fn=cmd_status)
     n = sub.add_parser("next")
     n.add_argument("--machine", choices=["A", "B"])
@@ -821,8 +916,24 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    global REMOTE, CURRENT_CMD
+    saved = REMOTE, CURRENT_CMD
     try:
+        return _main(argv)
+    finally:
+        REMOTE, CURRENT_CMD = saved
+
+
+def _main(argv: list[str] | None) -> int:
+    global REMOTE, CURRENT_CMD
+    args = build_parser().parse_args(argv)
+    REMOTE = args.ledger_branch if args.remote else None
+    CURRENT_CMD = " ".join(
+        a for a in (argv if argv is not None else sys.argv[1:]) if a != "--remote"
+    )[:100]
+    try:
+        if REMOTE:
+            git_out("fetch", "-q", "origin", REMOTE)
         return int(args.fn(args))
     except ControllerError as error:
         print(f"ERROR {error}", file=sys.stderr)

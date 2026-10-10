@@ -183,3 +183,7 @@ regressions:
 ```
 
 Autonomy score (operational, not a KPI): verified tasks ~9, plus repaired regressions 3, minus >=10 human interventions, minus ~5 repeated identical blocks (T09/T12/T06), minus 6 abandoned T06 variants, minus an unquantified CI surplus. Net: the night produced output but needed more human inference than its volume suggests.
+
+## Addendum: operator decision after the bootstrap
+
+The operator asked that agents be able to start the scheduler and `night.py` themselves. The retrospective's conclusion stands (no mechanism may *depend* on a process outliving a session), so this was implemented as `agents/launch.py` (ADR-0007): a one-shot `tick` that any scheduler or routine can call, and a detached `start` loop that is classified CONDITIONALLY_RELIABLE and reports STALLED/DEAD. Starting a runner is allowed to agents; correctness of the claim is not left to timing because ledger writes serialize through Git.

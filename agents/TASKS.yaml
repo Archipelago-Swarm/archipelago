@@ -708,9 +708,9 @@ tasks:
   notes: Documentation only.
 - id: T20
   name: Retire legacy runner, driver, watchdog and mailbox
-  description: Replace the driver's BOARD.md regex planning and fixed night-plan.json with TASKS.yaml;
-    move reviewer verdicts to VERIFICATION.yaml files; delete driver.py and watchdog.py; keep cleanup_branches.py.
-    Deleting the remote agent-coordination and agent/B/mail-* branches needs human approval.
+  description: After the launcher trial (T23) passes, delete night.py, driver.py, watchdog.py, night-plan.json
+    and the legacy operations docs; replace BOARD.md planning everywhere. Deleting the remote agent-coordination
+    and agent/B/mail-* branches needs human approval.
   state: QUEUED
   priority: 1
   owner: null
@@ -718,7 +718,8 @@ tasks:
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
-  dependencies: []
+  dependencies:
+  - T23
   blocked_by: []
   owned_paths:
   - tools/agents/**
@@ -736,8 +737,8 @@ tasks:
       expected_exit_code: 0
       tier: fast
     assertions:
-    - description: night.py claims work from agents/TASKS.yaml and writes the verdict schema; no code
-        path reads BOARD.md or agent-coordination.
+    - description: No code path reads BOARD.md, night-plan.json or agent-coordination; launch.py is the
+        only runner.
     - description: agents/operations docs describe only supported mechanisms.
   retry_policy:
     test_failure: 5
@@ -747,8 +748,8 @@ tasks:
   last_good_commit: null
   artifacts: []
   handoff_file: null
-  notes: See LAST_RUN_RETROSPECTIVE inventory. Needs a live claude -p trial on a real machine, so keep
-    the old runner until that trial passes.
+  notes: agents/launch.py now provides the ledger-driven loop and the night.py pass-through (ADR-0007);
+    what remains is deletion once T23 proves it. Keep cleanup_branches.py.
 - id: T21
   name: Verify Grafana provisioning renders
   description: The Grafana dashboard and datasource provisioning have never been rendered against TimescaleDB.
@@ -817,6 +818,8 @@ tasks:
   - tests/agents/test_controller.py
   - tests/infra/**
   - tests/storage/test_timescale_integration.py
+  - agents/launch.py
+  - tests/agents/test_launch.py
   contracts:
   - agents/PROTOCOL.md
   acceptance:
@@ -844,3 +847,48 @@ tasks:
   handoff_file: agents/handoffs/BOOTSTRAP/LATEST.md
   notes: 'Dogfooded: bootstrap enters the ledger at REVIEW, not COMPLETE. Needs verifier/human PASS and
     a green CI run.'
+- id: T23
+  name: Live trial of the launcher on A and B
+  description: 'Run launch.py on two real machines: one worker task claimed by A and done by B''s loop,
+    verified, integrated; confirm claude flags, ledger push permissions, status/STALLED behavior and count
+    every human touch with log-event.'
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T18:35:13Z'
+  updated_at: '2026-10-10T18:35:13Z'
+  dependencies:
+  - T22
+  blocked_by:
+  - human:two machines with authenticated Claude Code and push access, plus a decision on ledger-branch
+    protection
+  owned_paths:
+  - agents/launch.py
+  - tests/agents/test_launch.py
+  - agents/PROTOCOL.md
+  contracts:
+  - agents/PROTOCOL.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/agents -q
+      expected_exit_code: 0
+      tier: fast
+    - command: python3 agents/launch.py status --machine A
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: One task goes QUEUED to COMPLETE through loops on both machines with at most the human
+        steps listed in the blocker.
+    - description: A killed loop shows DEAD or STALLED in status and the next start resumes it.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Source: ADR-0007 risks. Unverified claims in PROTOCOL section 13 stay unverified until this
+    passes.'

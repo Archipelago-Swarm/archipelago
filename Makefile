@@ -5,8 +5,8 @@
 check-fast:
 	python3 tools/check_foundation.py
 	uv run python agents/controller.py validate
-	uv run ruff check packages services tests agents/controller.py
-	uv run ruff format --check packages services tests agents/controller.py
+	uv run ruff check packages services tests agents/controller.py agents/launch.py
+	uv run ruff format --check packages services tests agents/controller.py agents/launch.py
 	uv run pytest -q tests/agents
 
 # Minutes, no Docker daemon needed: types, contract drift, full non-Docker pytest, web lint/test/build.

@@ -37,11 +37,14 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
 
+[tool.ruff.lint.per-file-ignores]
+"agents/*.py" = ["E501"]  # long help/prompt strings; ruff format still applies
+
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]
 files = ["packages/contracts/src", "tests/contracts", "services/api/src", "tests/api",
-         "packages/storage/archipelago_storage", "agents/controller.py"]
+         "packages/storage/archipelago_storage", "agents/controller.py", "agents/launch.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
