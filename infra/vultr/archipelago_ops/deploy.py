@@ -66,7 +66,7 @@ def load_manifest(path: Path) -> dict[str, Any]:
     for svc in SERVICES:
         if not DIGEST_RE.match(str(images.get(svc, ""))):
             raise DeployError(f"manifest.images.{svc} must be a name@sha256:<64 hex> digest")
-    return m
+    return dict(m)
 
 
 def render_env_file(env: Mapping[str, str], release: str, reveal: bool) -> str:

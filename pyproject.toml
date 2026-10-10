@@ -48,8 +48,9 @@ select = ["E", "F", "I", "B", "UP"]
 strict = true
 plugins = ["pydantic.mypy"]
 files = ["packages/contracts/src", "tests/contracts", "services/api/src", "tests/api",
-         "packages/storage/archipelago_storage", "agents/controller.py", "agents/launch.py"]
+         "packages/storage/archipelago_storage", "agents/controller.py", "agents/launch.py",
+         "infra/vultr/archipelago_ops"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "infra/vultr/tests"]
 markers = ["docker: needs a reachable Docker daemon (excluded from check-integration, run by check-full and CI)"]

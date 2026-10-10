@@ -5,8 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 python3 tools/check_foundation.py
 uv run python agents/controller.py validate
-uv run ruff check packages services tests agents/controller.py agents/launch.py
-uv run ruff format --check packages services tests agents/controller.py agents/launch.py
+uv run ruff check packages services tests infra/vultr experiments agents/controller.py agents/launch.py
+uv run ruff format --check packages services tests infra/vultr experiments agents/controller.py agents/launch.py
 uv run mypy
 uv run python -m archipelago_contracts.export --check
 if [ "${SKIP_DOCKER:-}" = "1" ]; then
