@@ -16,7 +16,12 @@ DELTA = {"stay": (0, 0), "north": (0, -1), "east": (1, 0), "south": (0, 1), "wes
 UNKNOWN, FREE, WALL = -1, 0, 1
 REWARD_SPECS = {  # reward_id -> (new_cell, target, step, collision, invalid)
     "rew-v0": (1.0, 5.0, -0.01, -0.5, -0.1),
+    # rew-v1 (T37): collisions 4x stronger, new-cell bonus halved, revisit penalty, no spawn credit.
+    "rew-v1": (0.5, 5.0, -0.01, -2.0, -0.1),
 }
+# reward_id -> (revisit_penalty, pay_spawn_targets). rew-v0 is the frozen original (0.0, True).
+REWARD_EXTRA = {"rew-v0": (0.0, True), "rew-v1": (-0.25, False)}
+VISIT_CAP = 4  # visit counts are clipped to this before normalisation in observation encoders
 MOVE_COST, STAY_COST = 0.004, 0.001
 
 
@@ -26,6 +31,8 @@ class Drone:
     battery: float = 1.0
     known: dict[tuple[int, int], int] = field(default_factory=dict)  # private per-node buffer
     found: set[tuple[int, int]] = field(default_factory=set)
+    visits: dict[tuple[int, int], int] = field(default_factory=dict)  # own ticks spent per cell
+    peer_visits: set[tuple[int, int]] = field(default_factory=set)  # cells peers reported standing on
 
     @property
     def alive(self) -> bool:
@@ -49,6 +56,8 @@ class GridWorld:
         self.r_new_cell, self.r_target, self.r_step, self.r_collision, self.r_invalid = (
             REWARD_SPECS[reward_id]
         )
+        self.reward_id = reward_id
+        self.r_revisit, self.pay_spawn_targets = REWARD_EXTRA[reward_id]
         self.size, self.n_targets, self.radius = size, n_targets, sense_radius
         self.density, self.max_ticks, self.battery_scale = (
             obstacle_density,
@@ -81,6 +90,14 @@ class GridWorld:
         self.agents = list(self.possible_agents)
         for a in self.agents:
             self._sense(a)
+            self.drones[a].visits[self.drones[a].pos] = 1
+        self.spawn_found = set().union(*(d.found for d in self.drones.values()))
+        self.spawn_visited = len(self.visited - self.obstacles)
+        if not self.pay_spawn_targets:  # targets already in sensing range at reset earn nothing
+            self.found_targets |= self.spawn_found
+        self.counters = dict.fromkeys(
+            ("new_cells", "revisits", "wall_collisions", "agent_collisions", "agent_ticks"), 0
+        )
         return {a: self.observe(a) for a in self.agents}
 
     def observation_space(self, agent: str) -> dict:
@@ -124,6 +141,35 @@ class GridWorld:
             "visible_markers": sorted(d.found),
         }
 
+    def observe_memory(self, a: str) -> dict:
+        """Node-local memory features (grid-flat-v2-visits). Built only from this node's own
+        buffer (`known`, own `visits`) and the non-model peer summary it received (`peer_visits`).
+
+        visits: crop of own stand-on counts; peer: crop of 0/1 cells peers reported standing on;
+        frontier: per direction (north, east, south, west) the fraction of the (2r+1) cells just
+        outside the crop that are inside the map and absent from this node's buffer.
+        """
+        d, r = self.drones[a], self.radius
+        px, py = d.pos
+        span = range(-r, r + 1)
+        visits = [[d.visits.get((px + dx, py + dy), 0) for dx in span] for dy in span]
+        peer = [[(px + dx, py + dy) in d.peer_visits for dx in span] for dy in span]
+
+        def unknown(c):
+            return 0 <= c[0] < self.size and 0 <= c[1] < self.size and c not in d.known
+
+        k = r + 1
+        frontier = [
+            sum(unknown(c) for c in cells) / (2 * r + 1)
+            for cells in (
+                [(px + i, py - k) for i in span],
+                [(px + k, py + i) for i in span],
+                [(px + i, py + k) for i in span],
+                [(px - k, py + i) for i in span],
+            )
+        ]
+        return {"visits": visits, "peer": peer, "frontier": frontier}
+
     def step(self, actions: dict[str, str | None]):
         if not self.agents:
             raise RuntimeError("step() on a finished episode; call reset()")
@@ -152,6 +198,7 @@ class GridWorld:
                 hit = "wall_collision" if self._cell(want[a]) == WALL else "agent_collision"
                 want[a] = pos[a]
                 rewards[a] += self.r_collision
+                self.counters["wall_collisions" if hit == "wall_collision" else "agent_collisions"] += 1
                 ev.append({"tick": self.tick, "node": a, "event": hit})
         # Fixpoint: shared destination, swap, or moving into a node that stays -> mover stays.
         while True:
@@ -174,13 +221,22 @@ class GridWorld:
             for a in sorted(blocked):
                 want[a] = pos[a]
                 rewards[a] += self.r_collision
+                self.counters["agent_collisions"] += 1
                 ev.append({"tick": self.tick, "node": a, "event": "agent_collision"})
         before = set(self.found_targets)
         for a in self.agents:
             d = self.drones[a]
             d.pos = want[a]
             d.battery -= STAY_COST if cmds[a] == "stay" else MOVE_COST
-            rewards[a] += self.r_new_cell * self._sense(a)
+            gained = self._sense(a)
+            rewards[a] += self.r_new_cell * gained
+            self.counters["new_cells"] += gained
+            self.counters["agent_ticks"] += 1
+            if d.visits.get(d.pos, 0) > 0:
+                self.counters["revisits"] += 1
+                if self.r_revisit:
+                    rewards[a] += self.r_revisit
+            d.visits[d.pos] = d.visits.get(d.pos, 0) + 1
             self.found_targets |= d.found
         for _ in self.found_targets - before:
             for a in self.agents:
@@ -200,6 +256,15 @@ class GridWorld:
         )
         self.agents = [a for a in self.agents if not (terms[a] or trunc[a])]
         return out
+
+    @property
+    def targets_after_spawn(self) -> int:
+        return len(self.found_targets - self.spawn_found)
+
+    @property
+    def coverage_gain(self) -> float:
+        free = self.size * self.size - len(self.obstacles)
+        return (len(self.visited - self.obstacles) - self.spawn_visited) / free
 
     @property
     def coverage(self) -> float:
