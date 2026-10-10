@@ -298,3 +298,20 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, run 20261010T140742Z round 2 (uncommitted)
+- No code change. Re-verified on B: tsc clean, vitest 21/21. Browser smoke not re-run this round (passed last round, fixture and sim2d).
+- Open: smoke is opt-in (npm run smoke); learning_event wire shape assumed; task card status is outside my paths.
+
+## Supervisor checkpoint 2026-10-10T14:11:30Z
+
+- Run: 20261010T140742Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T140742Z/T06
+- Base: 5d1e103e7021fd2f0d23c157eb9f0b9dda8f5e0f
+- Round: 2
+- State: blocked
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
