@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from archipelago_sim2d.adapter import replay_final_hash_from_dir
-from harness import default_policy, run_body
+from coord_harness import default_policy, run_body
 
 
 def metrics(events: list[dict[str, Any]], name: str) -> list[dict[str, Any]]:

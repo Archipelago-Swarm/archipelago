@@ -9,10 +9,12 @@ validated against the lifecycle below and recorded in the task's history.
     python agents/controller.py status
     python agents/controller.py next [--machine A|B] [--limit N]
     python agents/controller.py deps T10
-    python agents/controller.py claim|start|review T10 --owner B/w1 --machine B
-    python agents/controller.py record-failure T10 --kind test_failure --signature "..."
-    python agents/controller.py block T10 --report agents/handoffs/T10/BLOCKER.md --reason "..."
-    python agents/controller.py unblock T10
+    python agents/controller.py claim T10 --owner B/w1 --machine B
+    python agents/controller.py start|review T10 --by B/w1 [--commit SHA]   # --by must be the owner
+    python agents/controller.py requeue T10 --by B/w1     # owner or the integrator machine
+    python agents/controller.py record-failure T10 --by B/w1 --kind test_failure --signature "..."
+    python agents/controller.py block T10 --by B/w1 --report agents/handoffs/T10/BLOCKER.md --reason "..."
+    python agents/controller.py unblock T10 --by A [--resolved "what the human did"]
     python agents/controller.py verify T10        # reads handoffs/T10/VERIFICATION.yaml
     python agents/controller.py integrate-fail T10 --signature "..."
     python agents/controller.py complete T10 --commit <sha> --machine A
@@ -44,8 +46,12 @@ LEDGER = ROOT / "agents" / "TASKS.yaml"
 OWNERSHIP = ROOT / "agents" / "OWNERSHIP.yaml"
 SCHEMAS = AGENTS / "schemas"
 REMOTE: str | None = None  # --remote: read and publish the ledger on origin/<branch>
+LEDGER_BRANCH = "main"  # integration branch: complete checks --commit against origin/<this>
 CURRENT_CMD = "update"
 PUBLISH_ATTEMPTS = 4
+SAME_SIGNATURE_LIMIT = 3  # CONTRACT.md: three attempts at the same root cause -> blocked
+UNBLOCK_CAP = 3  # unblock cycles allowed before the task is forced to FAILED
+ASSERTION_RESULTS = {"met", "unmet", "not_checked"}
 
 LEDGER_HEADER = (
     "# Canonical task ledger. Edit through agents/controller.py; see agents/PROTOCOL.md.\n"
@@ -107,6 +113,49 @@ def git_out(
     return result
 
 
+def full_sha(ref: str, what: str) -> str:
+    """Resolve a commit-ish to its full sha, or refuse (unresolvable refs are never accepted)."""
+    if not ref or ref.startswith("-"):
+        raise ControllerError(f"{what} {ref!r} is not a commit")
+    out = git_out("rev-parse", "--verify", "-q", f"{ref}^{{commit}}", check=False)
+    sha = out.stdout.strip()
+    if out.returncode or not sha:
+        raise ControllerError(f"{what} {ref!r} cannot be resolved to a commit (fetch it first?)")
+    return sha
+
+
+def is_ancestor(older: str, newer: str) -> bool:
+    return git_out("merge-base", "--is-ancestor", older, newer, check=False).returncode == 0
+
+
+def integration_tip() -> str:
+    """origin/<ledger-branch> when it exists, else HEAD of the checkout the controller runs in."""
+    remote = git_out("rev-parse", "--verify", "-q", f"origin/{LEDGER_BRANCH}", check=False)
+    return remote.stdout.strip() if remote.returncode == 0 and remote.stdout.strip() else "HEAD"
+
+
+_LINE_REFS = re.compile(r"(?<=\S):\d+(?:[-:,]\d+)*|#L\d+(?:-L?\d+)?|\blines? \d+(?:-\d+)?", re.I)
+
+
+def normalize_signature(signature: str) -> str:
+    """Drop line numbers (file.py:12-30, #L4, 'line 9') so one root cause counts once."""
+    return re.sub(r"\s+", " ", _LINE_REFS.sub("", signature)).strip()
+
+
+def require_actor(task: dict[str, Any], by: str | None, action: str, *, integrator: bool) -> str:
+    """--by must be the task owner (or, where allowed, a machine holding the integrator role)."""
+    if not by:
+        raise ControllerError(f"{action} requires --by (the task owner)")
+    if task.get("owner") and by == task["owner"]:
+        return by
+    if integrator and load_ownership().get("roles", {}).get("integrator") == by.split("/")[0]:
+        return by
+    allowed = "the owner or the integrator machine" if integrator else "the owner"
+    raise ControllerError(
+        f"{task['id']}: {action} by {by!r} refused; only {allowed} ({task.get('owner')}) may"
+    )
+
+
 def load_ledger(path: Path | None = None) -> dict[str, Any]:
     if path is None and REMOTE:
         text = git_out("show", f"origin/{REMOTE}:agents/TASKS.yaml").stdout
@@ -116,6 +165,9 @@ def load_ledger(path: Path | None = None) -> dict[str, Any]:
     data = yaml.safe_load(text)
     if not isinstance(data, dict) or not isinstance(data.get("tasks"), list):
         raise ControllerError(f"{path}: expected a mapping with a 'tasks' list")
+    for task in data["tasks"]:
+        if isinstance(task, dict) and isinstance(task.get("retry_policy"), dict):
+            task["retry_policy"].setdefault("same_failure_signature", SAME_SIGNATURE_LIMIT)
     return data
 
 
@@ -327,12 +379,14 @@ def add_process_event(
 
 def bump_failure(task: dict[str, Any], kind: str, signature: str) -> str | None:
     """Count a failure. Returns a reason string when a retry budget is exhausted."""
+    signature = normalize_signature(signature)
     attempts = task.setdefault("attempts", {})
     attempts[kind] = attempts.get(kind, 0) + 1
     sigs = attempts.setdefault("signatures", {})
     sigs[signature] = sigs.get(signature, 0) + 1
     policy = task["retry_policy"]
-    if sigs[signature] >= policy["same_failure_signature"]:
+    # CONTRACT.md fixes the floor at three attempts per root cause; a ledger may only raise it.
+    if sigs[signature] >= max(policy["same_failure_signature"], SAME_SIGNATURE_LIMIT):
         return f"same failure signature seen {sigs[signature]}x: {signature}"
     if attempts[kind] >= policy[kind]:
         return f"{kind} budget exhausted ({attempts[kind]}/{policy[kind]})"
@@ -596,15 +650,16 @@ def simple_transition(to: str, event: str) -> Any:
     def cmd(a: argparse.Namespace) -> int:
         def run(data: dict[str, Any]) -> None:
             task = get_task(data, a.task)
+            by = require_actor(task, a.by, event, integrator=to == "QUEUED")
             if to == "ACTIVE" and not (ROOT / task["handoff_file"]).is_file():
                 raise ControllerError(f"create {task['handoff_file']} before starting")
             if to == "REVIEW" and not task["last_good_commit"] and not a.commit:
                 raise ControllerError("sending to REVIEW requires --commit (the last good commit)")
             if a.commit:
                 task["last_good_commit"] = a.commit
-            transition(
-                task, to, by=a.by or task["owner"] or "unknown", note=a.note or "", event=event
-            )
+            transition(task, to, by=by, note=a.note or "", event=event)
+            if to == "QUEUED":  # free the task so any machine can claim it again
+                task.update(owner=None, machine=None, branch=None)
 
         return mutate(run)
 
@@ -614,8 +669,9 @@ def simple_transition(to: str, event: str) -> Any:
 def cmd_record_failure(a: argparse.Namespace) -> int:
     def run(data: dict[str, Any]) -> None:
         task = get_task(data, a.task)
+        by = require_actor(task, a.by, "record-failure", integrator=False)
         reason = bump_failure(task, a.kind, a.signature)
-        add_event(task, "failure", a.by or task["owner"] or "unknown", f"{a.kind}: {a.signature}")
+        add_event(task, "failure", by, f"{a.kind}: {normalize_signature(a.signature)}")
         if reason and task["state"] == "ACTIVE":
             auto_block(task, reason, "controller")
             print(
@@ -631,6 +687,7 @@ def cmd_record_failure(a: argparse.Namespace) -> int:
 def cmd_block(a: argparse.Namespace) -> int:
     def run(data: dict[str, Any]) -> None:
         task = get_task(data, a.task)
+        by = require_actor(task, a.by, "block", integrator=False)
         report = ROOT / (a.report or str(Path(task["handoff_file"] or "").parent / "BLOCKER.md"))
         if not report.is_file():
             raise ControllerError(
@@ -644,9 +701,7 @@ def cmd_block(a: argparse.Namespace) -> int:
         if missing:
             raise ControllerError(f"blocker report missing sections: {', '.join(missing)}")
         task["blocked_by"] = [*task["blocked_by"], a.reason]
-        transition(
-            task, "BLOCKED", by=a.by or task["owner"] or "unknown", note=a.reason, event="block"
-        )
+        transition(task, "BLOCKED", by=by, note=a.reason, event="block")
 
     return mutate(run)
 
@@ -654,23 +709,97 @@ def cmd_block(a: argparse.Namespace) -> int:
 def cmd_unblock(a: argparse.Namespace) -> int:
     def run(data: dict[str, Any]) -> None:
         task = get_task(data, a.task)
+        by = require_actor(task, a.by, "unblock", integrator=True)
+        human = [b for b in task["blocked_by"] if b.startswith("human:")]
+        if human and not a.resolved:
+            raise ControllerError(
+                f"{task['id']}: unresolved human blockers ({'; '.join(human)}); "
+                "pass --resolved '<what the human decided or did>'"
+            )
+        cycles = sum(1 for h in task.get("history", []) if h.get("event") == "unblock")
+        if cycles >= UNBLOCK_CAP:
+            transition(
+                task,
+                "FAILED",
+                by="controller",
+                note=f"unblocked {cycles}x already; the cause is not being fixed",
+                event="unblock_cap",
+            )
+            print(f"FAILED: {task['id']} was unblocked {cycles} times (cap {UNBLOCK_CAP})")
+            return
         task["blocked_by"] = []
         task["attempts"] = {}
         task["owner"] = None
+        note = a.note or "blocker cleared"
         transition(
             task,
             "QUEUED",
-            by=a.by or "orchestrator",
-            note=a.note or "blocker cleared",
+            by=by,
+            note=f"{note}; resolved: {a.resolved}" if human else note,
             event="unblock",
         )
 
     return mutate(run)
 
 
+def norm(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip().lower()
+
+
+def assertion_results(claimed: Any, errors: list[str]) -> dict[str, str]:
+    """Validate the verdict's optional assertions list; shape problems join `errors`."""
+    if claimed is None:
+        return {}
+    if not isinstance(claimed, list):
+        errors.append("assertions must be a list")
+        return {}
+    results: dict[str, str] = {}
+    for item in claimed:
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("description"), str)
+            or item.get("result") not in ASSERTION_RESULTS
+        ):
+            errors.append(
+                f"each assertion needs a description and a result in {sorted(ASSERTION_RESULTS)}"
+            )
+            return {}
+        results[norm(item["description"])] = item["result"]
+    return results
+
+
+def check_pass_verdict(
+    task: dict[str, Any], verdict: dict[str, Any], results: dict[str, str]
+) -> None:
+    """A PASS must cover the ledger's commands and assertions exactly, judged by the ledger."""
+    declared = {c["command"]: c["expected_exit_code"] for c in task["acceptance"]["commands"]}
+    ran = [c["command"] for c in verdict["commands"]]
+    if unknown := sorted(set(ran) - set(declared)):
+        raise ControllerError("PASS verdict has commands not in the ledger: " + "; ".join(unknown))
+    if missing := sorted(set(declared) - set(ran)):
+        raise ControllerError("PASS verdict did not run: " + "; ".join(missing))
+    for entry in verdict["commands"]:
+        if entry["actual_exit_code"] != declared[entry["command"]]:
+            raise ControllerError(
+                f"PASS verdict: {entry['command']!r} exited {entry['actual_exit_code']}, "
+                f"ledger expects {declared[entry['command']]}"
+            )
+    wanted = [x["description"] for x in task["acceptance"].get("assertions", [])]
+    if absent := [d for d in wanted if norm(d) not in results]:
+        raise ControllerError("PASS verdict has no result for assertions: " + "; ".join(absent))
+    if unmet := [d for d in wanted if results[norm(d)] != "met"]:
+        raise ControllerError("PASS verdict has unmet assertions: " + "; ".join(unmet))
+
+
 def cmd_verify(a: argparse.Namespace) -> int:
     def run(data: dict[str, Any]) -> None:
+        machine_may("verifier", a.machine)
         task = get_task(data, a.task)
+        worker = (task.get("machine") or (task.get("owner") or "").split("/")[0]).strip()
+        if worker and a.machine == worker:
+            raise ControllerError(
+                f"machine {a.machine} ran {a.task}; verification must come from another machine"
+            )
         path = ROOT / (
             a.verdict or str(Path(task["handoff_file"] or "").parent / "VERIFICATION.yaml")
         )
@@ -680,43 +809,49 @@ def cmd_verify(a: argparse.Namespace) -> int:
                 f"task stays {task['state']}"
             )
         verdict = yaml.safe_load(path.read_text(encoding="utf-8"))
+        # Assertion results are not in verification.schema.json (additionalProperties: false);
+        # the controller checks them itself so the schema file can follow separately.
+        claimed = verdict.pop("assertions", None) if isinstance(verdict, dict) else None
         errors = [
             e.message
             for e in jsonschema.Draft202012Validator(
                 load_schema("verification.schema.json")
             ).iter_errors(verdict)
         ]
+        results = assertion_results(claimed, errors)
         if errors:
             raise ControllerError(
                 "invalid verdict (verifier infrastructure failure): " + "; ".join(errors)
             )
         if verdict["task"] != task["id"]:
             raise ControllerError(f"verdict is for {verdict['task']}, not {task['id']}")
-        if task["last_good_commit"] and not (
-            task["last_good_commit"].startswith(verdict["verified_commit"])
-            or verdict["verified_commit"].startswith(task["last_good_commit"])
+        verifier_machine = str(verdict["verifier"]).split("/")[0].strip()
+        if (
+            norm(verdict["verifier"]) == norm(task["owner"] or "")
+            or verifier_machine == worker
+            or verifier_machine != a.machine
+        ):
+            raise ControllerError(
+                f"verifier {verdict['verifier']!r} must be on the verifying machine {a.machine}, "
+                f"not the machine that did the work ({worker}); verification must be independent"
+            )
+        if not task["last_good_commit"]:
+            raise ControllerError(f"{task['id']} has no last_good_commit to verify against")
+        if full_sha(verdict["verified_commit"], "verified_commit") != full_sha(
+            task["last_good_commit"], "last_good_commit"
         ):
             raise ControllerError(
                 "verdict covers a different commit than last_good_commit; re-verify"
             )
         if verdict["status"] == "PASS":
-            if any(c["actual_exit_code"] != c["expected_exit_code"] for c in verdict["commands"]):
-                raise ControllerError(
-                    "PASS verdict contains a command whose exit code differs from expected"
-                )
-            declared = {c["command"] for c in task["acceptance"]["commands"]}
-            ran = {c["command"] for c in verdict["commands"]}
-            if declared - ran:
-                raise ControllerError(
-                    "PASS verdict did not run: " + "; ".join(sorted(declared - ran))
-                )
+            check_pass_verdict(task, verdict, results)
             transition(task, "INTEGRATION", by=verdict["verifier"], event="verify_pass")
             return
         if task["state"] != "REVIEW":
             raise ControllerError("FAIL verdicts apply to tasks in REVIEW")
         first = verdict["failures"][0]
         kind = first.get("kind", "test_failure")
-        signature = f"{first['type']}:{first.get('file', '-')}"
+        signature = normalize_signature(f"{first['type']}:{first.get('file', '-')}")
         reason = bump_failure(task, kind, signature)
         add_event(task, "verify_fail", verdict["verifier"], "; ".join(verdict["required_actions"]))
         if reason:
@@ -747,6 +882,23 @@ def cmd_integrate_fail(a: argparse.Namespace) -> int:
     return mutate(run)
 
 
+def check_integration_commit(task: dict[str, Any], commit: str) -> str:
+    """The integration commit must exist, sit on the integration branch and contain verified work."""
+    full = full_sha(commit, "--commit")
+    verified = full_sha(task["last_good_commit"] or "", "verified commit (last_good_commit)")
+    tip = integration_tip()
+    if not is_ancestor(full, tip):
+        raise ControllerError(
+            f"--commit {full[:12]} is not an ancestor of the integration tip {tip}"
+        )
+    if not is_ancestor(verified, full):
+        raise ControllerError(f"--commit {full[:12]} does not contain verified {verified[:12]}")
+    parents = git_out("rev-list", "--parents", "-n", "1", full).stdout.split()[1:]
+    if len(parents) < 2 and full == verified:
+        raise ControllerError("--commit is the verified commit itself; expected the merge commit")
+    return full
+
+
 def cmd_complete(a: argparse.Namespace) -> int:
     def run(data: dict[str, Any]) -> None:
         machine_may("integrator", a.machine)
@@ -755,12 +907,13 @@ def cmd_complete(a: argparse.Namespace) -> int:
             raise ControllerError(
                 f"{a.task} is {task['state']}; only verified tasks in INTEGRATION can complete"
             )
-        task["last_good_commit"] = a.commit
+        commit = check_integration_commit(task, a.commit)
+        task["last_good_commit"] = commit
         transition(
             task,
             "COMPLETE",
             by=f"integrator/{a.machine}",
-            note=f"merged at {a.commit}",
+            note=f"merged at {commit}",
             event="complete",
         )
 
@@ -856,7 +1009,9 @@ def build_parser() -> argparse.ArgumentParser:
     ):
         s = sub.add_parser(name)
         s.add_argument("task")
-        s.add_argument("--by")
+        s.add_argument(
+            "--by", required=True, help="the task owner (requeue: or integrator machine)"
+        )
         s.add_argument("--note")
         s.add_argument("--commit")
         s.set_defaults(fn=simple_transition(to, event))
@@ -865,25 +1020,27 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("task")
     r.add_argument("--kind", required=True, choices=FAILURE_KINDS)
     r.add_argument("--signature", required=True)
-    r.add_argument("--by")
+    r.add_argument("--by", required=True, help="the task owner")
     r.set_defaults(fn=cmd_record_failure)
 
     b = sub.add_parser("block")
     b.add_argument("task")
     b.add_argument("--reason", required=True)
     b.add_argument("--report")
-    b.add_argument("--by")
+    b.add_argument("--by", required=True, help="the task owner")
     b.set_defaults(fn=cmd_block)
 
     u = sub.add_parser("unblock")
     u.add_argument("task")
-    u.add_argument("--by")
+    u.add_argument("--by", required=True, help="the task owner or the integrator machine")
     u.add_argument("--note")
+    u.add_argument("--resolved", help="what resolved the human:* blockers (required if any)")
     u.set_defaults(fn=cmd_unblock)
 
     v = sub.add_parser("verify")
     v.add_argument("task")
     v.add_argument("--verdict")
+    v.add_argument("--machine", required=True, choices=["A", "B"], help="the verifier machine")
     v.set_defaults(fn=cmd_verify)
 
     i = sub.add_parser("integrate-fail")
@@ -916,17 +1073,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    global REMOTE, CURRENT_CMD
-    saved = REMOTE, CURRENT_CMD
+    global REMOTE, CURRENT_CMD, LEDGER_BRANCH
+    saved = REMOTE, CURRENT_CMD, LEDGER_BRANCH
     try:
         return _main(argv)
     finally:
-        REMOTE, CURRENT_CMD = saved
+        REMOTE, CURRENT_CMD, LEDGER_BRANCH = saved
 
 
 def _main(argv: list[str] | None) -> int:
-    global REMOTE, CURRENT_CMD
+    global REMOTE, CURRENT_CMD, LEDGER_BRANCH
     args = build_parser().parse_args(argv)
+    LEDGER_BRANCH = args.ledger_branch
     REMOTE = args.ledger_branch if args.remote else None
     CURRENT_CMD = " ".join(
         a for a in (argv if argv is not None else sys.argv[1:]) if a != "--remote"
