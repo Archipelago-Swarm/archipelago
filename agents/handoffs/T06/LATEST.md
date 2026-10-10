@@ -30,6 +30,7 @@
 - Next issue: Acceptance 1 has no evidence: no browser smoke exists (tests/web is missing) covering start, pause, resume and replay of a real run. The handoff admits this.; Replay is only a label. There is no replay fetch from the events endpoint and no replay controls.; No run-start UI or seeded scenario selector. Slice 2 is incomplete.; No node health, local model/policy versions or transfer decisions, and no error states beyond the disconnect label. Slice 3 and the Outcome are unmet.; Acceptance 2 has only a unit test of the sourceLabel string. No test covers the reconnect behavior. Stale snapshots are kept and dimmed rather than cleared, and nothing re-syncs state after a reconnect.; Acceptance 3 is only partly met. Run ID and a coverage unit are shown, but nothing is verified by test. The default view is a fixture, so there is no evidence against a real run.; Command handling is fragile. The revision is fetched only once, so commands may 409 after a status change. The fetch has no response check or handling, and no authentication is handled.; Nothing is committed or pushed (the handoff is uncommitted), and the task card still says 'waiting'. The contract requires a pushed handoff.
 - Resume: fetch this branch, inspect latest commit and continue the task card.
 
+
 ## Worker update, round 2 (uncommitted; supervisor commits)
 - `apps/web/src/client.ts`: startRun (seed -> POST /v1/runs with Idempotency-Key), sendCommand (re-reads revision each time, one retry on 409), loadReplay (pages /events), 401 -> sign-in form, nodeHealth (derived from topology only). 4 unit tests in `client.test.ts`.
 - `App.tsx`: seed + start run, replay toggle with frame slider, snapshot cleared on disconnect (no stale state shown; server re-sends a snapshot on reconnect), errors shown in an alert, per-drone table (link health, policy version / last transfer from `learning_event` messages, else "not reported").
@@ -244,3 +245,9 @@
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## A coordinator recovery, 2026-10-10 13:34 UTC
+
+- The richer T06 implementation from run `20261010T130137Z` is preserved on this reconciliation branch and merged with current `main`.
+- Run `20261010T132342Z` forked from `main` after a carry-branch name collision. Its `App.tsx` is an alternative, smaller implementation, so it was not combined blindly; that branch remains pushed for reference.
+- The failed full check on B was caused by selecting the WSL `bash` shim. `main` now selects Git Bash on Windows; B does not need WSL for T06 checks. Resume T06 from this branch and rerun the full gate and browser smoke.
