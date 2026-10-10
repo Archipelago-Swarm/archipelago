@@ -987,13 +987,13 @@ tasks:
   description: 'TorchLearner per agents/architecture/live-runtime.md section 4 and 7: per-instance policy/target/optimizer/replay/RNG,
     snapshot inference, param-map-v1 import/export shared with the NumPy baseline, transactional generation
     checkpoints, thread control. NumPy learner kept and labeled as regression baseline.'
-  state: QUEUED
+  state: CLAIMED
   priority: 1
-  owner: null
-  machine: B
-  branch: null
+  owner: A/wf-w1
+  machine: A
+  branch: agent/T26-pytorch-cpu-learner-with-peer-pr
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:14:36Z'
   dependencies:
   - T07
   blocked_by: []
@@ -1029,9 +1029,16 @@ tasks:
     same_failure_signature: 2
   last_good_commit: null
   artifacts: []
-  handoff_file: null
+  handoff_file: agents/handoffs/T26/LATEST.md
   notes: Dependency torch==2.14.1 comes from the integrator-owned torch dependency group (T24 PR). Install
     the PyPI wheel locally (uv sync --frozen --group torch); CI/images use the CPU wheel.
+  history:
+  - at: '2026-10-10T19:14:36Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: A/wf-w1
+    note: ''
 - id: T27
   name: Node runtime process (act/feedback/control/peer/telemetry)
   description: 'archipelago_noderuntime: the per-container process of agents/architecture/live-runtime.md
@@ -1040,7 +1047,7 @@ tasks:
   state: QUEUED
   priority: 1
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T19:30:00Z'
@@ -1087,13 +1094,13 @@ tasks:
   description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
     fallback, episode and train/validation/test schedules, peer-fault schedule distribution, node health,
     authoritative replay and privileged snapshots. Does not own models.'
-  state: QUEUED
+  state: CLAIMED
   priority: 1
-  owner: null
+  owner: A/wf-w2
   machine: A
-  branch: null
+  branch: agent/T28-simulation-coordinator-service
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:14:23Z'
   dependencies:
   - T03
   blocked_by: []
@@ -1130,8 +1137,15 @@ tasks:
     same_failure_signature: 2
   last_good_commit: null
   artifacts: []
-  handoff_file: null
+  handoff_file: agents/handoffs/T28/LATEST.md
   notes: Tested against in-process fake nodes; the real node runtime is T27 and the joint smoke is T29.
+  history:
+  - at: '2026-10-10T19:14:23Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: A/wf-w2
+    note: ''
 - id: T29
   name: 'Live integration: API, dashboard, persistence and local end-to-end smoke'
   description: Wire services/api (ARCHIPELAGO_ADAPTER=live) to the coordinator, add Compose services coordinator
@@ -1204,7 +1218,7 @@ tasks:
   state: QUEUED
   priority: 2
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T19:30:00Z'
@@ -1258,7 +1272,7 @@ tasks:
   state: QUEUED
   priority: 3
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T19:30:00Z'
