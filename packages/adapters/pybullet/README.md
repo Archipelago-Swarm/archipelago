@@ -27,3 +27,11 @@ metric = drone-drone rigid-body contacts per substep (`info["collisions"]`).
   a 3D policy must be retrained from scratch.
 - Contract gap: `Pose.z` is pinned to 0, so z is only available via `poses3d()`; needs an ADR.
 - Later route: Gazebo/PX4 via the same `SimulatorAdapter` interface, replacing the physics core only.
+  **Documentation only: no Gazebo/PX4 code exists in this slice.**
+
+## Known gaps (need integrator action, outside T12 paths)
+- `Pose.z` is pinned to 0 in the shared contract: Observation/Snapshot carry x,y only; z is adapter-only (`poses3d()`).
+- `Action.command` is a fixed literal: takeoff/land are adapter methods (`takeoff()`/`land()`), not contract commands.
+- The repo `.venv` lacks pybullet/upstream, so flight tests skip in `scripts/check.sh`; only the saved-evidence shape test runs there.
+  Run the full suite in an environment with `requirements.txt` installed.
+- Task card still says `pybullet3d/` and `Status: waiting`; the code lives in `packages/adapters/pybullet/`.

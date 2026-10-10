@@ -94,3 +94,13 @@ def test_saved_smoke_evidence_is_reproducible() -> None:
     saved = json.loads((Path(smoke.__file__).parents[1] / "evidence/smoke.json").read_text())
     assert fresh["drone_drone_collisions"] == saved["drone_drone_collisions"] == 0
     assert fresh["poses3d"] == pytest.approx(saved["poses3d"], abs=1e-6)
+
+
+def test_saved_smoke_evidence_shape_without_pybullet() -> None:
+    import json
+
+    ev = Path(__file__).resolve().parents[2] / "packages/adapters/pybullet/evidence/smoke.json"
+    saved = json.loads(ev.read_text())
+    assert "gym-pybullet-drones" in saved["upstream"]
+    assert len(saved["poses3d"]) >= 2 and saved["drone_drone_collisions"] == 0
+    assert all(len(p) == 3 and 0.5 < p[2] < 1.5 for p in saved["poses3d"].values())
