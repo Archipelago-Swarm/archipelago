@@ -3,7 +3,8 @@
 import { spawn } from "node:child_process";
 import { mkdtempSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, delimiter } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 
 const API = 8765, WEB = 5199, CDP = 9333;
@@ -13,6 +14,9 @@ const browserPath = process.env.BROWSER ?? [
   "C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/google-chrome", "/usr/bin/chromium"].find(existsSync);
 assert.ok(browserPath, "no Edge/Chrome found; set BROWSER");
 
+// sim2d/sim are plain source dirs (no pyproject), so expose them via PYTHONPATH for a real-run smoke.
+const adapter = process.env.ARCHIPELAGO_ADAPTER ?? "fixture";
+const srcPath = ["adapters/sim2d", "sim"].map((d) => fileURLToPath(new URL(`../../packages/${d}`, import.meta.url))).join(delimiter);
 const kids = [];
 const run = (cmd, args, env = {}, cwd) => { const p = spawn(cmd, args, { cwd, stdio: "ignore", env: { ...process.env, ...env }, shell: process.platform === "win32" && cmd !== browserPath }); kids.push(p); return p; };
 const kill = (...ps) => (ps.length ? ps : kids).forEach((p) => { try { process.platform === "win32" ? spawn("taskkill", ["/pid", p.pid, "/T", "/F"], { stdio: "ignore" }) : p.kill(); } catch {} });
@@ -21,7 +25,7 @@ const until = async (fn, what, ms = 30000) => { const t = Date.now(); for (;;) {
 try {
   const dataDir = mkdtempSync(join(tmpdir(), "arch-api-"));
   const startApi = () => run("uv", ["run", "--with", "websockets", "uvicorn", "archipelago_api.app:create_app_from_env", "--factory", "--port", `${API}`],
-    { ARCHIPELAGO_API_TOKEN: TOKEN, ARCHIPELAGO_DATA_DIR: dataDir, ARCHIPELAGO_ADAPTER: process.env.ARCHIPELAGO_ADAPTER ?? "fixture" });
+    { ARCHIPELAGO_API_TOKEN: TOKEN, ARCHIPELAGO_DATA_DIR: dataDir, ARCHIPELAGO_ADAPTER: adapter, ...(adapter === "sim2d" && { PYTHONPATH: srcPath }) });
   let api = startApi();
   run("npx", ["vite", "--port", `${WEB}`, "--strictPort", "--host", "127.0.0.1"], { ARCHIPELAGO_URL: `http://127.0.0.1:${API}` }, new URL("../../apps/web", import.meta.url));
   run(browserPath, ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), "arch-br-"))}`, "--no-first-run", "--disable-extensions", "--disable-sync", "about:blank"]);
