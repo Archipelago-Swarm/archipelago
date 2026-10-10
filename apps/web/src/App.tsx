@@ -12,7 +12,7 @@ function draw(c: HTMLCanvasElement, s: WorldSnapshot) {
   if (!g) return;
   g.clearRect(0, 0, c.width, c.height);
   g.fillStyle = "#555";
-  for (const [x, y] of s.obstacles) g.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+  for (const [x, y] of s.obstacles as [number, number][]) g.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
   g.strokeStyle = "#08c";
   for (const [a, b] of s.topology.links) {
     const p = s.poses[a as string], q = s.poses[b as string];
