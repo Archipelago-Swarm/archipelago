@@ -1,0 +1,17 @@
+# Grafana live experiment dashboards
+
+Both dashboards share the TigerData PostgreSQL datasource and a single run_id selector.
+The live dashboard reads canonical records in events.payload because the metrics hypertable has no phase column. Coverage and episode_return use explicit train/eval filters. Frozen evaluation remains separate from training. A missing series is No data, never a manufactured zero.
+LearningEvent supplies update_count, loss, new_version, transfer, reason and candidate_score. Its public contract has no sender field, so the decisions table labels the deciding node and does not invent a sender.
+
+Expected MetricSample.metric names: coverage, episode_return, fault_phase, deadline_missed, node_unavailable, telemetry_backlog, telemetry_dropped, rss_bytes. Producers must emit those names; otherwise panels honestly remain empty. fault_phase uses MetricSample.phase for partition/recovery. Dropped persistence rows come separately from dropped_metrics; they represent shed batches, not cumulative totals.
+
+## Reader credentials
+
+Provisioning reads host/user/password/sslmode exclusively from TIGERDATA_GRAFANA_HOST, TIGERDATA_GRAFANA_USER, TIGERDATA_GRAFANA_PASSWORD and TIGERDATA_GRAFANA_SSLMODE. TIGERDATA_GRAFANA_USER must be archipelago_reader. The local Grafana entrypoint rejects other usernames. For TigerData, an operator enables LOGIN and assigns a password to the existing archipelago_reader role out of band, with only the SELECT privileges in 0002_roles.sql; never use the writer, database owner or a superuser. Set TLS to require or verify-full in production. Provisioned dashboards cannot restrict a database superuser's privileges; the database grants are the authority.
+
+The local Compose profile requires ARCHIPELAGO_DB_ADMIN_PASSWORD, GF_SECURITY_ADMIN_PASSWORD and TIGERDATA_GRAFANA_PASSWORD plus TIGERDATA_GRAFANA_USER=archipelago_reader in the caller's environment. No password defaults are checked in. The local host defaults to timescaledb:5432 and local TLS to disable. On a fresh database, SQL migrations initialize the schema and init-reader.sh enables login for the SELECT-only reader. Existing databases need an operator to apply migrations and enable reader login; initialization scripts do not rerun on existing volumes.
+
+## Validation
+
+Run uv run pytest tests/observability -q. Static validation always parses migration table definitions and compiles translated read-only queries with SQLite EXPLAIN (including JSON operators), checking syntax and table/column references without extra dependencies. Docker availability is checked explicitly: if no daemon is reachable, the test emits a warning that the real database path was not run. When reachable, a throwaway pinned TimescaleDB is migrated and every query is EXPLAINed and executed empty under SET ROLE archipelago_reader; write denial is also asserted. SQLite validation is a bounded fallback, not a claim of PostgreSQL equivalence. Real database failures fail the test.
