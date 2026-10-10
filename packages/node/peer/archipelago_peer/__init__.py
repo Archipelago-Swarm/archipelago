@@ -16,14 +16,33 @@ from archipelago_transport import MAX_PAYLOAD, Envelope, Network, load_manifest
 class PeerServer:
     """Accepts POST /envelope from peers; gates and validation are the shared Network rules."""
 
-    def __init__(self, node: str, links, host: str = "127.0.0.1", port: int = 0, **faults):
+    def __init__(
+        self,
+        node,
+        links,
+        host: str = "127.0.0.1",
+        port: int = 0,
+        urls=None,
+        on_catchup=None,
+        **faults,
+    ):
         # shortcut: binds loopback by default; private-network binding is the caller's choice
         self.node, self.net, self.lock = node, Network(links, **faults), threading.Lock()
+        self.urls, self.on_catchup = urls or {}, on_catchup
         outer = self
 
         class H(BaseHTTPRequestHandler):
             def do_POST(self):
                 n = int(self.headers.get("Content-Length", 0))
+                if self.path == "/catchup":  # a reconnected peer asks for the newest update
+                    try:
+                        who = json.loads(self.rfile.read(n))["node"]
+                    except (ValueError, KeyError, TypeError):
+                        return self._reply(400)
+                    if outer.on_catchup is None:
+                        return self._reply(404)
+                    outer.on_catchup(who)
+                    return self._reply(200)
                 if self.path != "/envelope":
                     return self._reply(404)
                 if n > 2 * MAX_PAYLOAD:
@@ -55,10 +74,20 @@ class PeerServer:
             before = sum(self.net.stats.rejected.values())
             self.net.send(env)
             self.net.tick()
-            if sum(self.net.stats.rejected.values()) != before:
+            if (
+                sum(self.net.stats.rejected.values()) != before
+            ):  # shortcut: counts, not per-envelope verdicts
                 return 422
             # accepted but deferred by the fault schedule (delay/bandwidth): not delivered yet
-            return 200 if self.net._seen.get((env.dst, env.src), -1) >= env.seq else 202
+            return 200 if self.net.last_seq(env.dst, env.src) >= env.seq else 202
+
+    def set_links(self, links):
+        """Cut/restore links; a newly opened inbound link makes this node request the latest."""
+        with self.lock:
+            opened = {s for s, d in set(links) - self.net.links if d == self.node}
+            self.net.links = set(links)
+        for src in sorted(opened & set(self.urls)):
+            _request_catchup(self.urls[src], self.node)
 
     def receive(self):
         with self.lock:
@@ -94,13 +123,26 @@ def post(url: str, env: Envelope, timeout: float = 1.0, retries: int = 2) -> int
     return 0
 
 
+def _request_catchup(url: str, me: str) -> int:
+    req = urllib.request.Request(url + "/catchup", json.dumps({"node": me}).encode())
+    try:
+        with urllib.request.urlopen(req, timeout=0.5) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except OSError:
+        return 0  # sender unreachable; the next reconnect asks again
+
+
 def serve_manifest(text: str, **faults) -> dict[str, PeerServer]:
     """Start one PeerServer per manifest node, bound to its manifest URL."""
     urls, links = load_manifest(text)
     out = {}
     for node, url in urls.items():
         u = urlparse(url)
-        out[node] = PeerServer(node, links, u.hostname or "127.0.0.1", u.port or 0, **faults)
+        out[node] = PeerServer(
+            node, links, u.hostname or "127.0.0.1", u.port or 0, urls=urls, **faults
+        )
     return out
 
 

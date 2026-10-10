@@ -99,3 +99,37 @@ def test_manifest_wiring_and_reconnect_catch_up():
     finally:
         for s in servers.values():
             s.close()
+
+
+def test_cut_and_restore_link_receiver_requests_latest_only():
+    pa, pb = _free_port(), _free_port()
+    text = json.dumps(
+        {
+            "nodes": {"a": f"http://127.0.0.1:{pa}", "b": f"http://127.0.0.1:{pb}"},
+            "links": [["a", "b"]],
+        }
+    )
+    servers = serve_manifest(text)
+    try:
+        urls, _ = load_manifest(text)
+        a = PeerClient("a", urls, timeout=0.2, retries=0)
+        servers["a"].on_catchup = a.catch_up
+        assert a.send("b", b"v1") == 200
+        servers["b"].set_links(set())  # cut
+        assert a.send("b", b"v2") == 422 and a.send("b", b"v3") == 422
+        servers["b"].set_links({("a", "b")})  # restore -> b asks a for the newest only
+        got = [servers["b"].receive(), servers["b"].receive(), servers["b"].receive()]
+        assert [g.payload for g in got if g] == [b"v1", b"v3"]
+    finally:
+        for s in servers.values():
+            s.close()
+
+
+def test_bandwidth_deferred_is_202_and_small_passes():
+    srv = PeerServer("b", {("a", "b")}, bandwidth=10)
+    try:
+        assert post(srv.url, Envelope.make("a", "b", 1, b"x" * 20)) == 202
+        assert srv.receive() is None
+        assert post(srv.url, Envelope.make("a", "b", 2, b"y")) == 200
+    finally:
+        srv.close()

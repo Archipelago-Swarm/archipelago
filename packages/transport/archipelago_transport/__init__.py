@@ -157,6 +157,9 @@ class Network:
         q.append(e)
         self.stats.received_bytes += n
 
+    def last_seq(self, dst: str, src: str) -> int:
+        return self._seen.get((dst, src), -1)
+
     def receive(self, node: str):
         q = self.inbox.get(node)
         return q.popleft() if q else None
