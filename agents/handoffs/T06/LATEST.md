@@ -105,3 +105,20 @@
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update (run 20261010T063026Z, round 3)
+- No code change. Re-verified: tsc, vitest (4 pass), eslint all ok. The external-check exit 1 is the non-T06 `tests/transport/test_peer_http.py::test_http_bad_requests` (WinError 10053); it is outside reserved paths, so the integrator or the transport owner must fix it.
+- Still open: real Transport (T03/T04), Playwright browser smoke, real node health, obstacle typing cast.
+
+## Supervisor checkpoint 2026-10-10T06:32:18Z
+
+- Run: 20261010T063026Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T063026Z/T06
+- Base: a5076ce701a3a7a99a7c3d147779d98c36270f28
+- Round: 3
+- State: blocked
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
