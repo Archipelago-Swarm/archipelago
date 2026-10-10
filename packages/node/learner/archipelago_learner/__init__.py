@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from archipelago_contracts import SCHEMA_VERSION
 from archipelago_contracts.models import LearningEvent
-from archipelago_learning import encode, offer
+from archipelago_learning import OfferWindow, encode, offer
 from archipelago_transport import Envelope
 
 
@@ -22,10 +22,13 @@ class LearnerNode:
         for p in self.peers:
             self.net.send(Envelope.make(self.learner.node_id, p, self.learner.version, payload))
 
-    def poll(self, eval_fn, margin=0.0, alpha=None):
-        """Offer every delivered candidate to the learner (accept/reject is measured)."""
+    def poll(self, eval_fn, margin=0.0, alpha=None, window=None):
+        """Offer every delivered candidate, in arrival order, as ONE exchange window (A1): at most
+        one is accepted, the rest are rejected as ``window_limit`` without validation cost."""
+        window = OfferWindow() if window is None else window
         while (env := self.net.receive(self.learner.node_id)) is not None:
-            offer(self.learner, env.payload, eval_fn, margin, alpha, sender=env.src)
+            offer(self.learner, env.payload, eval_fn, margin, alpha, sender=env.src, window=window)
+        return window
 
     def flush(self, tick=0):
         """Convert new learner events to contract LearningEvent records."""

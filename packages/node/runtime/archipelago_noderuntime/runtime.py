@@ -20,6 +20,8 @@ class Runtime:
             cfg.bind_host,
             cfg.peer_port,
             urls=dict(cfg.peer_urls),
+            token=cfg.peer_token,
+            allowed_src=set(cfg.node_ids) - {cfg.node_id},
             gate=lambda src: self.node.link_cut(src),
             on_cut=self._on_cut,
         )
@@ -27,15 +29,9 @@ class Runtime:
         self.control = ControlServer(self.node, cfg.bind_host, cfg.control_port)
         self.shipper: Shipper | None = None
         if cfg.telemetry_url:
-            meta = {
-                "node_id": cfg.node_id,
-                "host": cfg.host,
-                "commit": cfg.commit,
-                "config_hash": cfg.config_hash,
-                "seed": cfg.seed,
-            }
             self.shipper = Shipper(
-                self.node.spool, cfg.telemetry_url, meta, cfg.telemetry_token,
+                self.node.spool, cfg.telemetry_url, cfg.node_id, self.node.boot_id,
+                self.node.telemetry_context, cfg.telemetry_token,
                 cfg.ship_batch, cfg.ship_interval, cfg.ship_timeout,
             )  # fmt: skip
 

@@ -19,7 +19,11 @@ def wait_until(pred, timeout=10.0, step=0.02):
 
 
 def line(i):
-    return {"event_id": f"n-b-{i}", "phase": "train", "record": {"sequence": i, "x": i}}
+    return {
+        "event_id": f"n-b-{i}",
+        "phase": "train",
+        "record": {"event_id": f"n-b-{i}", "sequence": i, "x": i},
+    }
 
 
 # --- spool as a unit ----------------------------------------------------------------------
@@ -72,12 +76,12 @@ def test_shipper_catches_up_idempotently_after_a_crash_between_post_and_commit(t
         sp = Spool(tmp_path / "s", max_records=1000, seg_records=10)
         for i in range(40):
             sp.append(line(i))
-        sh = Shipper(sp, sink.url, {"node_id": "n"}, batch=15, interval=0.01, timeout=1.0)
+        sh = Shipper(sp, sink.url, "n", "boot0", batch=15, interval=0.01, timeout=1.0)
         recs, _ = sp.peek(15)
         assert sh.post(recs) == 200  # delivered, but the node died before sp.commit()
         sp.close()
         sp2 = Spool(tmp_path / "s", max_records=1000, seg_records=10)
-        sh2 = Shipper(sp2, sink.url, {"node_id": "n"}, batch=15, interval=0.01, timeout=1.0)
+        sh2 = Shipper(sp2, sink.url, "n", "boot0", batch=15, interval=0.01, timeout=1.0)
         while sh2.ship_once():
             pass
         assert sp2.backlog == 0
@@ -90,7 +94,7 @@ def test_shipper_survives_outage_with_backoff_and_loses_nothing(tmp_path):
     sink = FakeSink()
     sink.mode = "down"
     sp = Spool(tmp_path / "s", max_records=1000, seg_records=10)
-    sh = Shipper(sp, sink.url, {"node_id": "n"}, batch=10, interval=0.01, timeout=1.0)
+    sh = Shipper(sp, sink.url, "n", "boot0", batch=10, interval=0.01, timeout=1.0)
     sh.start()
     try:
         for i in range(25):
@@ -99,7 +103,9 @@ def test_shipper_survives_outage_with_backoff_and_loses_nothing(tmp_path):
         assert sink.events == {} and sp.backlog == 25
         sink.mode = "ok"
         assert wait_until(lambda: len(sink.events) == 25, timeout=15)
-        assert sp.backlog == 0 and sp.dropped == 0
+        # the sink has the batch before the shipper commits its cursor: wait for the commit
+        assert wait_until(lambda: sp.backlog == 0, timeout=15)
+        assert sp.dropped == 0
     finally:
         sh.stop()
         sink.close()
@@ -109,8 +115,7 @@ def test_shipper_survives_outage_with_backoff_and_loses_nothing(tmp_path):
 def _run_episode(rt, ticks=45, episode=0, seed=3):
     c = Client(rt.control_url)
     n = MiniCoordinator({rt.cfg.node_id: c}).run_episode(episode, seed, ticks)
-    st, out = c.control("episode_end", wait=True)
-    assert st == 200
+    c.episode_end(episode, n)
     return n
 
 
@@ -141,10 +146,14 @@ def test_node_ships_canonical_records_with_real_time_and_run_metadata(tmp_path):
             kinds.add(rec["kind"])
         assert kinds == {"learning_event", "metric_sample"}
         assert max(ticks) > 20  # simulation time rides in sim_tick
-        meta = sink.metas[0]
-        assert meta["node_id"] == "node-01" and meta["seed"] == 5
-        assert meta["commit"] == "unknown" and meta["config_hash"] == cfg.config_hash
-        assert meta["host"]
+        meta = sink.metas[0]  # section 8.1 body + A7 request-level context
+        assert set(meta) == {"source", "boot_id", "context"}
+        assert meta["source"] == "node-01" and meta["boot_id"] == rt.node.boot_id
+        ctx = meta["context"]
+        assert ctx["seed"] == 5 and ctx["commit"] == "unknown" and ctx["host"]
+        assert ctx["config_hash"] == cfg.config_hash and ctx["boot_id"] == rt.node.boot_id
+        assert "episode" not in ctx  # optional: the boot batch ships before any episode exists
+        assert any(m["context"].get("episode") == 0 for m in sink.metas)
         seqs = sorted(r["record"]["sequence"] for r in sink.events.values())
         assert seqs == sorted(set(seqs))  # unique, monotonic per node
     finally:
@@ -165,7 +174,9 @@ def test_outage_backlog_then_idempotent_catch_up(tmp_path):
         assert st["telemetry_backlog"] > 10 and sink.events == {}
         total = rt.node.spool.next_index
         sink.mode = "ok"
-        assert wait_until(lambda: len(sink.events) == total, timeout=15)
+        assert wait_until(
+            lambda: len(sink.events) == total and rt.node.spool.backlog == 0, timeout=15
+        )  # the cursor is committed after the sink answered: wait for both
         st = Client(rt.control_url).status()
         assert st["telemetry_backlog"] == 0 and st["telemetry_dropped"] == 0
     finally:
@@ -221,7 +232,7 @@ def test_poison_batches_are_skipped_and_counted_not_retried_forever(tmp_path, ba
     sp = Spool(tmp_path / "s", max_records=100, seg_records=10)
     for i in range(5):
         sp.append(line(i))
-    sh = Shipper(sp, "http://127.0.0.1:1/x", {}, batch=5)
+    sh = Shipper(sp, "http://127.0.0.1:1/x", "n", "boot0", batch=5)
     sh.post = lambda recs: bad  # type: ignore[method-assign]
     assert sh.ship_once() is True
     assert sp.backlog == 0 and sh.stats["poison"] == 5

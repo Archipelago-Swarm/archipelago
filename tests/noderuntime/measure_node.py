@@ -25,7 +25,7 @@ from archipelago_peer import post  # noqa: E402
 from archipelago_sim.env import GridWorld  # noqa: E402
 from archipelago_transport import Envelope  # noqa: E402
 from procs import NodeProc  # noqa: E402
-from support import obs_json  # noqa: E402
+from support import PEER_TOKEN, obs_json  # noqa: E402
 
 
 def proc_mem(pid: int) -> dict:
@@ -80,7 +80,10 @@ def main() -> None:
             t1 = time.perf_counter()
             nxt, rew, term, _, _ = w.step({"node-0": a["action"]["command"]})
             obs = nxt.get("node-0", obs)
-            st, f = c.feedback("run-m", 0, t, rew["node-0"], obs_json("run-m", "n", t + 1, obs))
+            st, f = c.feedback(
+                "run-m", 0, t, rew["node-0"], obs_json("run-m", "n", t + 1, obs),
+                cmd=a["action"]["command"],
+            )  # fmt: skip
             t2 = time.perf_counter()
             la.append(t1 - t0)
             lf.append(t2 - t1)
@@ -96,12 +99,16 @@ def main() -> None:
         c.control("checkpoint")
         res["checkpoint_seconds"] = round(time.perf_counter() - t0, 4)
         # act latency while a full-size validation (3 seeds x 900 ticks x 2 policies) runs
-        donor = TorchLearner("node-01", 28, 5, hidden=32, seed=7)
-        post(p.info["peer_url"], Envelope.make("node-01", "node-02", 3, encode(donor)))
-        c.control("episode_end")
+        donor = TorchLearner("node-01", 28, 5, hidden=32, seed=7, encoder="grid-flat-v1-s16-r2")
+        post(
+            p.info["peer_url"],
+            Envelope.make("node-01", "node-02", 3, encode(donor)),
+            token=PEER_TOKEN,
+        )
+        c.control("episode_end", episode=0, tick=args.feedbacks)
         lv, n0 = [], time.perf_counter()
         t = args.feedbacks
-        while c.status()["exchange_running"] or not lv:
+        while c.status()["window"] == "running" or not lv:
             if not w.agents:
                 obs = w.reset(t)["node-0"]
             t0 = time.perf_counter()
@@ -109,13 +116,26 @@ def main() -> None:
             lv.append(time.perf_counter() - t0)
             nxt, rew, *_ = w.step({"node-0": a["action"]["command"]})
             obs = nxt.get("node-0", obs)
-            c.feedback("run-m", 0, t, rew["node-0"], obs_json("run-m", "n", t + 1, obs))
+            c.feedback(
+                "run-m", 0, t, rew["node-0"], obs_json("run-m", "n", t + 1, obs),
+                cmd=a["action"]["command"],
+            )  # fmt: skip
             t += 1
         res["act_latency_during_validation"] = {
             **summary(lv),
             "window_seconds": round(time.perf_counter() - n0, 3),
         }
         res["after_exchange"] = proc_mem(pid)
+        st = c.status()
+        res["node_reported"] = {
+            "rss_bytes": st["rss_bytes"],
+            "rss_peak_bytes": st["rss_peak_bytes"],
+            "act_latency_ms": st["act_latency_ms"],
+        }
+        # A16: limit = 1.5 x peak training RSS, rounded up to 64 MiB
+        peak_mib = max(res["after_exchange"].get("VmHWM", 0), st["rss_peak_bytes"] / 2**20)
+        res["peak_rss_mib"] = round(peak_mib, 1)
+        res["compose_memory_limit_proposal_mib"] = int(-(-(1.5 * peak_mib) // 64) * 64)
     finally:
         p.close()
     print(json.dumps(res, indent=2))

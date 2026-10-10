@@ -16,6 +16,7 @@ from archipelago_noderuntime.runtime import Runtime
 from archipelago_sim.env import GridWorld
 
 TOKEN = "unit-test-token-0123456789"
+PEER_TOKEN = "unit-peer-token-0123456789"
 NOW = "2026-10-10T12:00:00Z"
 
 
@@ -24,6 +25,9 @@ def make_cfg(tmp, node_id="node-01", node_ids=("node-01", "node-02"), **over) ->
         node_id=node_id,
         node_ids=tuple(node_ids),
         control_token=TOKEN,
+        peer_token=PEER_TOKEN,
+        exchange_every_ticks=0,  # tests opt in to cadence windows explicitly
+        window_cancel_wait=1.0,
         checkpoint_dir=tmp / node_id,
         peer_port=0,
         control_port=0,
@@ -64,9 +68,13 @@ def obs_json(run_id: str, tag: str, tick: int, o: dict) -> dict:
     }
 
 
+ACTION_IDX = {"stay": 0, "north": 1, "east": 2, "south": 3, "west": 4}
+
+
 class Client:
     def __init__(self, url, token=TOKEN):
         self.url, self.token = url, token
+        self.run = "run-t"  # run id attached to control commands that do not name one
 
     def call(self, method, path, body=None, token="default", raw=None):
         data = raw if raw is not None else (None if body is None else json.dumps(body).encode())
@@ -87,6 +95,7 @@ class Client:
                 return e.code, {"raw": raw_body.decode(errors="replace")}
 
     def act(self, run, ep, tick, obs, **kw):
+        self.run = run
         return self.call(
             "POST",
             "/v1/act",
@@ -94,7 +103,9 @@ class Client:
             **kw,
         )
 
-    def feedback(self, run, ep, tick, reward, nxt, term=False, trunc=False):
+    def feedback(
+        self, run, ep, tick, reward, nxt, term=False, trunc=False, cmd="stay", missed=False
+    ):
         return self.call(
             "POST",
             "/v1/feedback",
@@ -106,14 +117,36 @@ class Client:
                 "next_observation": nxt,
                 "terminated": term,
                 "truncated": trunc,
+                "executed_command": cmd,
+                "action_index": ACTION_IDX[cmd],
+                "deadline_missed": missed,
             },
         )
 
     def control(self, command, **kw):
-        return self.call("POST", "/v1/control", {"command": command, **kw})
+        if "run_id" in kw:
+            self.run = kw["run_id"]
+        return self.call("POST", "/v1/control", {"command": command, "run_id": self.run, **kw})
 
     def status(self):
         return self.call("GET", "/v1/status")[1]
+
+    def wait_idle(self, timeout=30.0):
+        """Poll until the node's background worker has no window running or queued."""
+        end = time.time() + timeout
+        while time.time() < end:
+            if self.status()["window"] == "idle":
+                return True
+            time.sleep(0.01)
+        return False
+
+    def episode_end(self, episode, tick, wait=True):
+        """A4: 202 {window_id}; optionally wait for the background window to finish."""
+        st, out = self.control("episode_end", episode=episode, tick=tick)
+        assert st == 202 and out["window_id"], (st, out)
+        if wait:
+            assert self.wait_idle()
+        return st, out
 
 
 class MiniCoordinator:
@@ -135,8 +168,12 @@ class MiniCoordinator:
             st, out = c.control("reset", **body)
             assert st == 200, out
 
-    def run_episode(self, episode, seed, ticks, mode="train", schedule=None, end=False):
-        """Run up to `ticks` ticks; returns the number of ticks acted."""
+    def run_episode(self, episode, seed, ticks, mode="train", schedule=None, end=False, cadence=0):
+        """Run up to `ticks` ticks; returns the number of ticks acted.
+
+        cadence: the nodes' exchange_every_ticks. After each node's act at a cadence tick the
+        coordinator waits for that node's window, so cross-node ordering is deterministic.
+        """
         self.reset(episode, mode, schedule)
         obs = self.world.reset(seed)
         t = 0
@@ -153,6 +190,8 @@ class MiniCoordinator:
                     assert st == 200, out
                     acts[a] = out["action"]["command"]
                     sent[nid] = a
+                    if cadence and t > 0 and t % cadence == 0 and mode == "train":
+                        assert self.clients[nid].wait_idle()
             nxt, rew, term, trunc, _ = self.world.step(acts)
             if mode == "train":
                 for nid, a in sent.items():
@@ -164,13 +203,13 @@ class MiniCoordinator:
                         obs_json(self.run_id, nid, t + 1, nxt[a]),
                         term[a],
                         trunc[a],
+                        acts[a],
                     )
                     assert st == 200, out
             obs = nxt
         if end:
             for c in self.clients.values():
-                st, out = c.control("episode_end", wait=True)
-                assert st == 200, out
+                c.episode_end(episode, t + 1)
         return t + 1
 
 
@@ -182,6 +221,7 @@ class FakeSink:
         self.events: dict[str, dict] = {}
         self.metas: list[dict] = []
         self.batches = 0
+        self.sizes: list[tuple[int, int]] = []  # (events, body bytes) per accepted request
         self.received = 0
         self.connections = 0
         self.lock = threading.Lock()
@@ -206,10 +246,13 @@ class FakeSink:
                 d = json.loads(body)
                 with outer.lock:
                     outer.batches += 1
-                    outer.metas.append({k: v for k, v in d.items() if k != "records"})
-                    for r in d["records"]:
+                    outer.sizes.append((len(d["events"]), n))
+                    outer.metas.append({k: v for k, v in d.items() if k != "events"})
+                    for r in d["events"]:
                         outer.received += 1
-                        outer.events.setdefault(r["event_id"], r)
+                        outer.events.setdefault(
+                            r["event_id"], {"event_id": r["event_id"], "record": r}
+                        )
                 self.send_response(200)
                 self.send_header("Content-Length", "0")
                 self.end_headers()

@@ -163,3 +163,68 @@ def test_malformed_requests_get_400():
 
 def test_catch_up_before_any_send_is_noop():
     assert PeerClient("a", {"b": "http://127.0.0.1:1"}).catch_up("b") == 0
+
+
+# --- A8: shared PEER_TOKEN bearer, src bound to the declared id list ---------------------------
+TOKEN = "peer-token-0123456789"
+
+
+def _authed(url, path, body, token):
+    headers = {"Content-Type": "application/json"}
+    if token is not None:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url + path, body, headers)
+    try:
+        with urllib.request.urlopen(req, timeout=1) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+
+
+def test_peer_endpoints_require_the_bearer_token():
+    srv = PeerServer("b", {("a", "b")}, token=TOKEN, allowed_src={"a"})
+    try:
+        e = Envelope.make("a", "b", 1, b"hi")
+        assert post(srv.url, e) == 401  # no bearer
+        assert post(srv.url, e, token="wrong-token-wrong-token") == 401
+        assert _authed(srv.url, "/envelope", _doc(e), "Bearer-less") == 401
+        assert _authed(srv.url, "/catchup", b'{"node": "a"}', None) == 401  # catchup too
+        assert srv.receive() is None  # nothing was queued by any unauthenticated request
+        assert post(srv.url, e, token=TOKEN) == 200
+        assert srv.receive().payload == b"hi"
+    finally:
+        srv.close()
+
+
+def test_src_is_bound_to_the_declared_id_list_even_with_the_right_token():
+    srv = PeerServer("b", {("a", "b"), ("c", "b")}, token=TOKEN, allowed_src={"a"})
+    try:
+        assert post(srv.url, Envelope.make("c", "b", 1, b"x"), token=TOKEN) == 403  # not declared
+        assert srv.receive() is None
+        assert _authed(srv.url, "/catchup", b'{"node": "c"}', TOKEN) == 403
+        assert post(srv.url, Envelope.make("a", "b", 1, b"x"), token=TOKEN) == 200
+    finally:
+        srv.close()
+
+
+def test_peer_client_seq_continues_across_restarts_through_a_persisted_source(tmp_path):
+    from archipelago_learning.checkpoint import SequenceAllocator
+
+    srv = PeerServer("b", {("a", "b")}, token=TOKEN)
+    try:
+        alloc = SequenceAllocator(tmp_path / "peer_seq.json", block=10)
+        c1 = PeerClient("a", {"b": srv.url}, token=TOKEN, seq_source=alloc)
+        assert [c1.send("b", b"v%d" % i) for i in range(3)] == [200, 200, 200]
+        old = c1.seq
+        # the sender process dies and restarts: a fresh client + allocator on the same volume
+        c2 = PeerClient(
+            "a", {"b": srv.url}, token=TOKEN,
+            seq_source=SequenceAllocator(tmp_path / "peer_seq.json", block=10),
+        )  # fmt: skip
+        assert c2.send("b", b"after-restart") == 200  # not dropped as stale by the receiver
+        assert c2.seq > old
+        # contrast: a client that restarts its counter at 0 is dropped as stale
+        c3 = PeerClient("a", {"b": srv.url}, token=TOKEN)
+        assert c3.send("b", b"restarted-from-zero") == 422
+    finally:
+        srv.close()

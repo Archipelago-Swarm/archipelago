@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from support import TOKEN, Client
+from support import PEER_TOKEN, TOKEN, Client
 
 _ROOT = Path(__file__).resolve().parents[2]
 _PKGS = [
@@ -31,6 +31,8 @@ class NodeProc:
             "NODE_ID": node_id,
             "NODE_IDS": ",".join(node_ids or [node_id]),
             "NODE_CONTROL_TOKEN": TOKEN,
+            "PEER_TOKEN": PEER_TOKEN,
+            "EXCHANGE_EVERY_TICKS": "0",
             "NODE_CHECKPOINT_DIR": str(self.tmp / node_id),
             "PEER_PORT": "0",
             "CONTROL_PORT": "0",
