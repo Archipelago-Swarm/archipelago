@@ -32,7 +32,9 @@ class Drone:
     known: dict[tuple[int, int], int] = field(default_factory=dict)  # private per-node buffer
     found: set[tuple[int, int]] = field(default_factory=set)
     visits: dict[tuple[int, int], int] = field(default_factory=dict)  # own ticks spent per cell
-    peer_visits: set[tuple[int, int]] = field(default_factory=set)  # cells peers reported standing on
+    peer_visits: set[tuple[int, int]] = field(
+        default_factory=set
+    )  # cells peers reported standing on
 
     @property
     def alive(self) -> bool:
@@ -198,7 +200,9 @@ class GridWorld:
                 hit = "wall_collision" if self._cell(want[a]) == WALL else "agent_collision"
                 want[a] = pos[a]
                 rewards[a] += self.r_collision
-                self.counters["wall_collisions" if hit == "wall_collision" else "agent_collisions"] += 1
+                self.counters[
+                    "wall_collisions" if hit == "wall_collision" else "agent_collisions"
+                ] += 1
                 ev.append({"tick": self.tick, "node": a, "event": hit})
         # Fixpoint: shared destination, swap, or moving into a node that stays -> mover stays.
         while True:
