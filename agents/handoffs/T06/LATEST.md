@@ -196,3 +196,20 @@
 - Independent review: {"pass": true, "issues": ["Browser smoke (tests/web/browser-smoke.mjs) is real (CDP-driven start/pause/resume/stop/replay/disconnect/reconnect with assertions), but it is opt-in (`npm run smoke`), defaults to the fixture adapter, and is not in the external check. I could not run it here. The sim2d pass is reported only in the handoff, so reproduce it with `ARCHIPELAGO_ADAPTER=sim2d npm run smoke -w @archipelago/web` during PR review.", "The disconnect/reconnect browser step runs on a stopped run after an API restart, not a live running one. Live-stream reconnect is otherwise covered only by stream.test.ts (fake WebSocket) and the reducer test.", "Policy versions and transfer decisions have no real data source. The API emits no learning_event, so the wire shape is assumed and the UI shows 'not reported'. This is honest, not stubbed, but the Outcome's 'local model versions' is unproven end to end. Node health comes from topology only.", "Process, for the integrator: hygiene.test.ts and the round-10 handoff edits are uncommitted. The task card (outside the reserved paths) still says waiting/unassigned with unchecked boxes and 'Latest handoff: none'."]}
 - Next issue: none
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, run 20261010T130137Z (uncommitted; supervisor commits)
+- `tests/web/browser-smoke.mjs`: disconnect/reconnect now runs against a second, still-running run (was a stopped run). It waits for the first run to reach `completed` before starting the second (capacity limit). Passed locally on the fixture adapter: `node tests/web/browser-smoke.mjs` (ok, run-mv2f2vs2-1).
+- Not re-run with `ARCHIPELAGO_ADAPTER=sim2d`. Reconnect check only asserts LIVE returns and DISCONNECTED clears; the API restart loses the in-memory run, so what the page shows after reconnect was not inspected beyond that. Still open: smoke not in `npm test`, no API `learning_event`, task card is outside my paths.
+
+## Supervisor checkpoint 2026-10-10T13:15:54Z
+
+- Run: 20261010T130137Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T130137Z/T06
+- Base: 110279e3754d67377172ecbd9619fc3ef364ea61
+- Round: 1
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.

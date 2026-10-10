@@ -64,6 +64,7 @@ try {
   await until(async () => (await js(`fetch("/v1/runs/${id}").then((r) => r.json()).then((r) => r.status)`)) === "running", "resumed");
   await click("pause");
   await click("stop");
+  await until(async () => (await js(`fetch("/v1/runs/${id}").then((r) => r.json()).then((r) => r.status)`)) === "completed", "stopped");
 
   await send("Page.navigate", { url: `http://127.0.0.1:${WEB}/?run=${id}&replay=1` });
   await waitText(/REPLAY/i, "replay label");
@@ -71,13 +72,18 @@ try {
   assert.ok((await text()).includes(id), "replay shows run ID");
   await send("Page.navigate", { url: `http://127.0.0.1:${WEB}/?run=${id}` });
   await waitText(/LIVE/, "live view of stopped run");
-  // disconnect: killing the API must drop live state (never show stale as LIVE); restart must re-sync
+  // second run, left running: disconnect must drop live state; restart must re-sync
+  await send("Page.navigate", { url: `http://127.0.0.1:${WEB}/` });
+  await waitText(/Start run/, "dashboard renders again");
+  await click("Start run");
+  await waitText(/LIVE/, "second run live");
   kill(api);
   await waitText(/DISCONNECTED/, "disconnected label");
   assert.doesNotMatch(await text(), /LIVE/, "no LIVE label while disconnected");
   api = startApi();
   await until(() => fetch(`http://127.0.0.1:${API}/healthz`).then((r) => r.status < 500), "api restart");
   await waitText(/LIVE/, "live again after reconnect");
+  assert.doesNotMatch(await text(), /DISCONNECTED/, "reconnected");
   console.log(`ok: browser smoke start/pause/resume/stop/replay/disconnect/reconnect for ${id}`);
   ws.close();
 } catch (e) { console.error(e); process.exitCode = 1; } finally { kill(); }
