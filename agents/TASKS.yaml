@@ -1226,6 +1226,7 @@ tasks:
   - T27
   - T28
   - T17
+  - T32
   blocked_by: []
   owned_paths:
   - experiments/**
@@ -1317,3 +1318,174 @@ tasks:
   handoff_file: null
   notes: Blocked until the operator attaches Vultr and TigerData connections after local readiness (single
     consolidated request).
+- id: T32
+  name: Experiment protocol repair and offline five-mode harness
+  description: Fix experiments/run.py evidence defects (shared cumulative train_env_steps, node-failure
+    accounting, central_online budgets, information_only semantics), implement the five required comparisons
+    offline on the NumPy baseline, diagnose why idle and rule-based beat learners, and preserve prior
+    results as historical artifacts.
+  state: CLAIMED
+  priority: 1
+  owner: A/wf-T32
+  machine: A
+  branch: agent/T32-experiment-protocol-repair-and-o
+  created_at: '2026-10-10T19:40:00Z'
+  updated_at: '2026-10-10T19:24:04Z'
+  dependencies:
+  - T09
+  blocked_by: []
+  owned_paths:
+  - experiments/**
+  - tests/experiments/**
+  contracts:
+  - agents/architecture/evaluation.md
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/experiments -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Per-cell train_env_steps, node-failure surviving-agent transition counts and central_online
+        transition budgets are computed per cell and asserted by tests; old REPORT.md is kept as a labeled
+        historical artifact and the new report is generated from run artifacts.
+    - description: The five required modes (rule-based, idle, independent, information sharing without
+        model transfer, information sharing plus validated model candidates) share reward/observation
+        definitions, paired training seeds, frozen test scenarios and identical non-model information
+        in modes 4 and 5; replay sharing, if kept, is a separately labeled mode.
+    - description: Validation overhead (evaluations, wall seconds, bytes) is recorded per candidate decision.
+    - description: A diagnosis document with action traces, observation/reward audit and exploration/training-stability
+        checks explains why idle/rule-based beat learners, and proposes (does not silently apply) any
+        versioned observation/reward change.
+    - description: Scenarios (connected, partition-reconnect, node failure, telemetry outage) are verified
+        to reach their fault ticks given episode length and battery; seed splits (train/validation/test)
+        are disjoint and asserted.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: agents/handoffs/T32/LATEST.md
+  notes: Offline NumPy harness only; the live PyTorch runtime reuses its protocol in T30. Must not edit
+    packages/learning (T26).
+  history:
+  - at: '2026-10-10T19:24:04Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: A/wf-T32
+    note: ''
+- id: T33
+  name: Dashboard live panels
+  description: 'Extend the existing React dashboard with live panels fed by canonical event records: drone
+    positions and actions, per-node update counts/loss/policy versions, peer offers with accept/reject
+    provenance, topology and fault phase, training vs frozen-evaluation curves, resource use, telemetry
+    freshness and backlog; label live, stale, disconnected and replay states.'
+  state: CLAIMED
+  priority: 2
+  owner: A/wf-T33
+  machine: A
+  branch: agent/T33-dashboard-live-panels
+  created_at: '2026-10-10T19:40:00Z'
+  updated_at: '2026-10-10T19:24:05Z'
+  dependencies:
+  - T06
+  - T13
+  blocked_by: []
+  owned_paths:
+  - apps/web/**
+  - tests/web/**
+  contracts:
+  - packages/contracts/README.md
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: npm run lint
+      expected_exit_code: 0
+      tier: integration
+    - command: npm run typecheck
+      expected_exit_code: 0
+      tier: integration
+    - command: npm test
+      expected_exit_code: 0
+      tier: integration
+    - command: npm run build
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: A pure reducer builds panel state from WorldSnapshot, MetricSample and LearningEvent
+        streams and is unit-tested with recorded fixtures covering a partition and reconnection.
+    - description: Stale and disconnected states are visibly labeled, historical or replay data never
+        carries a LIVE label, and no hardcoded success metrics or credentials exist (existing hygiene
+        tests still pass).
+    - description: Peer offer rows show sender, version, accepted/rejected, reason and candidate score;
+        evaluation curves distinguish frozen-eval from training.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: agents/handoffs/T33/LATEST.md
+  notes: Consumes only canonical contract records through the existing API stream/events routes; server-side
+    wiring is T29.
+  history:
+  - at: '2026-10-10T19:24:05Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: A/wf-T33
+    note: ''
+- id: T34
+  name: Vultr and TigerData operations tooling
+  description: 'Read-only Vultr inventory and cost guard, TigerData connectivity and migration checker,
+    and a deploy/rollback driver, all secrets from environment only, tested against fake HTTP and database
+    endpoints. Enforces: max five account instances, $200/month projected, $100 cumulative ceiling, no
+    create without an explicit approved plan file.'
+  state: QUEUED
+  priority: 2
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T19:40:00Z'
+  updated_at: '2026-10-10T19:40:00Z'
+  dependencies:
+  - T10
+  blocked_by: []
+  owned_paths:
+  - infra/vultr/**
+  contracts:
+  - infra/runbooks/vultr-deploy.md
+  - infra/runbooks/budget-guard.md
+  - infra/runbooks/rollback-teardown.md
+  acceptance:
+    commands:
+    - command: uv run pytest infra/vultr/tests -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Inventory lists instances, plans, regions, account balance/pending charges via the
+        Vultr API v2 with the key read only from VULTR_API_KEY; the key never appears in logs, errors,
+        handoffs or test output (asserted).
+    - description: The cost guard computes projected monthly and cumulative spend from the inventory plus
+        a proposed plan and refuses (nonzero exit) any plan exceeding the five-instance, $200/month or
+        $100 cumulative limits, or lacking an approved plan file; tested at and over each limit.
+    - description: TigerData checker connects using TIGERDATA_URL, requires TLS, applies migrations idempotently,
+        verifies writer and reader roles, and reports without printing credentials; tested against a fake
+        or local database.
+    - description: 'A deploy driver renders a host bootstrap (Docker install, firewall: only 22 from operator
+        IP, 80, 443) and rollback by image digest; all steps are dry-run by default and print the exact
+        plan.'
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: No cloud call is made without VULTR_API_KEY. Tooling only; provisioning happens in T31 after
+    local readiness and approval.
