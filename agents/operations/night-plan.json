@@ -7,16 +7,19 @@
       "paths": [
         "apps/web/",
         "tests/web/"
-      ]
+      ],
+      "source_branch": "agent/B/T06/carry-20261010T132342Z-2"
     },
     {
       "id": "T09",
       "machine": "A",
       "paths": [
         "experiments/",
-        "tests/experiments/"
+        "tests/experiments/",
+        "packages/learning/",
+        "tests/learning/"
       ],
-      "source_branch": "agent/A/T09/carry2"
+      "source_branch": "agent/A/T09/carry-20261010T132342Z-3"
     },
     {
       "id": "T12",
@@ -27,7 +30,7 @@
         "infra/3d/",
         "tests/adapters3d/"
       ],
-      "source_branch": "agent/A/T12/carry1"
+      "source_branch": "agent/A/T12/carry-20261010T132342Z-2"
     }
   ]
 }

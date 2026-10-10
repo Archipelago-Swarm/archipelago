@@ -16,6 +16,9 @@ STATE = RT / "driver.json"
 COORD = "agent-coordination"
 MAX_ATTEMPTS = 6
 B_WAIT_MIN = 90
+# T06 forked from main after a carry-name collision. Preserve the complete
+# earlier implementation until a later T06 branch descends from this recovery.
+RECOVERY_SOURCES = {"T06": "agent/B/T06/reconciled-20261010"}
 
 
 def sh(*a, check=True, cwd=ROOT, **k):
@@ -145,7 +148,7 @@ def next_plan(run_hint, last, s):
             if not refs and m == "B":
                 continue
             if refs:
-                prior_ref = refs[0]
+                prior_ref = recovery_ref(task, refs[0])
                 carry = f"agent/{m}/{task}/carry-{run_hint or now().strftime('%Y%m%dT%H%M%S')}"
                 if sh("git", "push", "-q", "origin", f"{prior_ref}:refs/heads/{carry}", check=False).returncode:
                     continue
@@ -153,13 +156,24 @@ def next_plan(run_hint, last, s):
         if prior:  # keep the previous owner; carry over the previous run's branch, never restart from main
             entry["machine"] = prior[0]
             carry = f"agent/{prior[0]}/{task}/carry-{run_hint}-{s['attempts'].get(task, 0)}"
-            r = sh("git", "push", "-q", "origin", f"origin/agent/{prior[0]}/{run_hint}/{task}:refs/heads/{carry}", check=False)
+            source_ref = recovery_ref(task, f"origin/agent/{prior[0]}/{run_hint}/{task}")
+            r = sh("git", "push", "-q", "origin", f"{source_ref}:refs/heads/{carry}", check=False)
             if r.returncode:
                 log(f"{task}: could not preserve {run_hint} checkpoint; skipping task")
                 continue
             entry["source_branch"] = carry
         tasks.append(entry)
     return tasks
+
+
+def recovery_ref(task, candidate):
+    source = RECOVERY_SOURCES.get(task)
+    if not source:
+        return candidate
+    recovery = f"origin/{source}"
+    if sh("git", "merge-base", "--is-ancestor", recovery, candidate, check=False).returncode == 0:
+        return candidate
+    return recovery
 
 
 def publish(tasks):
