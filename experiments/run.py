@@ -6,6 +6,7 @@ import argparse
 import copy
 import hashlib
 import json
+import os
 import random
 import sys
 import time
@@ -208,7 +209,8 @@ def main(argv=None):
         "args": vars(a),
         "val": list(VAL),
         "test": list(TEST),
-        "rerun": "PYTHONPATH=packages/learning:packages/sim python " + " ".join(sys.argv),
+        "rerun": f"PYTHONPATH=packages/learning{os.pathsep}packages/sim {sys.executable} "
+        + " ".join(sys.argv),  # POSIX shell syntax
         "train_env_steps": steps[0],
         "note": f"n={a.seeds} experiment seeds: preliminary; CIs are bootstrap over seeds, "
         "wide for small n; no superiority claims without CI excluding 0.",
@@ -217,6 +219,9 @@ def main(argv=None):
         json.dumps({"config": cfg, "paired_vs_independent": summ}, indent=1).encode()
     )
     cfg["wall_s"] = sum(walls)  # unhashed: keeps reruns byte-identical
+    cfg["cpu_s"] = time.process_time()  # slice 3 cap: 30 CPU-min, 2 GB evidence per sweep
+    cfg["evidence_bytes"] = sum(f.stat().st_size for f in out.glob("*") if f.is_file())
+    assert cfg["cpu_s"] < 30 * 60 and cfg["evidence_bytes"] < 2 * 2**30, "sweep exceeded local cap"
     cfg["sha256"] = {
         f: hashlib.sha256((out / f).read_bytes()).hexdigest() for f in ("raw.jsonl", "summary.json")
     }
