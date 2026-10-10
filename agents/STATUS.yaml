@@ -1,0 +1,37 @@
+# Machine-readable project status. Written by the orchestrator only. Read this before surveying the repo.
+updated_at: "2026-10-10T20:45:00Z"
+goal: "Live decentralized-learning demo on Vultr + TigerData: 4 node containers each train their own PyTorch policy, exchange validated model candidates over a partitionable peer network, live authenticated dashboard, reproducible evidence."
+deadline: "2026-10-11T05:00:00Z"   # 01:00 America/New_York
+architecture:
+  processes: [coordinator(world, Sim2DAdapter), node x4 (TorchLearner, act/feedback/control/peer/telemetry), api (FastAPI, ingest, persistence), web (React), grafana, timescaledb/TigerData, proxy(Caddy)]
+  interface_doc: agents/architecture/live-runtime.md   # section 13 amendments A1-A17 win
+  channels: [coordinator<->node control/obs/action, node<->node peer, telemetry node->api ingest]
+owners:
+  A_sim_learning: {paths: [packages/learning, packages/node, packages/transport, packages/sim, packages/adapters/sim2d, services/coordinator, experiments, tests/noderuntime, tests/coordinator, tests/learning, tests/experiments], invariant: "nodes learn independently, exchange validated state, measurable adaptation, reproducible experiment"}
+  B_data_api: {paths: [services/api, tests/api, packages/storage, tests/storage, observability, tests/observability, apps/web, tests/web], invariant: "telemetry+metrics persisted and queryable; live API mode works; dashboard shows node events"}
+  C_infra_demo: {paths: [infra, tests/infra, tests/e2e], invariant: "one command (make demo) launches the stack reproducibly and writes artifacts"}
+  E_integration: {owner: orchestrator, paths: [pyproject.toml, uv.lock, .github, scripts, Makefile, agents/TASKS.yaml, agents/STATUS.yaml, root docs]}
+critical_path: [coordinator+nodes run a learning cycle locally, peer transfer under partition, telemetry persisted+queryable, make demo, Vultr deploy, artifacts]
+state:
+  merged_on_main: [T01-T09 (legacy), T12, T13, T14/T15 content via PR #7, T10 infra packaging, control plane (PR #8), live-runtime agreement + torch dep group (PR #10)]
+  on_integration_branch_pr12: [T26 TorchLearner (verified), T27 node runtime (verified vs old agreement; amendments pending), T28 coordinator (verified; amendments in T39), T32 experiments (verified), T33 panels (verified), T34 ops tooling (verified), T35 Grafana (verified locally), T36 telemetry ingest (verified locally, not yet mounted)]
+  in_flight: [T22 controller/launcher hardening, T39 coordinator amendments, T40 encoders+window_limit]
+  not_started: [T27 amendments repair, T37 variant study, T38 live adoption, T29 integration + e2e, T30 live pilot+sweep, T31 Vultr deploy]
+test_status:
+  last_local: "SKIP_DOCKER gate: 434 passed, 5 skipped (full suite with torch)"
+  ci_pr12: "bootstrap failing on one timing-sensitive coordinator test (feedback accounting) being rewritten by T39"
+known_failures_and_gaps:
+  - "node runtime exchange only at episode_end (A1 requires tick cadence) - partitions would not bite until repaired"
+  - "learners at floor under v0 observation; info sharing inert (experiments/diagnosis/idle_vs_learners.md); T37/T38 address"
+  - "node memory ~668 MiB on CUDA wheel; CPU-wheel number unmeasured; 512 MB limit unproven"
+  - "coordinator and node runtime packages not in mypy files (74 strict errors); linted+tested only"
+  - "download.pytorch.org unreachable from the authoring sandbox (policy); CPU wheel installs in CI/images"
+commands:
+  local_gate: "SKIP_DOCKER=1 scripts/check.sh   # needs: uv sync --frozen --group torch"
+  ledger: "python agents/controller.py status|next|validate"
+  guard_cloud: "uv run python -m archipelago_ops.guard --help   # infra/vultr"
+deployment:
+  vultr: "not provisioned; blocked on operator connections (single consolidated request after local readiness)"
+  tigerdata: "not connected; local Timescale test passes in CI"
+budgets: {vultr_cumulative_usd: 100, vultr_monthly_usd: 200, vultr_instances: 5, tigerdata_credits_usd: 1000, subagent_tokens_planned: "see agents/operations/token-budget.md"}
+decisions_recent: ["ADR-0008 live runtime", "ADR-0009 worker cap -> orchestrator-paced", "section 13 amendments from independent review", "harness renamed protocol_harness (module collision)"]
