@@ -124,3 +124,20 @@ The repo `.venv` is Python 3.13 and has no pybullet, so there the flight test sk
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A (run 20261010T065500Z, round 2)
+- Check failure was ruff E501 at `adapter.py:53` (comment too long); shortened it. `bash scripts/check.sh` passes end to end.
+- Open items unchanged (gym-pybullet-drones integration, `Pose.z` ADR, pybullet absent from repo `.venv`).
+
+## Supervisor checkpoint 2026-10-10T06:57:34Z
+
+- Run: 20261010T065500Z
+- Machine: A
+- Task/branch: T12 / agent/A/20261010T065500Z/T12
+- Base: b63e8184fb0f13ca5ffc2342cab2b0be19a835a5
+- Round: 2
+- State: in_progress
+- External check exit: 0
+- Independent review: {"pass": false, "issues": ["Slices 1 and 3 are not met. The adapter is a point-mass pybullet sphere with a P-controller. gym-pybullet-drones is not integrated and its existing low-level controllers are not used. The handoff and README both say so.", "Check 4: the README records a gym-pybullet-drones SHA and MIT license, but the code does not use that dependency. The pin and license review describe a target, not what was built.", "Check 1: the shared contract pins Pose.z to 0. Observation and Snapshot carry only x and y. 3D z is available only through the adapter-specific poses3d(), so the adapter does not emit valid 3D poses through the shared contracts. The Pose.z ADR or integrator decision is still open.", "Check 1: in the project check run (repo .venv, no pybullet) the headless flight and collision test is skipped ('2 skipped' in the pytest tail). The only runtime proof is evidence/smoke.json, generated under a separate global Python 3.14. Nothing in the check reproduces it.", "Takeoff and land exist only as adapter methods. Action.command has no such commands, so the contract-level action version does not cover takeoff/waypoint/landing.", "The task card paths (pybullet3d/ and infra/3d/) differ from the implemented packages/adapters/pybullet/. The only justification is a note in the handoff that the run instructions override the card. The card still reads 'Status: waiting' and 'Assignment: unclaimed'.", "The handoff still declares in_progress with a 'Not done' list. The latest round's changes (adapter.py comment edit and the LATEST.md note) are uncommitted in git status."]}
+- Next issue: Slices 1 and 3 are not met. The adapter is a point-mass pybullet sphere with a P-controller. gym-pybullet-drones is not integrated and its existing low-level controllers are not used. The handoff and README both say so.; Check 4: the README records a gym-pybullet-drones SHA and MIT license, but the code does not use that dependency. The pin and license review describe a target, not what was built.; Check 1: the shared contract pins Pose.z to 0. Observation and Snapshot carry only x and y. 3D z is available only through the adapter-specific poses3d(), so the adapter does not emit valid 3D poses through the shared contracts. The Pose.z ADR or integrator decision is still open.; Check 1: in the project check run (repo .venv, no pybullet) the headless flight and collision test is skipped ('2 skipped' in the pytest tail). The only runtime proof is evidence/smoke.json, generated under a separate global Python 3.14. Nothing in the check reproduces it.; Takeoff and land exist only as adapter methods. Action.command has no such commands, so the contract-level action version does not cover takeoff/waypoint/landing.; The task card paths (pybullet3d/ and infra/3d/) differ from the implemented packages/adapters/pybullet/. The only justification is a note in the handoff that the run instructions override the card. The card still reads 'Status: waiting' and 'Assignment: unclaimed'.; The handoff still declares in_progress with a 'Not done' list. The latest round's changes (adapter.py comment edit and the LATEST.md note) are uncommitted in git status.
+- Resume: fetch this branch, inspect latest commit and continue the task card.

@@ -50,7 +50,7 @@ class PyBullet3DAdapter:
             "sequence": self._seq,
         }
 
-    # Action.command is a fixed 2D literal, so takeoff/land are adapter-level (no new contract command).
+    # Action.command is a fixed 2D literal: takeoff/land are adapter-level, not contract commands.
     def takeoff(self) -> None:
         self.target_z = HOVER_Z
 
