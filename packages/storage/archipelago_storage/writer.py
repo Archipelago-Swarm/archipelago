@@ -49,6 +49,7 @@ class Writer:
         self._q: deque[tuple[str, str, tuple[Any, ...]]] = deque()
         self._conn: Any = None
         self.dropped: dict[tuple[str, str], int] = {}  # (run_id, kind) -> unrecorded count
+        self.dropped_total = 0  # lifetime rows shed, never reset
 
     def put(self, kind: str, run_id: str, row: tuple[Any, ...]) -> None:
         if kind not in SQL:
@@ -56,6 +57,7 @@ class Writer:
         if len(self._q) >= self._cap:
             k, r, _ = self._q.popleft()
             self.dropped[(r, k)] = self.dropped.get((r, k), 0) + 1
+            self.dropped_total += 1
         self._q.append((kind, run_id, row))
 
     def flush(self) -> bool:
