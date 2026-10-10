@@ -14,9 +14,11 @@
       "machine": "A",
       "paths": [
         "packages/adapters/pybullet3d/",
+        "packages/adapters/pybullet/",
         "infra/3d/",
         "tests/adapters3d/"
-      ]
+      ],
+      "source_branch": "agent/A/T12/carry2"
     }
   ]
 }
