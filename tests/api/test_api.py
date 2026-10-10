@@ -29,6 +29,9 @@ def cfg(run_id: str = "run-a", max_ticks: int = 100) -> dict[str, Any]:
 
 
 def make(tmp_path: Path, **kw: Any) -> TestClient:
+    kw.setdefault(
+        "cookie_secure", False
+    )  # TestClient talks plain http; Secure cookies are not sent
     s = Settings(api_token=TOKEN, data_dir=tmp_path, tick_interval=None, **kw)
     return TestClient(create_app(s, fixture_factory(GOOD)), headers=AUTH)
 
@@ -134,6 +137,47 @@ def test_auth_required_for_routes_and_stream(client: TestClient) -> None:
     assert anon.post("/v1/login", json={"token": TOKEN}).status_code == 200
     with anon.websocket_connect("/v1/runs/run-a/stream") as ws:  # cookie session works
         assert ws.receive_json()["type"] == "snapshot"
+
+
+def login_cookie(c: TestClient) -> str:
+    r = c.post("/v1/login", json={"token": TOKEN})
+    assert r.status_code == 200
+    return str(r.headers["set-cookie"])
+
+
+def test_login_cookie_is_secure_by_default(tmp_path: Path) -> None:
+    s = Settings(api_token=TOKEN, data_dir=tmp_path, tick_interval=None)
+    with TestClient(create_app(s, fixture_factory(GOOD))) as c:
+        attrs = [a.strip().lower() for a in login_cookie(c).split(";")]
+    assert "secure" in attrs and "httponly" in attrs and "samesite=strict" in attrs
+
+
+def test_login_cookie_not_secure_when_disabled(tmp_path: Path) -> None:
+    with make(tmp_path, cookie_secure=False) as c:
+        attrs = [a.strip().lower() for a in login_cookie(c).split(";")]
+    assert "secure" not in attrs and "httponly" in attrs and "samesite=strict" in attrs
+
+
+@pytest.mark.parametrize(
+    ("env", "expected"),
+    [(None, True), ("", True), ("true", True), ("0", False), ("False", False), ("off", False)],
+)
+def test_cookie_secure_env(
+    monkeypatch: pytest.MonkeyPatch, env: str | None, expected: bool
+) -> None:
+    monkeypatch.setenv("ARCHIPELAGO_API_TOKEN", TOKEN)
+    if env is None:
+        monkeypatch.delenv("ARCHIPELAGO_COOKIE_SECURE", raising=False)
+    else:
+        monkeypatch.setenv("ARCHIPELAGO_COOKIE_SECURE", env)
+    assert Settings.from_env().cookie_secure is expected
+
+
+def test_cookie_secure_env_rejects_garbage(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ARCHIPELAGO_API_TOKEN", TOKEN)
+    monkeypatch.setenv("ARCHIPELAGO_COOKIE_SECURE", "maybe")
+    with pytest.raises(RuntimeError):
+        Settings.from_env()
 
 
 def test_slow_subscriber_never_blocks_simulation(tmp_path: Path) -> None:
