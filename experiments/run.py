@@ -16,7 +16,7 @@ from archipelago_learning.peer import encode, offer
 from archipelago_learning.rollout import _norm, episode, evaluate, make_env, make_learner
 from archipelago_sim.env import ACTIONS, explorer_policy
 
-MODES = ("rule", "independent", "information_only", "p2p", "central_online", "ctde")
+MODES = ("rule", "idle", "independent", "information_only", "p2p", "central_online", "ctde")
 SCENARIOS = ("connected", "split", "rejoin", "node_failure")
 # Experiment seed s trains on seeds s*EPISODES.. ; disjointness asserted in check_seeds.
 TRAIN0, VAL, TEST = 0, range(100000, 100004), range(200000, 200006)
@@ -77,7 +77,12 @@ def run_cell(mode, scenario, seed, episodes, steps):
     """Train under the schedule, then score on TEST. Same env seeds for every mode."""
     env, agents = make_env(), make_env().possible_agents
     t0, rejected, sent = time.perf_counter(), [0], [0]
-    if mode == "rule":
+    if mode == "idle":  # control: no policy at all, to expose idle-beats-learner artifacts
+
+        def act(_a, _o):
+            return 0
+
+    elif mode == "rule":
         rngs = {a: random.Random(seed) for a in agents}
         visits = {a: {} for a in agents}
         w = env.world

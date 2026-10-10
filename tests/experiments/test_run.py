@@ -112,3 +112,9 @@ def test_central_online_inference_needs_link_but_ctde_does_not():
         run.run_cell("ctde", "split", **kw)["replay_hashes"]
         == (run.run_cell("ctde", "connected", **kw)["replay_hashes"])
     )
+
+
+def test_idle_control_matches_central_online_without_controller():
+    c = run.run_cell("central_online", "split", 0, 4, [0])
+    i = run.run_cell("idle", "split", 0, 4, [0])
+    assert c["replay_hashes"] == i["replay_hashes"]
