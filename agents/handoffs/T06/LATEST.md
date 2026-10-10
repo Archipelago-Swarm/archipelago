@@ -143,3 +143,20 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, round 8 (uncommitted; supervisor commits)
+- `tests/web/browser-smoke.mjs`: added disconnect/reconnect step (kill API, expect "DISCONNECTED" and no "LIVE"; restart, expect LIVE again). Runs last, on `?run=ID` of the stopped run, because a restarted API loses session/run control (pause failed after restart when the step ran mid-run). Passed locally: `node tests/web/browser-smoke.mjs`.
+- Still not done: sim2d-backed smoke, API `learning_event` emission, task card owner/status, smoke not in `npm test`.
+
+## Supervisor checkpoint 2026-10-10T07:16:33Z
+
+- Run: 20261010T064958Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T064958Z/T06
+- Base: 8a7b9b7b2513cebc87e2aa4a701cbf1e0eb564d0
+- Round: 8
+- State: in_progress
+- External check exit: 0
+- Independent review: {"pass": false, "issues": ["Browser smoke (tests/web/browser-smoke.mjs) defaults to the fixture adapter. No evidence it covers start/pause/resume/replay of a real run (sim2d, after T03/T04 merge). The handoff lists a sim2d-backed smoke as not done.", "The smoke test is not part of `npm test` or the external project check. The passing check output shows only vitest unit tests, so the browser acceptance checks have no automated gate.", "The disconnect/reconnect step is uncommitted (worktree is modified) and was only run locally. It runs against a stopped run after an API restart, not a live running one, and the external check did not exercise it.", "The handoff admits API `learning_event` emission is not done. Policy versions and transfer decisions in the UI therefore have no real data source beyond fixtures.", "The task card is still unassigned, with no owner, branch or generation recorded, and its acceptance boxes are unchecked. The handoff changes are uncommitted and unpushed, so the contract's pushed-handoff requirement is not met.", "No evidence was found for the check on no hardcoded success metrics or embedded credentials beyond the generic test pass. The smoke uses a fixed TOKEN constant, which I did not verify is test-only."]}
+- Next issue: Browser smoke (tests/web/browser-smoke.mjs) defaults to the fixture adapter. No evidence it covers start/pause/resume/replay of a real run (sim2d, after T03/T04 merge). The handoff lists a sim2d-backed smoke as not done.; The smoke test is not part of `npm test` or the external project check. The passing check output shows only vitest unit tests, so the browser acceptance checks have no automated gate.; The disconnect/reconnect step is uncommitted (worktree is modified) and was only run locally. It runs against a stopped run after an API restart, not a live running one, and the external check did not exercise it.; The handoff admits API `learning_event` emission is not done. Policy versions and transfer decisions in the UI therefore have no real data source beyond fixtures.; The task card is still unassigned, with no owner, branch or generation recorded, and its acceptance boxes are unchecked. The handoff changes are uncommitted and unpushed, so the contract's pushed-handoff requirement is not met.; No evidence was found for the check on no hardcoded success metrics or embedded credentials beyond the generic test pass. The smoke uses a fixed TOKEN constant, which I did not verify is test-only.
+- Resume: fetch this branch, inspect latest commit and continue the task card.

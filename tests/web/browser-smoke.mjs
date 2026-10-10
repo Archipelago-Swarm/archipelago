@@ -15,12 +15,14 @@ assert.ok(browserPath, "no Edge/Chrome found; set BROWSER");
 
 const kids = [];
 const run = (cmd, args, env = {}, cwd) => { const p = spawn(cmd, args, { cwd, stdio: "ignore", env: { ...process.env, ...env }, shell: process.platform === "win32" && cmd !== browserPath }); kids.push(p); return p; };
-const kill = () => kids.forEach((p) => { try { process.platform === "win32" ? spawn("taskkill", ["/pid", p.pid, "/T", "/F"], { stdio: "ignore" }) : p.kill(); } catch {} });
+const kill = (...ps) => (ps.length ? ps : kids).forEach((p) => { try { process.platform === "win32" ? spawn("taskkill", ["/pid", p.pid, "/T", "/F"], { stdio: "ignore" }) : p.kill(); } catch {} });
 const until = async (fn, what, ms = 30000) => { const t = Date.now(); for (;;) { try { const v = await fn(); if (v) return v; } catch {} if (Date.now() - t > ms) throw new Error(`timeout: ${what}`); await new Promise((r) => setTimeout(r, 150)); } };
 
 try {
-  run("uv", ["run", "--with", "websockets", "uvicorn", "archipelago_api.app:create_app_from_env", "--factory", "--port", `${API}`],
-    { ARCHIPELAGO_API_TOKEN: TOKEN, ARCHIPELAGO_DATA_DIR: mkdtempSync(join(tmpdir(), "arch-api-")), ARCHIPELAGO_ADAPTER: process.env.ARCHIPELAGO_ADAPTER ?? "fixture" });
+  const dataDir = mkdtempSync(join(tmpdir(), "arch-api-"));
+  const startApi = () => run("uv", ["run", "--with", "websockets", "uvicorn", "archipelago_api.app:create_app_from_env", "--factory", "--port", `${API}`],
+    { ARCHIPELAGO_API_TOKEN: TOKEN, ARCHIPELAGO_DATA_DIR: dataDir, ARCHIPELAGO_ADAPTER: process.env.ARCHIPELAGO_ADAPTER ?? "fixture" });
+  let api = startApi();
   run("npx", ["vite", "--port", `${WEB}`, "--strictPort", "--host", "127.0.0.1"], { ARCHIPELAGO_URL: `http://127.0.0.1:${API}` }, new URL("../../apps/web", import.meta.url));
   run(browserPath, ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), "arch-br-"))}`, "--no-first-run", "--disable-extensions", "--disable-sync", "about:blank"]);
   await until(() => fetch(`http://127.0.0.1:${API}/healthz`).then((r) => r.status < 500), "api");
@@ -63,6 +65,15 @@ try {
   await waitText(/REPLAY/i, "replay label");
   await waitText(/Frame 1\//, "replay frames loaded");
   assert.ok((await text()).includes(id), "replay shows run ID");
-  console.log(`ok: browser smoke start/pause/resume/stop/replay for ${id}`);
+  await send("Page.navigate", { url: `http://127.0.0.1:${WEB}/?run=${id}` });
+  await waitText(/LIVE/, "live view of stopped run");
+  // disconnect: killing the API must drop live state (never show stale as LIVE); restart must re-sync
+  kill(api);
+  await waitText(/DISCONNECTED/, "disconnected label");
+  assert.doesNotMatch(await text(), /LIVE/, "no LIVE label while disconnected");
+  api = startApi();
+  await until(() => fetch(`http://127.0.0.1:${API}/healthz`).then((r) => r.status < 500), "api restart");
+  await waitText(/LIVE/, "live again after reconnect");
+  console.log(`ok: browser smoke start/pause/resume/stop/replay/disconnect/reconnect for ${id}`);
   ws.close();
 } catch (e) { console.error(e); process.exitCode = 1; } finally { kill(); }
