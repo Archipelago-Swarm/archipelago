@@ -67,3 +67,27 @@ Run `scripts/check.sh` and `ARCHIPELAGO_ADAPTER=sim2d npm run smoke -w @archipel
 - Independent review: {"pass": false, "issues": ["Acceptance check 1 is still unmet. The handoff says the diagnosis is 'from code inspection only; API stderr was not captured'. The task card requires API diagnostics to be captured and the actual failure identified before changing behavior. No diagnostic output is recorded.", "The work is uncommitted. App.tsx, status.ts, tests/api/test_api.py and the handoff are modified, and runs.py is not listed as modified in this worktree. The pushed branch and handoff do not reflect the current state, and the handoff is not backed by a pushed commit. The committed checkpoints still say 'External check exit: 1' and 'Independent review: not run'.", "The key regression tests need sim2d on PYTHONPATH and are skipped under the standard gate. The external check shows '132 passed, 3 skipped'. The handoff's 14-passed result depends on a manual PYTHONPATH that scripts/check.sh does not use. The sim2d smoke is also not part of check.sh. So the gate does not exercise the fix. The handoff gives results but no captured output.", "The disabled-button behavior for terminal runs has no test of its own. The handoff admits there is no vitest for it, only for the isTerminal helper. Recovered-run UI rendering has no test either.", "The smoke script covers start, pause, resume, stop, replay, disconnect and restart. The terminal-run navigation case is only the single reopen of ?run=ID. I did not run the smoke myself, so its passing rests on the handoff's claim."]}
 - Next issue: Acceptance check 1 is still unmet. The handoff says the diagnosis is 'from code inspection only; API stderr was not captured'. The task card requires API diagnostics to be captured and the actual failure identified before changing behavior. No diagnostic output is recorded.; The work is uncommitted. App.tsx, status.ts, tests/api/test_api.py and the handoff are modified, and runs.py is not listed as modified in this worktree. The pushed branch and handoff do not reflect the current state, and the handoff is not backed by a pushed commit. The committed checkpoints still say 'External check exit: 1' and 'Independent review: not run'.; The key regression tests need sim2d on PYTHONPATH and are skipped under the standard gate. The external check shows '132 passed, 3 skipped'. The handoff's 14-passed result depends on a manual PYTHONPATH that scripts/check.sh does not use. The sim2d smoke is also not part of check.sh. So the gate does not exercise the fix. The handoff gives results but no captured output.; The disabled-button behavior for terminal runs has no test of its own. The handoff admits there is no vitest for it, only for the isTerminal helper. Recovered-run UI rendering has no test either.; The smoke script covers start, pause, resume, stop, replay, disconnect and restart. The terminal-run navigation case is only the single reopen of ?run=ID. I did not run the smoke myself, so its passing rests on the handoff's claim.
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Update (run 20261010T151923Z, round 4): captured diagnostic
+- Reproduced the stopped-run failure at the adapter (the call `snapshot_event` makes after `_finish` closes the adapter), with `PYTHONPATH="packages/adapters/sim2d;packages/sim;packages/contracts/src"`, `Sim2DAdapter().reset(make_config(1, 5))`, `snapshot()` (ok), `close()`, `snapshot()`:
+  ```
+  File ".../archipelago_sim2d/adapter.py", line 97, in snapshot
+    s = self.world.world_state()
+  AttributeError: 'NoneType' object has no attribute 'world_state'
+  ```
+  Confirms the T06 issue hypothesis: `close()` sets `world = None`, so a post-stop WebSocket subscribe raised and the stream died (DISCONNECTED). Not captured from the live API process's stderr; I could not revert runs.py to base here (denied), so this is the same call path run directly.
+- Added vitest: recovered run message (`status: interrupted`, empty snapshot) -> no snapshot, `isTerminal`, label `INTERRUPTED (not live)`. `npx vitest run` in apps/web: 23 passed, tsc clean.
+- Not done: no component-level test of the disabled buttons (App is untested; logic is `isTerminal`); the sim2d tests/smoke still need the manual PYTHONPATH and are outside `scripts/check.sh`. I did not rerun check.sh or the smoke this round.
+
+## Supervisor checkpoint 2026-10-10T15:32:36Z
+
+- Run: 20261010T151923Z
+- Machine: B
+- Task/branch: T13 / agent/B/20261010T151923Z/T13
+- Base: 843fa070f2e2d0c3dd57d001ad4bac87ff5e7142
+- Round: 4
+- State: blocked
+- External check exit: not run
+- Independent review: not run
+- Next issue: Worker permission, exit 0; inspect local log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
