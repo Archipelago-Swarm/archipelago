@@ -136,11 +136,9 @@ def test_world_battery_scale_supports_the_900_tick_demo(raw):
     """A13: the 900-tick demo needs battery_scale >= 4 in the coordinator world and in the node validation worlds."""
     s = raw["services"]
     kw = s["coordinator"]["environment"]["COORDINATOR_WORLD_KWARGS"]
-    assert "${DEMO_BATTERY_SCALE:-4}" in kw
-    world = json.loads(
-        kw.replace("${DEMO_BATTERY_SCALE:-4}", "4").replace("${DEMO_N_TARGETS:-0}", "0")
-    )
-    assert world["battery_scale"] >= 4 and world["n_targets"] == 0
+    # battery_scale belongs to the Plan (tests/infra/test_plans.py); the coordinator refuses it here
+    assert "battery_scale" not in kw
+    assert json.loads(kw.replace("${DEMO_N_TARGETS:-0}", "0"))["n_targets"] == 0
     assert (
         raw["x-node-env"]["WORLD_N_TARGETS"] == "${DEMO_N_TARGETS:-0}"
     )  # node worlds match the coordinator
