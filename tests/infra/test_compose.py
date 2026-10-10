@@ -1,4 +1,4 @@
-"""Static invariants of infra/compose/compose.yml, via `docker compose config` (no containers started)."""
+"""Static invariants of infra/compose/compose.yml via `docker compose config` (no containers)."""
 import json
 import os
 import shutil

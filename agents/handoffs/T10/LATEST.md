@@ -67,3 +67,16 @@ Working dir: C:\archipelago\.agent-runtime\worktrees\T10prep.
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Supervisor checkpoint 2026-10-10T15:47:35Z
+
+- Run: 20261010T154653Z
+- Machine: B
+- Task/branch: T10 / agent/B/20261010T154653Z/T10
+- Base: 45bdc473257fb74683742baf82491ac07808a592
+- Round: 2
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
