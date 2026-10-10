@@ -43,3 +43,16 @@
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Supervisor checkpoint 2026-10-10T13:25:10Z
+
+- Run: 20261010T132342Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T132342Z/T06
+- Base: 2368137d1885098c5b1012ed08e2a31484b4f8aa
+- Round: 3
+- State: blocked
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
