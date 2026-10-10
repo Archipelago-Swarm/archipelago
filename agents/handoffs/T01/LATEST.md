@@ -18,6 +18,8 @@
 
 `scripts/check.sh` from repo root: exit 0 (foundation 31 docs; pytest 31 passed; Vitest 27 + 1 passed; build ok).
 
+Clean clone of the pushed branch (uv sync --frozen, npm ci, scripts/check.sh): exit 0 locally at 61ef2ca.
+
 NOT run: GitHub Actions (including container-smoke) and docker build (no daemon in sandbox); clean-clone install in CI is therefore unverified. Python 3.12 not exercised locally (3.13 used).
 
 ## Decisions
