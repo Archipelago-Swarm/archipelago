@@ -37,3 +37,12 @@ Same failure signature twice -> BLOCKED with a blocker report. Ask whether the r
 
 ## L-012 Self-review the diff before asking for verification
 No TODO/FIXME, debug prints, test bypasses, stubs presented as features, unrelated edits, secrets. Evidence: T09 stub baselines, T12 misnamed directory.
+
+## L-013 Only a task being written holds paths
+A `REVIEW` task reserved its paths, so the bootstrap task (20 path patterns) froze every task touching `.github`, `scripts`, `tests/agents` or `tests/infra`; with no verifier machine running, it never cleared. 9 of 16 queued tasks were gated this way. Evidence: `controller.py stalls` on the ledger at ab8b93b; ADR-0009.
+
+## L-014 A gate nobody can pass is not a gate
+Roles tied to a machine that is not running (`verifier: B`) strand work in `REVIEW`, and a claim with no pushed branch holds a slot indefinitely (T26, T28: claimed, no branch after 70 min). Roles list every machine that may fill them, claims expire without activity, and a human gate states a default so it can be answered in one batch.
+
+## L-015 Parallel workers need parallel ticks
+One lock per machine and "resume own first" meant the second claimed task was never worked while the first existed. Use `--slot w1|w2`; the slot-less tick verifies and integrates. Size tasks to a few slices; `stalls` flags oversized ones.

@@ -257,3 +257,48 @@ def test_stalled_heartbeat_is_not_reported_alive(
     assert lch.liveness("A")[0] == "STALLED"
     lch.write_state("A", pid=2**22 + 12345)
     assert lch.liveness("A")[0] == "DEAD"
+
+
+def test_slots_run_parallel_workers_and_leave_review_to_the_slotless_tick() -> None:
+    inflight = {"branch": "agent/x", "handoff_file": "h"}
+    w1 = make_task(
+        "T01", state="ACTIVE", machine="A", owner="A/w1", owned_paths=["a/**"], **inflight
+    )
+    review = make_task(
+        "T02", state="REVIEW", machine="A", owner="A/w2", owned_paths=["b/**"], **inflight
+    )
+    queued = make_task("T03", owned_paths=["c/**"])
+    roles = {"roles": {"orchestrator": "A", "integrator": "A", "verifier": ["B", "A"]}}
+    orig = c.load_ownership
+    c.load_ownership = lambda: roles  # type: ignore[assignment]
+    try:
+        data = {"tasks": [w1, review, queued]}
+        assert lch.pick_work(data, "A", "w1")[1]["id"] == "T01"  # type: ignore[index]
+        assert lch.pick_work(data, "A", "w2")[0] == "claim"  # a free slot claims new work
+        assert lch.pick_work(data, "A")[0] == "verifier"  # type: ignore[index]  # A may verify
+        w2 = make_task(
+            "T04", state="CLAIMED", machine="A", owner="A/w2", owned_paths=["d/**"], **inflight
+        )
+        w3 = make_task(
+            "T05", state="ACTIVE", machine="A", owner="A/w3", owned_paths=["e/**"], **inflight
+        )
+        full = {"tasks": [w1, w2, w3, queued]}
+        assert lch.pick_work(full, "A", "w1")[1]["id"] == "T01"  # type: ignore[index]
+        assert lch.pick_work(full, "A") is None  # slot-owned work is not stolen; machine is full
+    finally:
+        c.load_ownership = orig  # type: ignore[method-assign]
+
+
+def test_cloud_pool_holds_every_role_and_prompts_name_a_distinct_verifier() -> None:
+    inflight = {"branch": "agent/x", "handoff_file": "h"}
+    review = make_task("T01", state="REVIEW", machine="cloud", owner="cloud/w1", **inflight)
+    queued = make_task("T02", owned_paths=["other/**"])
+    roles = {"roles": {k: "*" for k in ("orchestrator", "integrator", "verifier")}}
+    orig = c.load_ownership
+    c.load_ownership = lambda: roles  # type: ignore[assignment]
+    try:
+        assert lch.pick_work({"tasks": [review, queued]}, "cloud")[0] == "verifier"  # type: ignore[index]
+        c.machine_may("integrator", "cloud")
+        assert "cloud/verifier" in lch.prompt_for("verifier", review, "cloud")
+    finally:
+        c.load_ownership = orig  # type: ignore[method-assign]

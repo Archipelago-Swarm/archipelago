@@ -26,7 +26,9 @@ QUEUED -> CLAIMED -> ACTIVE -> REVIEW -> INTEGRATION -> COMPLETE
                        +------------------------> FAILED (terminal, abandoned on purpose)
 ```
 
-- `QUEUED` runnable when every dependency is `COMPLETE`, `blocked_by` is empty and no in-flight task owns overlapping paths. `python agents/controller.py next`.
+- `QUEUED` runnable when every dependency is `COMPLETE`, `blocked_by` is empty and no task in `CLAIMED`/`ACTIVE` owns overlapping paths. `python agents/controller.py next` (ordered by priority, then by how many unfinished tasks wait on it).
+- **Only a task being written holds paths.** `REVIEW` and `INTEGRATION` are frozen on their branch and release their paths; the integrator merges in priority order and returns a conflicting branch with `integrate-fail`. `agents/TASKS.yaml` is never a path conflict. A claim prints a note when an unmerged REVIEW task touches the same paths: merge `origin/main` into your branch before `review`.
+- **A claim must show life.** A worker pushes its branch with the handoff and runs `controller.py --remote start <ID>` within 10 minutes of the claim. `controller.py reap` (the orchestrator tick runs it first) returns a `CLAIMED` task idle for 60 min, or an `ACTIVE` task idle for 180 min, to `QUEUED`; idle means neither the ledger entry nor `origin/<branch>` moved. The branch and handoff are kept and the next claimant resumes from them (L-007).
 - `CLAIMED` the orchestrator assigned owner, machine and branch. The claim is a ledger commit on the integration branch; a second claimant's push is rejected as non-fast-forward, which is the only lock needed.
 - `ACTIVE` a worker is implementing. A handoff file exists.
 - `REVIEW` implementation done, local acceptance commands pass, `last_good_commit` recorded. Waiting for the verifier.
@@ -38,15 +40,22 @@ Only `COMPLETE` satisfies another task's dependency.
 
 ## 3. Roles
 
+**Deployment model (current): Claude cloud sessions only.** There are no machines A and B. Every role is held by the single `cloud` pool (`OWNERSHIP.yaml` roles are `"*"`); `A`/`B` survive only as labels in old ledger history. Sessions are ephemeral and parallel by nature, so identity is the session: owners are `cloud/w1`..`cloud/w3`, `cloud/launcher`, `cloud/verifier`, and a verifier never owns the task it verifies. Two ways to dispatch, both reading only the ledger:
+1. **Orchestrator session spawns workers** (preferred in the cloud): run `controller.py stalls` then `plan`, `controller.py --remote claim <ID> --owner cloud/w1`, and start a session with `create_session` (source = this repo, `outcome_branch` = the task branch, prompt = `python agents/launch.py prompt worker <ID>`). Use `prompt verifier <ID>` for REVIEW and `prompt integrator <ID>` for INTEGRATION. Fan out at most `MAX_WORKERS_PER_MACHINE` (3) workers; verification and integration sessions run in addition, one per task.
+2. **A routine calls `launch.py tick`** (section 13); the tick shells out to `claude -p`, which is unproven inside a cloud container until T23.
+A session that is not the orchestrator does not claim, reap or dispatch. `reap` still frees abandoned claims, so a spawned session that never starts costs at most the claim TTL.
+
 Coding agents are Claude sessions. They are not the simulated drone nodes in the product.
+
+Slots: at most `MAX_WORKERS_PER_MACHINE` (3, the cap for the whole cloud pool; reversible, raise it when quota allows) tasks are `CLAIMED`/`ACTIVE`. Worker slots are `w1`..`w3` (`launch.py tick --slot w1`). A slot tick only resumes the task owned by `<machine>/<slot>` or claims a new one; the slot-less tick does verification and integration. A slot ticking alone is not a worker pool: run every slot that has a claim, or that task starves.
 
 | Role | Does | Must not |
 |---|---|---|
-| Orchestrator (machine A) | reads roadmap, LESSONS, ledger, OWNERSHIP; `next`, `claim`; dispatches verification, repair, integration; triggers process review | write feature code; claim overlapping paths |
+| Orchestrator (one cloud session at a time) | reads roadmap, LESSONS, ledger, OWNERSHIP; `next`, `claim`; dispatches verification, repair, integration; triggers process review | write feature code; claim overlapping paths |
 | Worker | satisfies acceptance of one claimed task on its branch (section 4) | edit outside `owned_paths`; mark REVIEW without passing commands; touch another branch |
-| Verifier (machine B) | independently runs acceptance commands and reviews the diff; writes `VERIFICATION.yaml` | modify implementation code |
-| Integrator (machine A) | merges verified branches, resolves conflicts, runs `check-integration` on the merged head, calls `complete` or `integrate-fail` | integrate unverified work; let B also integrate |
-| Reviewer (machine B) | process review (section 8); proposes KEEP/SIMPLIFY/REMOVE/REPLACE/NEW RULE | add infrastructure when deleting some would do |
+| Verifier (a fresh cloud session) | independently runs acceptance commands and reviews the diff; writes `VERIFICATION.yaml` | modify implementation code; verify a task it owns (the controller rejects a verdict whose `verifier` equals the task `owner`) |
+| Integrator (cloud session) | merges verified branches, resolves conflicts, runs `check-integration` on the merged head, calls `complete` or `integrate-fail` | integrate unverified work; let the same session verify and integrate one task |
+| Reviewer (cloud session) | process review (section 8); proposes KEEP/SIMPLIFY/REMOVE/REPLACE/NEW RULE | add infrastructure when deleting some would do |
 
 Machine roles are in `OWNERSHIP.yaml`. The controller enforces the integrator role for `complete` and `integrate-fail`. [implemented]. Other role boundaries are [convention].
 
@@ -64,6 +73,16 @@ Machine roles are in `OWNERSHIP.yaml`. The controller enforces the integrator ro
 10. `controller.py review <ID> --commit <sha>`. Stop. Do not mark anything COMPLETE or merged.
 
 Do not stop after implementation while meaningful validation remains. Stop earlier only for BLOCKED, context exhaustion (write CHECKPOINT first) or the session budget.
+
+## 4a. Execution requirement [convention; text injected into every launcher prompt]
+
+Adopted from outside review (ChatGPT, 2026-10-10), kept only where it does not duplicate or contradict the ledger rules:
+1. **Reproduce first.** Run the failing or acceptance command before editing; record it; after the patch re-run the exact same command. Stay on that failure until it passes or the budget in section 4 step 6 ends.
+2. **No diagnosis-only endings.** A session ends in a pushed commit at the role's state, or a BLOCKER.md. A failing test starts another repair iteration (budget: 5 materially different attempts per signature; then revert speculative edits, write the blocker, stop).
+3. **No passive waiting.** Against an unmerged dependency, code to its contract with a stub/fake and record it in the handoff; only a dependency that makes the acceptance command impossible becomes `blocked_by` (the dependent task cannot be COMPLETE before it anyway).
+4. **Narrow scope per task:** failure -> owned paths -> exact command -> push condition. Fast tier while iterating, module tier before REVIEW, CI once.
+5. Defects are tasks in `TASKS.yaml` (with reproduction command and owned paths), not a second queue (L-001). The orchestrator slot-fills them by priority. Cheap diagnostic sessions may write the reproduction into the task `description`; they never mark progress.
+Not adopted: workers merging their own work or skipping verification (L-003), and "do not report failures" (a repeated failure must be recorded with `record-failure`).
 
 ## 5. Acceptance criteria [implemented schema; convention for content]
 
@@ -107,13 +126,13 @@ required_actions: [Serve replay from the persisted event store.]
 
 The integrator collects INTEGRATION tasks, merges each branch into the integration branch with a merge commit (no force, no history rewrite on shared branches), resolves conflicts, runs `make check-integration` on the merged head, checks contracts, then `controller.py complete`. A failure goes back with `integrate-fail`. Prefer one PR per integration wave, not per task. The integrator never accepts a task that is not in INTEGRATION.
 
-## 9. Git and two machines [convention; ledger publishing implemented]
+## 9. Git and parallel sessions [convention; ledger publishing implemented]
 
 - Branch `agent/<ID>-<slug>`; one writer per branch; push at milestones, not on a timer. Record `last_good_commit` in the ledger through `review`.
 - **Code and handoffs live on the task branch. Task state lives on the ledger branch (`main` by default) and is changed only with `python agents/controller.py --remote <command>`** (`--ledger-branch` to use another). `--remote` reads `origin/<branch>`, applies the change in a throwaway worktree, commits only `agents/TASKS.yaml` and pushes fast-forward. If the push is rejected it refetches and re-applies, so a lost claim race surfaces as "not runnable". This is the only lock. Any role may publish its own transitions; these are state-only commits and the one exception to "no commits straight to main". If the ledger branch is protected, a human must either allow these commits for the agents' identity or name a dedicated ledger branch (decision; not made).
 - Without `--remote` the controller edits the local checkout only (single-machine use, tests).
 - `validate` checks the ledger alone. `validate --files` also requires handoff/BLOCKER files, and is run from a task branch checkout (they do not exist on `main` until integration).
-- B never integrates. B reads, verifies and reviews. Do not assume a shared filesystem; everything crosses machines as commits.
+- Do not assume a shared filesystem between sessions; everything crosses sessions as commits. One session never verifies its own task.
 - Unpushed work is invisible. If push fails, say so in the handoff and keep the worktree.
 
 ## 10. Escalation [convention]
@@ -164,13 +183,25 @@ UNRELIABLE and UNSUPPORTED mechanisms are not part of the architecture.
 Work selection is deterministic (`pick_work`): resume own CLAIMED/ACTIVE task; integrator machine takes INTEGRATION; verifier machine takes REVIEW; only the orchestrator machine claims new work. The loop stops on: STOP file, deadline, no work, provider-limit text in session output (it does not wait through a limit; restart after the reset), an error, or **two sessions in a row without progress on the same item** (ledger state and remote branch head unchanged). Sessions use `--permission-mode auto --permission-prompts none` (the flags `night.py` used; confirm against the installed version in the first trial), deny force-push and hard reset, and never use permission-bypass flags.
 
 Where the loop runs matters:
-- **Persistent machine** (the A/B computers): an agent or person runs `launch.py start`. If the machine sleeps or reboots the loop is DEAD; `status` says so and the next `start` resumes from repository state.
+- **Persistent machine** (none today; kept for a future self-hosted pool): an agent or person runs `launch.py start`. If the machine sleeps or reboots the loop is DEAD; `status` says so and the next `start` resumes from repository state.
 - **Ephemeral cloud session**: the container is reclaimed after inactivity and takes a detached process with it. Do not `start` a loop there. Instead create a Claude routine (the `create_trigger`/`send_later` tools) whose prompt runs `python agents/launch.py tick --machine M` repeatedly until it prints idle, stop, limit or error. Routines are platform-managed and reversible (`delete_trigger`).
 
 Authorization: an agent may start, stop and inspect runners and create or delete routines for this repository without asking, within the bounds above (one launcher per machine, default 8 h). Installing an OS-level recurring job (cron, Task Scheduler) changes the host persistently; do it only when the task or the operator said to, using the printed command. An agent that starts a runner records it in its handoff (machine, command, time, log path).
 
 Not claimed: automatic wait-through of provider limits (the old `night.py` did this; the loop does not), automatic restart of a DEAD loop (the next `tick` or `start` does that), quota awareness.
 
-## 14. What is not built [future]
+## 14. Diagnosing and preventing stalls [implemented]
+
+`python agents/controller.py stalls` prints, for every unfinished task, the one reason it is not moving and who must act: `READY` (the orchestrator), `NEEDS_INTEGRATOR`, `NEEDS_VERIFIER`, `STALE_CLAIM` (`reap`), `PATH_LOCK` (names the holder), `HUMAN` (a decision only a person can make), `BLOCKED`, `DEPENDENCY` (names the root, not the chain), `WORKING`. It also flags `OVERSIZED` tasks (more than 6 path patterns or 7 assertions: split before claiming, a task must fit a few 30 minute slices) and slot use. Run it before escalating anything and at the start of every orchestrator session. `python agents/controller.py plan` lists the conflict-free tasks to start in the free slots.
+
+Rules that follow from the first run's evidence (ADR-0009):
+1. A frozen task never holds paths; an abandoned claim never holds a slot or paths (section 2).
+2. A required role must be fillable by something that exists (now: any cloud session). `REVIEW` waiting for a role nobody runs is a defect in `OWNERSHIP.yaml`, not a task state.
+3. A bootstrap or merged-but-unverified task still goes through `verify` and `complete`; it is not left in `REVIEW` because the verifier is awkward. Dependents of `REVIEW` tasks wait for `COMPLETE`, so verification latency is critical-path latency: the slot-less tick verifies before it claims.
+4. Tasks declare narrow `owned_paths` (a directory or file, not a domain plus its tests plus CI). A task needing shared files (`pyproject.toml`, `.github/**`, `scripts/**`, `Makefile`) either lists exactly those files for the integrator or asks for a separate one-file task that lands first.
+5. Every human gate carries a proposed default in its handoff or ADR (L-006, L-014); `stalls` lists them in one place so a person answers them in a batch.
+6. Never register a task whose work is already merged. Register it at `REVIEW` with the merge commit as `last_good_commit` so the verifier closes it.
+
+## 15. What is not built [future]
 
 Wait-through of provider limits, automatic restart of a dead loop, a live trial of the launcher (T23), automatic PR creation, automatic CI metrics collection, ledger merge tooling beyond Git, quota-aware scheduling.

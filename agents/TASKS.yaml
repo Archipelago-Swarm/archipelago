@@ -364,7 +364,7 @@ tasks:
   state: QUEUED
   priority: 6
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T00:21:46Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -468,13 +468,13 @@ tasks:
   name: Persist run events so replay survives restart
   description: services/api keeps events in memory only, so replay is empty after a restart (T10 acceptance
     check 4). Persist events and serve replay from the store.
-  state: QUEUED
+  state: ACTIVE
   priority: 1
-  owner: null
-  machine: A
-  branch: null
+  owner: cloud/w3
+  machine: cloud
+  branch: agent/T14-persist-run-events-so-replay-sur
   created_at: '2026-10-10T18:30:00Z'
-  updated_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T20:47:19Z'
   dependencies:
   - T04
   blocked_by: []
@@ -506,8 +506,21 @@ tasks:
     same_failure_signature: 2
   last_good_commit: null
   artifacts: []
-  handoff_file: null
+  handoff_file: agents/handoffs/T14/LATEST.md
   notes: 'Source: agents/handoffs/T10/LATEST.md known gaps; agents/issues/docker-runtime-tests-20261010.md.'
+  history:
+  - at: '2026-10-10T20:44:16Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: cloud/w3
+    note: ''
+  - at: '2026-10-10T20:47:19Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: cloud/w3
+    note: ''
 - id: T15
   name: 'Storage: migrate on startup and robust FK handling'
   description: Nothing calls migrate() on API start; if a run row is shed from the spool, later event
@@ -515,7 +528,7 @@ tasks:
   state: QUEUED
   priority: 2
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -558,7 +571,7 @@ tasks:
   state: QUEUED
   priority: 1
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -595,7 +608,7 @@ tasks:
   state: QUEUED
   priority: 3
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -641,7 +654,7 @@ tasks:
   state: QUEUED
   priority: 4
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -684,7 +697,7 @@ tasks:
   state: QUEUED
   priority: 5
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -718,7 +731,7 @@ tasks:
   state: QUEUED
   priority: 1
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -761,7 +774,7 @@ tasks:
   state: QUEUED
   priority: 3
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -852,10 +865,10 @@ tasks:
   notes: 'Dogfooded: bootstrap enters the ledger at REVIEW, not COMPLETE. Needs verifier/human PASS and
     a green CI run.'
 - id: T23
-  name: Live trial of the launcher on A and B
-  description: 'Run launch.py on two real machines: one worker task claimed by A and done by B''s loop,
-    verified, integrated; confirm claude flags, ledger push permissions, status/STALLED behavior and count
-    every human touch with log-event.'
+  name: Live trial of the launcher in cloud sessions
+  description: 'Run launch.py in Claude cloud sessions (no machines A/B): a routine ticks, one worker
+    slot claims and finishes a task, a slot-less tick verifies and integrates it; confirm the nested `claude
+    -p` flags, ledger push permission, STOP/limit behavior and count every human touch with log-event.'
   state: QUEUED
   priority: 1
   owner: null
@@ -866,8 +879,8 @@ tasks:
   dependencies:
   - T22
   blocked_by:
-  - human:two machines with authenticated Claude Code and push access, plus a decision on ledger-branch
-    protection
+  - human:decision on ledger-branch protection (allow ledger-only commits to main from the agents, or
+    name a dedicated ledger branch)
   owned_paths:
   - agents/launch.py
   - tests/agents/test_launch.py
@@ -879,13 +892,14 @@ tasks:
     - command: uv run pytest tests/agents -q
       expected_exit_code: 0
       tier: fast
-    - command: python3 agents/launch.py status --machine A
+    - command: python3 agents/launch.py status --machine cloud
       expected_exit_code: 0
       tier: integration
     assertions:
-    - description: One task goes QUEUED to COMPLETE through loops on both machines with at most the human
-        steps listed in the blocker.
-    - description: A killed loop shows DEAD or STALLED in status and the next start resumes it.
+    - description: One task goes QUEUED to COMPLETE through routine-driven ticks in cloud sessions with
+        at most the human steps listed in the blocker.
+    - description: A tick that times out or hits a provider limit leaves the ledger consistent and the
+        next tick resumes from repository state.
   retry_policy:
     test_failure: 5
     build_failure: 3
@@ -900,13 +914,13 @@ tasks:
   name: Live-runtime interface agreement and task registration
   description: Integrator-authored interface agreement (agents/architecture/live-runtime.md), ADR-0008,
     ownership domains and ledger entries T24-T31 for the live decentralized-learning experiment.
-  state: QUEUED
+  state: REVIEW
   priority: 0
-  owner: null
+  owner: A/integrator
   machine: A
-  branch: null
+  branch: agent/T24-live-runtime-interface-agreement
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T20:32:10Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -930,11 +944,30 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: null
+  last_good_commit: d30d299
   artifacts: []
-  handoff_file: null
+  handoff_file: agents/handoffs/T24/LATEST.md
   notes: 'Bootstrap exception: authored by the integrator; independent review runs while T26/T28 implement.
     Amendments go through the integrator.'
+  history:
+  - at: '2026-10-10T20:32:09Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: A/integrator
+    note: ''
+  - at: '2026-10-10T20:32:10Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: A/integrator
+    note: ''
+  - at: '2026-10-10T20:32:10Z'
+    event: to_review
+    from: ACTIVE
+    to: REVIEW
+    by: A/integrator
+    note: ''
 - id: T25
   name: Make the legacy runners safe to leave on disk
   description: driver.py/night.py/watchdog.py merge into and reset main of the checkout they run in and
@@ -943,7 +976,7 @@ tasks:
   state: QUEUED
   priority: 2
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T19:30:00Z'
@@ -987,13 +1020,13 @@ tasks:
   description: 'TorchLearner per agents/architecture/live-runtime.md section 4 and 7: per-instance policy/target/optimizer/replay/RNG,
     snapshot inference, param-map-v1 import/export shared with the NumPy baseline, transactional generation
     checkpoints, thread control. NumPy learner kept and labeled as regression baseline.'
-  state: CLAIMED
+  state: ACTIVE
   priority: 1
-  owner: A/wf-w1
-  machine: A
+  owner: cloud/w1
+  machine: cloud
   branch: agent/T26-pytorch-cpu-learner-with-peer-pr
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:14:36Z'
+  updated_at: '2026-10-10T20:47:09Z'
   dependencies:
   - T07
   blocked_by: []
@@ -1038,6 +1071,28 @@ tasks:
     from: QUEUED
     to: CLAIMED
     by: A/wf-w1
+    note: ''
+  - at: '2026-10-10T20:32:10Z'
+    event: claim_expired
+    by: controller
+    note: no ledger or branch activity for 77 min
+  - at: '2026-10-10T20:32:10Z'
+    event: requeue
+    from: CLAIMED
+    to: QUEUED
+    by: controller
+    note: stale claim
+  - at: '2026-10-10T20:44:10Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: cloud/w1
+    note: ''
+  - at: '2026-10-10T20:47:09Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: cloud/w1
     note: ''
 - id: T27
   name: Node runtime process (act/feedback/control/peer/telemetry)
@@ -1094,13 +1149,13 @@ tasks:
   description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
     fallback, episode and train/validation/test schedules, peer-fault schedule distribution, node health,
     authoritative replay and privileged snapshots. Does not own models.'
-  state: CLAIMED
+  state: ACTIVE
   priority: 1
-  owner: A/wf-w2
-  machine: A
+  owner: cloud/w2
+  machine: cloud
   branch: agent/T28-simulation-coordinator-service
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:14:23Z'
+  updated_at: '2026-10-10T20:47:16Z'
   dependencies:
   - T03
   blocked_by: []
@@ -1146,36 +1201,53 @@ tasks:
     to: CLAIMED
     by: A/wf-w2
     note: ''
+  - at: '2026-10-10T20:32:10Z'
+    event: claim_expired
+    by: controller
+    note: no ledger or branch activity for 77 min
+  - at: '2026-10-10T20:32:10Z'
+    event: requeue
+    from: CLAIMED
+    to: QUEUED
+    by: controller
+    note: stale claim
+  - at: '2026-10-10T20:44:13Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: cloud/w2
+    note: ''
+  - at: '2026-10-10T20:47:16Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: cloud/w2
+    note: ''
 - id: T29
-  name: 'Live integration: API, dashboard, persistence and local end-to-end smoke'
-  description: Wire services/api (ARCHIPELAGO_ADAPTER=live) to the coordinator, add Compose services coordinator
-    and node-01..04, live dashboard panels, telemetry ingest to the existing Persister, and tests/e2e/test_live_local.py
-    (coordinator plus four node processes on localhost).
+  name: 'Live integration gate: local end-to-end smoke and compose full test'
+  description: 'Integration gate after T32-T35: tests/e2e/test_live_local.py (coordinator plus four node
+    processes on localhost) and the compose full test assert the live-run behavior end to end. Only e2e
+    tests and glue live here.'
   state: QUEUED
   priority: 2
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T20:47:12Z'
   dependencies:
-  - T27
-  - T28
   - T04
   - T06
   - T08
+  - T27
+  - T28
+  - T32
+  - T33
+  - T34
+  - T35
   blocked_by: []
   owned_paths:
-  - services/api/**
-  - tests/api/**
-  - apps/web/**
-  - tests/web/**
   - tests/e2e/**
-  - infra/compose/**
-  - infra/docker/**
-  - tests/infra/**
-  - observability/**
-  - tests/observability/**
   contracts:
   - agents/architecture/live-runtime.md
   acceptance:
@@ -1183,23 +1255,12 @@ tasks:
     - command: uv run pytest tests/e2e/test_live_local.py -q
       expected_exit_code: 0
       tier: integration
-    - command: uv run pytest tests/api tests/infra -q
-      expected_exit_code: 0
-      tier: full
-      needs:
-      - docker
     assertions:
-    - description: Live mode never falls back to FixtureAdapter and /readyz fails when the coordinator
-        is unreachable.
     - description: 'Local e2e: optimizer updates in all four node processes, distinct per-node policy
         hashes, actions originate from nodes, a cut link carries zero peer traffic while local updates
         continue, an offer is transmitted and a decision is logged, a restarted node resumes from checkpoint.'
-    - description: Dashboard shows positions/actions, update counts/loss/versions, peer offers with decisions,
-        topology and fault phase, train vs frozen-eval curves, resources, telemetry freshness; disconnected,
-        stale and replay states are labeled.
     - description: Compose full test brings up coordinator and four nodes on real container networking
         and passes the same assertions.
-    - description: TigerData outage does not stop nodes or the world; backlog is bounded and catches up.
   retry_policy:
     test_failure: 5
     build_failure: 3
@@ -1208,8 +1269,13 @@ tasks:
   last_good_commit: null
   artifacts: []
   handoff_file: null
-  notes: Largest integration slice; keep to one vertical candidate. Cross-host peer URLs are covered in
-    T31.
+  notes: 'Split on 2026-10-10 (ADR-0009): API T32, telemetry T33, dashboard T34, compose T35. This task
+    is the e2e gate; it edits tests/e2e only.'
+  history:
+  - at: '2026-10-10T20:47:12Z'
+    event: split
+    by: controller
+    note: split into T32-T35
 - id: T30
   name: Experiment protocol repair, live pilot and evidence
   description: Repair experiments/run.py accounting and protocol mismatches, define the information-sharing
@@ -1317,3 +1383,159 @@ tasks:
   handoff_file: null
   notes: Blocked until the operator attaches Vultr and TigerData connections after local readiness (single
     consolidated request).
+- id: T32
+  name: 'Live API adapter: no fixture fallback, readiness and telemetry ingest endpoint'
+  description: services/api runs ARCHIPELAGO_ADAPTER=live against the coordinator HTTP interface, fails
+    /readyz when the coordinator is unreachable, never falls back to FixtureAdapter, and exposes the node
+    telemetry ingest path.
+  state: QUEUED
+  priority: 2
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:47:12Z'
+  updated_at: '2026-10-10T20:47:12Z'
+  dependencies:
+  - T28
+  - T04
+  blocked_by: []
+  owned_paths:
+  - services/api/**
+  - tests/api/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/api -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Live mode never falls back to FixtureAdapter and /readyz fails when the coordinator
+        is unreachable.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Split from T29. Coordinator interface: agents/architecture/live-runtime.md. Persistence internals
+    stay with T14/T15.'
+- id: T33
+  name: 'Telemetry persistence for live runs: Persister ingest, bounded backlog, outage catch-up'
+  description: Live telemetry reaches the existing Persister; a TigerData outage neither stops nodes nor
+    the world, the backlog is bounded and catches up.
+  state: QUEUED
+  priority: 3
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:47:12Z'
+  updated_at: '2026-10-10T20:47:12Z'
+  dependencies:
+  - T28
+  - T08
+  blocked_by: []
+  owned_paths:
+  - packages/storage/**
+  - tests/storage/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/storage -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: TigerData outage does not stop nodes or the world; backlog is bounded and catches up.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Split from T29. T15 also edits packages/storage; the path lock serializes them.
+- id: T34
+  name: Live dashboard panels and connection states
+  description: apps/web shows positions/actions, update counts/loss/versions, peer offers with decisions,
+    topology and fault phase, train vs frozen-eval curves, resources, telemetry freshness; disconnected,
+    stale and replay states are labeled.
+  state: QUEUED
+  priority: 3
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:47:12Z'
+  updated_at: '2026-10-10T20:47:12Z'
+  dependencies:
+  - T06
+  - T32
+  blocked_by: []
+  owned_paths:
+  - apps/web/**
+  - tests/web/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: npm --prefix apps/web test --if-present
+      expected_exit_code: 0
+      tier: integration
+    - command: npm --prefix apps/web run build
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Dashboard shows positions/actions, update counts/loss/versions, peer offers with decisions,
+        topology and fault phase, train vs frozen-eval curves, resources, telemetry freshness; disconnected,
+        stale and replay states are labeled.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Split from T29. Develop against the API fixture shapes until T32 lands; verify command list against
+    apps/web/package.json.
+- id: T35
+  name: 'Compose services: coordinator and node-01..04'
+  description: Compose stack adds coordinator and four node containers on real container networking with
+    checkpoints on volumes.
+  state: QUEUED
+  priority: 3
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:47:12Z'
+  updated_at: '2026-10-10T20:47:12Z'
+  dependencies:
+  - T27
+  - T28
+  blocked_by: []
+  owned_paths:
+  - infra/compose/**
+  - infra/docker/**
+  - tests/infra/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/infra -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: 'Compose config validates and, where Docker is available, the stack starts coordinator
+        plus four nodes (not run without Docker: report not run).'
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Split from T29.
