@@ -50,7 +50,7 @@ export function App() {
           .then((r) => { location.search = `?run=${r.run_id}`; }).catch(fail); }}>
         <label>Seed <input name="seed" type="number" min={0} step={1} defaultValue={1} required /></label> <button>Start run</button>
       </form>
-      <View source={source} conn={conn} snap={snap} learning={live.learning} />
+      <View source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} />
       {source === "replay" && frames.length > 0 && (
         <label>Frame {frame + 1}/{frames.length} <input type="range" min={0} max={frames.length - 1} value={frame} onChange={(e) => setFrame(+e.target.value)} /></label>
       )}

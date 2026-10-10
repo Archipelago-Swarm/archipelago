@@ -105,3 +105,22 @@
 - Independent review: {"pass": false, "issues": ["Acceptance 1 (browser smoke for start/pause/resume/replay of a real run): no browser smoke exists. tests/web/smoke.mjs is an API-level script that needs a manually started API and token, and the project check does not run it. Nothing drives the dashboard UI, and the handoff admits the UI has never been rendered in a browser.", "Acceptance 2 (disconnect/reconnect): only the reducer and connectStream are tested, using a fake WebSocket. App itself is not exercised in a browser and no real stream is used. This is reasonable unit evidence but not end-to-end.", "Acceptance 3 (labels, run ID, units visible): tested only through server-rendered View against the fixture. No real API or sim2d run has been exercised.", "Outcome / slice 3: policy and model versions and transfer decisions depend on learning_event messages the API does not emit, and the wire shape is assumed. The UI shows 'not reported', so local model versions are unproven. Node health is derived from topology only.", "Process: the round-5 changes (App.tsx, status.ts, stream.test.ts, LATEST.md) are uncommitted. The task card still says 'waiting', unassigned, with latest handoff 'none', so there is no pushed handoff for the current state."]}
 - Next issue: Acceptance 1 (browser smoke for start/pause/resume/replay of a real run): no browser smoke exists. tests/web/smoke.mjs is an API-level script that needs a manually started API and token, and the project check does not run it. Nothing drives the dashboard UI, and the handoff admits the UI has never been rendered in a browser.; Acceptance 2 (disconnect/reconnect): only the reducer and connectStream are tested, using a fake WebSocket. App itself is not exercised in a browser and no real stream is used. This is reasonable unit evidence but not end-to-end.; Acceptance 3 (labels, run ID, units visible): tested only through server-rendered View against the fixture. No real API or sim2d run has been exercised.; Outcome / slice 3: policy and model versions and transfer decisions depend on learning_event messages the API does not emit, and the wire shape is assumed. The UI shows 'not reported', so local model versions are unproven. Node health is derived from topology only.; Process: the round-5 changes (App.tsx, status.ts, stream.test.ts, LATEST.md) are uncommitted. The task card still says 'waiting', unassigned, with latest handoff 'none', so there is no pushed handoff for the current state.
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, round 6 (uncommitted; supervisor commits)
+- New `tests/web/browser-smoke.mjs`: headless Edge/Chrome driven over raw CDP (no new deps). Spawns `uv run --with websockets uvicorn` (fixture adapter by default; `ARCHIPELAGO_ADAPTER=sim2d` when `archipelago_sim2d` is installed) and vite, then in the real dashboard: renders the fixture-labelled default, signs in, clicks Start run, sees LIVE + run ID + units, clicks pause/resume/pause/stop (checking API status each time), reloads `?run=ID&replay=1` and sees REPLAY, frame slider and run ID. Run: `node tests/web/browser-smoke.mjs`. Passed locally (Edge 138, Windows).
+- `vite.config.ts`: dev proxy of `/v1` (+ws) to `ARCHIPELAGO_URL` (default 127.0.0.1:8000) so the app's relative URLs work.
+- Found by the smoke: `View` showed the adapter's snapshot run_id (fixture adapter returns the fixture's id), so it now shows the run being viewed. Label "DISCONNECTED (showing stale state)" was wrong since the snapshot is dropped; now "DISCONNECTED (no live data)".
+- Not done: smoke ran on the fixture adapter, not a real sim2d run (module not installed in this venv); smoke is not part of `npm test`/project check (needs Edge/Chrome and uv); no disconnect/reconnect step in the browser; `learning_event` still not emitted by the API; task card unchanged (outside reserved paths).
+
+## Supervisor checkpoint 2026-10-10T07:11:39Z
+
+- Run: 20261010T064958Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T064958Z/T06
+- Base: 8a7b9b7b2513cebc87e2aa4a701cbf1e0eb564d0
+- Round: 6
+- State: in_progress
+- External check exit: not run
+- Independent review: not run
+- Next issue: Worker model_error, exit 1; inspect local log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
