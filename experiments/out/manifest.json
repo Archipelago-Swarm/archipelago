@@ -1,0 +1,43 @@
+{
+ "args": {
+  "seeds": 3,
+  "episodes": 20,
+  "modes": [
+   "rule",
+   "independent",
+   "information_only",
+   "p2p",
+   "central_online",
+   "ctde"
+  ],
+  "scenarios": [
+   "connected",
+   "split",
+   "rejoin",
+   "node_failure"
+  ],
+  "out": "experiments/out"
+ },
+ "val": [
+  900,
+  901,
+  902,
+  903
+ ],
+ "test": [
+  950,
+  951,
+  952,
+  953,
+  954,
+  955
+ ],
+ "rerun": "python experiments/run.py --seeds 3 --episodes 20 --out experiments/out",
+ "train_env_steps": 50466,
+ "wall_s": 7.955262599991329,
+ "note": "n=3 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0.",
+ "sha256": {
+  "raw.jsonl": "2a4b4b33ab8d7c0a512d63359ef18275c8e8a222d4b543e33acd3051c4eb8282",
+  "summary.json": "dda855a6c18817d706d763be7046444394a2d4b457735fc5ec1322cb649cbee9"
+ }
+}
