@@ -13,6 +13,7 @@ import shutil
 import socket
 import ssl
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -22,6 +23,10 @@ from typing import Any
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "infra/demo"))
+
+import run_demo  # noqa: E402
+
 pytestmark = [
     pytest.mark.docker,
     pytest.mark.skipif(not shutil.which("docker"), reason="docker not installed"),
@@ -124,9 +129,21 @@ def wait_grafana(timeout: float = 120) -> None:
 
 
 def new_run(run_id: str) -> dict[str, Any]:
-    cfg = json.loads((ROOT / "packages/contracts/fixtures/good/run_config.json").read_text())
-    cfg["run_id"] = run_id
-    return call("POST", "/v1/runs", cfg, {"Idempotency-Key": f"key-{run_id}"})
+    # The live coordinator needs one pose per plan node: use the demo driver config.
+    cfg = run_demo.build_run_config("smoke", run_demo.load_plan("smoke"), run_id)
+    # Live mode: the Plan comes from the server-side plan file, selected by name (live-runtime A9).
+    return call("POST", "/v1/runs?plan=smoke", cfg, {"Idempotency-Key": f"key-{run_id}"})
+
+
+def wait_status(run_id: str, want: str, timeout: float = 60) -> dict[str, Any]:
+    """Live mode: lifecycle commands are relayed to the coordinator and settle asynchronously."""
+    end, view = time.time() + timeout, {}
+    while time.time() < end:
+        view = call("GET", f"/v1/runs/{run_id}")
+        if view["status"] == want:
+            return view
+        time.sleep(1)
+    raise AssertionError(f"run {run_id} never reached {want}: {view}")
 
 
 def stop(run: dict[str, Any]) -> dict[str, Any]:
@@ -175,21 +192,25 @@ def test_smoke_script_passes_and_run_state_survives_api_restart(stack):
     assert smoke.returncode == 0, smoke.stdout + smoke.stderr
 
     # A run that finishes: stopped explicitly so the test does not depend on tick timing.
-    done = stop(new_run("run-t10-done"))
+    stop(new_run("run-t10-done"))
+    done = wait_status("run-t10-done", "completed")
     assert done["status"] == "completed" and done["completion_reason"] == "stopped"
     before = call("GET", "/v1/runs/run-t10-done/events?limit=500")
     seqs = [e["sequence"] for e in before["events"]]
     assert seqs and seqs == sorted(seqs), "a finished run must have ordered events"
 
     # A run still active when the api container restarts (capacity is 1, so after the first ended).
-    live = new_run("run-t10-live")
-    assert live["status"] == "running"
-    paused = call(
+    new_run("run-t10-live")
+    live = wait_status("run-t10-live", "running")
+    call(
         "POST",
         "/v1/runs/run-t10-live/commands",
         {"command_id": "pause-live", "command": "pause", "expected_revision": live["revision"]},
     )
-    assert paused["status"] == "paused", "pause keeps the run active without depending on timing"
+    paused = wait_status(
+        "run-t10-live", "paused"
+    )  # pause keeps the run active without depending on timing
+    assert paused["status"] == "paused"
 
     compose("restart", "api")
     wait_ready()
