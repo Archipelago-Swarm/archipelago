@@ -18,3 +18,19 @@ check-full:
 	scripts/check.sh
 	docker build -f infra/docker/ci.Dockerfile -t archipelago-ci .
 	docker run --rm archipelago-ci
+
+# One-command demo (infra/demo/README.md). PLAN=smoke (150 ticks, default) or PLAN=demo (900 ticks, cut 300, rejoin 600).
+# Artifacts land in artifacts/demo/<run_id>/. Needs a Docker daemon; CI runs the smoke plan.
+.PHONY: demo demo-build demo-up demo-run demo-down
+PLAN ?= smoke
+demo-build:
+	python3 infra/demo/run_demo.py build --plan $(PLAN)
+demo-up:
+	python3 infra/demo/run_demo.py up --plan $(PLAN)
+demo-run:
+	python3 infra/demo/run_demo.py run --plan $(PLAN)
+demo-down:
+	python3 infra/demo/run_demo.py down --plan $(PLAN)
+# up, run, down (down always runs; compose logs are saved on failure). Leaves artifacts/demo/.
+demo:
+	python3 infra/demo/run_demo.py all --plan $(PLAN)

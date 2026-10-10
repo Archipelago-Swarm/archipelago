@@ -1,0 +1,29 @@
+{
+  "node_urls": {
+    "node-01": "http://node-01:8080",
+    "node-02": "http://node-02:8080",
+    "node-03": "http://node-03:8080",
+    "node-04": "http://node-04:8080"
+  },
+  "deadline_ms": 500,
+  "episodes": [
+    {"kind": "train", "seed": 101},
+    {"kind": "validation", "seed": 201},
+    {"kind": "test", "seed": 301}
+  ],
+  "eval_every": 1,
+  "fault_schedule": [
+    {
+      "start_tick": 40,
+      "end_tick": 90,
+      "cut_links": [
+        ["node-01", "node-03"],
+        ["node-01", "node-04"],
+        ["node-02", "node-03"],
+        ["node-02", "node-04"]
+      ]
+    }
+  ],
+  "kill_node": null,
+  "telemetry_outage": null
+}
