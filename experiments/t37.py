@@ -73,6 +73,10 @@ class Config:
         return self.eps_start + (self.eps_end - self.eps_start) * f
 
 
+PRIMARY = ("ref_return", "coverage_gain", "targets_after_spawn")
+SECONDARY_METRICS = ("wall_collisions", "revisit_rate")
+
+
 def ref_return(rec: dict, n_agents: int) -> float:
     """Episode return per agent under REF_REWARD recomputed from env counters (spawn-free)."""
     new, tgt, step, coll, _ = REWARD_SPECS[REF_REWARD]
@@ -312,8 +316,10 @@ def prereg_provenance():
     sha = git("log", "-1", "--format=%H", "--", "experiments/prereg/T37.yaml")
     dirty = bool(git("status", "--porcelain", "--", "experiments/prereg/T37.yaml"))
     assert sha and not dirty, "T37.yaml must be committed (own commit) before any comparison"
+    first = git("log", "--diff-filter=A", "--format=%H", "--", "experiments/prereg/T37.yaml")
     return {
         "commit": sha,
+        "original_commit": first.splitlines()[-1] if first else sha,
         "file_sha256": hashlib.sha256(PREREG.read_bytes()).hexdigest(),
         "head": git("rev-parse", "HEAD"),
     }
@@ -392,7 +398,7 @@ def select(pre, out):
                 "val": float(matrix(rs, m, slice(0, n)).mean()),
                 "sel_all": float(matrix(rs, m).mean()),
             }
-            for m in ("ref_return", "coverage_gain", "targets_after_spawn", "wall_collisions")
+            for m in (*PRIMARY, *SECONDARY_METRICS)
         }
     sel = {
         "selected": best,
@@ -400,12 +406,25 @@ def select(pre, out):
         "rule": "max mean ref_return over 25 selection worlds (VAL 100-104 + 5000-5019) and seeds",
         "table": table,
         "baselines_sel": {
-            b: {m: float(np.mean([w[m] for w in v])) for m in ("ref_return", "coverage_gain",
-                                                              "targets_after_spawn")}
+            b: {
+                m: float(np.mean([w[m] for w in v]))
+                for m in ("ref_return", "coverage_gain", "targets_after_spawn")
+            }
             for b, v in base.items()
         },
         "prereg": prereg_provenance(),
     }
+    ids = {k: k for k in by}
+    bsel = {n: [w for w in v] for n, v in base.items()}
+    sel["paired_selected"] = {}
+    for label, sl in (("val_100_104", slice(0, n)), ("selection_25", slice(None))):
+        sel["paired_selected"][label] = {
+            m: {
+                b: paired(matrix(by[ids[best]], m, sl), np.array([w[m] for w in bsel[b]][sl]))
+                for b in bsel
+            }
+            for m in PRIMARY
+        }
     (out / "selection.json").write_text(json.dumps(sel, indent=1))
     return sel
 
@@ -440,7 +459,7 @@ def test_once(pre, out):
     worlds = H.TEST
     seeds = range(pre["stage_b"]["seeds"])
     info = cfg.obs == H.V2_SHARED
-    mats = {m: [] for m in ("ref_return", "coverage_gain", "targets_after_spawn")}
+    mats = {m: [] for m in PRIMARY + SECONDARY_METRICS}
     for s in seeds:
         ev = eval_policy(cfg.obs, policy_act(_load_learners(cfg, s, out / "models")), worlds, info)
         for m in mats:
