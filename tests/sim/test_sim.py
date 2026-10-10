@@ -172,7 +172,7 @@ def test_cli_default_runs_full_900_ticks(tmp_path, monkeypatch):
     assert json.loads((tmp_path / "manifest.json").read_text())["ticks"] == 900
 
 
-def test_remove_node_mid_episode_leaves_no_wreck_and_others_continue(tmp_path):
+def test_kill_mid_episode_leaves_no_wreck_and_others_continue(tmp_path):
     from archipelago_sim2d.smoke import make_action
 
     kw = {"n_targets": 0, "battery_scale": 10.0}
@@ -181,11 +181,11 @@ def test_remove_node_mid_episode_leaves_no_wreck_and_others_continue(tmp_path):
     ad.world.obstacles.clear()
     ad.step({n: make_action(n, 0, "stay") for n in ad.world.agents})
     gone_pos = ad.world.drones["node-1"].pos
-    ad.remove_node("node-1")
+    ad.kill("node-1")
     assert "node-1" not in ad.world.agents and "node-1" not in ad.world.drones
     assert "node-1" not in ad.snapshot().poses
     with pytest.raises(ValueError):
-        ad.remove_node("node-1")
+        ad.kill("node-1")
     # node-0 walks into the removed drone's cell: no wreck blocks it
     ad.world.drones["node-0"].pos = (gone_pos[0] - 1, gone_pos[1])
     res = ad.step(
@@ -210,7 +210,7 @@ def test_replay_with_removal_reexecutes_to_same_hash(tmp_path):
     cmds = ["east", "south", "west", "north"]
     for t in range(12):
         if t == 5:
-            ad.remove_node("node-2")
+            ad.kill("node-2")
         ad.step({n: make_action(n, t, cmds[(t + i) % 4]) for i, n in enumerate(ad.world.agents)})
     m = json.loads(ad.write_replay(tmp_path).read_text())
     assert replay_final_hash_from_dir(tmp_path) == m["final_state_hash"]

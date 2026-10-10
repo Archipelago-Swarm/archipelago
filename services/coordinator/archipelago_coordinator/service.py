@@ -16,9 +16,17 @@ from archipelago_contracts.models import MetricSample
 from pydantic import ValidationError
 
 from . import sim
-from .models import MAX_RUN_ID, CommandBody, CreateRun
+from .models import (
+    MAX_RUN_ID,
+    CommandBody,
+    CreateRun,
+    LoadedPlan,
+    PlanError,
+    expand_episodes,
+    load_plan,
+)
 from .nodeclient import NodeClient
-from .runner import ACTIVE, Run
+from .runner import ACTIVE, Run, adapter_kwargs
 from .settings import Settings
 from .sim import SimulatorUnavailable
 from .spool import EventSpool, safe_name
@@ -91,14 +99,18 @@ class Coordinator:
                 continue
             if doc.get("status") in ACTIVE:
                 last = self.spool.page(rid, max(self.spool.latest_sequence(rid) - 1, 0), 1)
+                max_ticks = int(doc.get("run_config", {}).get("budgets", {}).get("max_ticks", 0))
+                g = int(doc.get("episode", 0)) * max_ticks + int(doc.get("tick", 0))
                 if last and last["events"]:  # the manifest is only written at state changes
-                    doc["tick"] = max(int(doc.get("tick", 0)), last["events"][-1]["sim_tick"])
+                    g = max(g, last["events"][-1]["sim_tick"])  # sim_tick is global (A7)
+                if max_ticks:
+                    doc["episode"], doc["tick"] = divmod(g, max_ticks)
                 doc["status"] = "interrupted"
                 doc["revision"] = int(doc.get("revision", 0)) + 1
                 doc["stop_reason"] = "coordinator_restart"
                 self.spool.emit(
                     rid,
-                    int(doc.get("tick", 0)),
+                    g,
                     None,
                     lambda b: MetricSample(
                         **b, metric="run_interrupted", value=1.0, unit="count", phase="other"
@@ -109,8 +121,8 @@ class Coordinator:
             self.summaries[rid] = doc
 
     # ----------------------------------------------------------- validation
-    def _validate(self, req: CreateRun) -> str | None:
-        cfg, plan = req.run_config, req.plan
+    def _validate(self, req: CreateRun, loaded: LoadedPlan) -> str | None:
+        cfg, plan = req.run_config, loaded.plan
         if len(cfg.run_id) > MAX_RUN_ID:
             return f"run_id longer than {MAX_RUN_ID} characters"
         if cfg.reward_id not in sim.reward_ids():
@@ -127,9 +139,17 @@ class Coordinator:
             if u.scheme not in ("http", "https") or not u.netloc:
                 return f"bad url for {n}"
         known = set(ids)
+        # A13: a fault the fleet cannot live to see is rejected before anything starts
+        horizon = min(sim.min_survival_ticks(plan.battery_scale), cfg.budgets.max_ticks)
         for w in plan.fault_schedule:
             if w.start_tick >= w.end_tick:
                 return "fault window must have start_tick < end_tick"
+            if w.end_tick > horizon:
+                return (
+                    f"fault window ends at tick {w.end_tick}, past the {horizon} ticks a moving "
+                    f"fleet survives (battery_scale {plan.battery_scale}, "
+                    f"max_ticks {cfg.budgets.max_ticks})"
+                )
             for a, b in w.cut_links:
                 if a == b or a not in known or b not in known:
                     return f"bad cut link {a!r}-{b!r}"
@@ -138,8 +158,11 @@ class Coordinator:
         o = plan.telemetry_outage
         if o and o.start_tick >= o.end_tick:
             return "telemetry_outage must have start_tick < end_tick"
+        episode_seeds = {e.seed for e in expand_episodes(plan)}
+        if episode_seeds & set(plan.node_config.gate_seeds):
+            return "node_config.gate_seeds must be disjoint from the plan episode seeds"
         try:  # non-distinct or out-of-grid starts are rejected by the adapter itself
-            probe = self.adapter_factory(self.settings.world_kwargs)
+            probe = self.adapter_factory(adapter_kwargs(self.settings, plan))
             probe.reset(cfg)
             probe.close()
         except (ValueError, TypeError) as e:
@@ -151,6 +174,11 @@ class Coordinator:
 
     # ----------------------------------------------------------------- API
     def create_run(self, body: Any) -> tuple[int, Json]:
+        if isinstance(body, dict) and "plan" in body:  # A9: the plan is server-side only
+            return 422, {
+                "error": "invalid_request",
+                "detail": "request-supplied plan and node_urls are forbidden; use plan_name",
+            }
         try:
             req = CreateRun.model_validate(body)
         except ValidationError as e:
@@ -158,7 +186,12 @@ class Coordinator:
         ok, why = self.sim_check()
         if not ok:
             return 503, {"error": "simulator_unavailable", "detail": why}
-        problem = self._validate(req)
+        try:
+            loaded = load_plan(self.settings.plan_file, req.plan_name)
+        except PlanError as e:
+            err = "plan_unavailable" if e.status == 503 else "invalid_request"
+            return e.status, {"error": err, "detail": str(e)}
+        problem = self._validate(req, loaded)
         if problem:
             return 422, {"error": "invalid_request", "detail": problem}
         rid = req.run_config.run_id
@@ -169,7 +202,9 @@ class Coordinator:
                 return 409, {"error": "run_exists", "run_id": rid}
             run = Run(
                 cfg=req.run_config,
-                plan=req.plan,
+                plan=loaded.plan,
+                plan_name=loaded.name,
+                plan_file_sha256=loaded.file_sha256,
                 settings=self.settings,
                 spool=self.spool,
                 client=self.client,
@@ -221,7 +256,7 @@ class Coordinator:
         snap = cur.privileged_snapshot()
         if snap is None:
             return 404, {"error": "snapshot_unavailable"}
-        return 200, snap.model_dump(mode="json")
+        return 200, snap
 
     def readiness(self) -> tuple[int, Json]:
         ok, why = self.sim_check()

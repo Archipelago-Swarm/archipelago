@@ -11,6 +11,10 @@ from archipelago_coordinator.sim import SimulatorUnavailable
 from coord_harness import ADMIN_TOKEN, COORD_TOKEN, NODE_TOKEN, run_body
 
 
+def _window(start: int, end: int) -> dict[str, Any]:
+    return {"start_tick": start, "end_tick": end, "cut_links": [["node-0", "node-1"]]}
+
+
 def test_every_route_but_healthz_requires_the_right_token(live: Any, nodes: Any) -> None:
     lv, ns = live(), nodes()
     lv.start_run(run_body("auth", ns, ticks=5))
@@ -181,8 +185,9 @@ def test_only_one_active_run_and_run_ids_are_not_reused(live: Any, nodes: Any) -
         lambda b: b["plan"].update(
             fault_schedule=[{"start_tick": 1, "end_tick": 5, "cut_links": [["node-0", "node-7"]]}]
         ),
-        lambda b: b["plan"].update(episodes=[]),
-        lambda b: b["plan"].update(surprise=1),
+        lambda b: b["plan"].update(fault_schedule=[_window(0, 300)]),  # A13: past the battery
+        lambda b: b["plan"].update(node_config={"gate_seeds": [1]}),  # overlaps episode seed 1
+        lambda b: b.update(plan_name="nope"),
     ],
 )
 def test_invalid_run_requests_are_rejected_without_starting(
@@ -195,6 +200,25 @@ def test_invalid_run_requests_are_rejected_without_starting(
     assert code == 422 and out["error"] == "invalid_request", out
     assert lv.call("GET", "/v1/runs/bad")[0] == 404
     assert lv.call("POST", "/v1/runs", run_body("ok", ns, ticks=3))[0] == 201  # no stuck run
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda b: b["plan"].update(episodes=[]),
+        lambda b: b["plan"].update(surprise=1),
+        lambda b: b["plan"].update(battery_scale=0),
+    ],
+)
+def test_a_broken_server_side_plan_is_a_503_not_a_client_error(
+    live: Any, nodes: Any, mutate: Any
+) -> None:
+    lv, ns = live(), nodes()
+    body = run_body("badplan", ns, ticks=5)
+    mutate(body)
+    code, out = lv.call("POST", "/v1/runs", body)
+    assert code == 503 and out["error"] == "plan_unavailable", out
+    assert lv.call("GET", "/v1/runs/badplan")[0] == 404
 
 
 def test_episode_order_modes_and_fault_schedule_distribution(live: Any, nodes: Any) -> None:
@@ -214,29 +238,29 @@ def test_episode_order_modes_and_fault_schedule_distribution(live: Any, nodes: A
     assert [(e["kind"], e["seed"]) for e in s["episodes_done"]] == expected
     for node in ns.values():
         resets = [c for c in node.controls if c["command"] == "reset"]
-        assert [(c["episode"], c["seed"], c["mode"]) for c in resets] == [
-            (0, 11, "train"), (1, 12, "eval"), (2, 13, "train"), (3, 14, "train"), (4, 100, "eval"),
+        assert [(c["episode"], c["mode"]) for c in resets] == [
+            (0, "train"), (1, "eval"), (2, "train"), (3, "train"), (4, "eval"),
         ]  # fmt: skip
-        # per episode: reset -> set_schedule -> acts -> episode_end, nothing interleaved across
+        # per episode: configure (first only) -> reset -> acts -> episode_end, no interleaving
         runs = []
         cur: list[str] = []
         for item in node.timeline:
-            if item == "control:reset" and cur:
+            if item == "control:reset" and cur and cur != ["control:configure"]:
                 runs.append(cur)
                 cur = []
             cur.append(item)
         runs.append(cur)
         assert len(runs) == 5
+        assert runs[0][:2] == ["control:configure", "control:reset"]
+        runs[0] = runs[0][1:]
         for i, seq in enumerate(runs):
-            assert seq[:2] == ["control:reset", "control:set_schedule"]
-            assert seq[-1] == "control:episode_end"
-            body = seq[2:-1]
+            assert seq[0] == "control:reset" and seq[-1] == "control:episode_end"
+            body = seq[1:-1]
             assert body.count("act") == 14
             # eval episodes (validation, test) never train: no feedback
             assert body.count("feedback") == (0 if i in (1, 4) else 14)
-        for c in node.controls:
-            if c["command"] == "set_schedule":
-                assert c["schedule"] == sched and c["schedule_sha256"] == s["fault_schedule_hash"]
+        assert [c["fault_schedule"] for c in resets] == [sched] * 5  # same schedule every reset
+        assert node.violations == []
         assert [a["episode"] for a in node.acts] == sorted(a["episode"] for a in node.acts)
     # frozen test/validation episodes use mode eval; mode is the only difference in control
     events = lv.events("plan")
@@ -323,6 +347,7 @@ def test_simulator_missing_is_a_visible_failure_without_fixture_fallback(
         "admin_token": ADMIN_TOKEN,
         "node_token": NODE_TOKEN,
         "data_dir": tmp_path / "d",
+        "plan_file": tmp_path / "plan.json",
     }
 
     def broken() -> Any:
@@ -344,7 +369,7 @@ def test_simulator_missing_is_a_visible_failure_without_fixture_fallback(
     try:
         code, body = http("GET", base + "/readyz", COORD_TOKEN)
         assert code == 503 and body["simulator"]["available"] is False
-        code, body = http("POST", base + "/v1/runs", COORD_TOKEN, run_body("x", ns, ticks=3))
+        code, body = http("POST", base + "/v1/runs", COORD_TOKEN, run_body("x", ns, ticks=3).wire())
         assert code == 503 and body["error"] == "simulator_unavailable"
         assert svc.current is None
     finally:
@@ -369,7 +394,14 @@ def test_settings_reject_weak_or_shared_tokens(tmp_path: Any) -> None:
     with pytest.raises(ConfigError, match="COORDINATOR_ADMIN_TOKEN"):
         Settings.from_env(env)
     env["COORDINATOR_ADMIN_TOKEN"] = ADMIN_TOKEN
-    s = Settings.from_env({**env, "ARCHIPELAGO_ENV": "production"})
+    with pytest.raises(ConfigError, match="COORDINATOR_PLAN_FILE"):
+        Settings.from_env({**env, "ARCHIPELAGO_ENV": "production"})
+    with pytest.raises(ConfigError, match="battery_scale"):
+        Settings.from_env({**env, "COORDINATOR_WORLD_KWARGS": '{"battery_scale": 4}'})
+    s = Settings.from_env(
+        {**env, "ARCHIPELAGO_ENV": "production", "COORDINATOR_PLAN_FILE": str(tmp_path / "p.json")}
+    )
+    assert s.plan_file == tmp_path / "p.json"
     assert s.production and s.node_urls == {
         "node-01": "http://n1:8000",
         "node-02": "http://n2:8000",

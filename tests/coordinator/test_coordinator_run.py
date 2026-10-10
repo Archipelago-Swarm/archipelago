@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -47,17 +48,19 @@ def test_run_applies_node_actions_and_sends_feedback(live: Any, nodes: Any) -> N
 
 
 def test_stalled_node_falls_back_to_stay_and_does_not_delay_others(live: Any, nodes: Any) -> None:
+    """node-2 hangs on every act until the test releases it. The run can only finish if no tick
+    waits for the hung node, so completion itself is the proof; no wall-clock bound is asserted."""
     lv = live()
-    ns = nodes(**{"node-2": {"stall": lambda ep, tick: 3.0}})
-    lv.start_run(run_body("stall", ns, ticks=12, deadline_ms=200))
-    s = lv.wait_done("stall", timeout=60)
+    hang = threading.Event()
+    ns = nodes(**{"node-2": {"stall": lambda ep, tick: hang}})
+    try:
+        lv.start_run(run_body("stall", ns, ticks=12, deadline_ms=800))
+        s = lv.wait_done("stall", timeout=120)
+    finally:
+        hang.set()
     n2 = s["nodes"]["node-2"]
     assert n2["deadline_misses"] == 5 and n2["health"] == "unavailable"
     assert all(s["nodes"][n]["deadline_misses"] == 0 for n in ("node-0", "node-1", "node-3"))
-    # Misses cost about the 200 ms deadline, not the 3 s stall. The bound is deliberately generous
-    # (half the stall) so scheduler jitter on a loaded CI host cannot flip it; a coordinator that
-    # waited for the stalled node would take >= 3000 ms per tick.
-    assert s["timing"]["max_tick_ms"] < 1500
     events = lv.events("stall")
     miss = metrics(events, "deadline_missed")
     assert [e["source_node_id"] for e in miss] == ["node-2"] * 5
@@ -68,7 +71,13 @@ def test_stalled_node_falls_back_to_stay_and_does_not_delay_others(live: Any, no
     for n in ("node-0", "node-1", "node-3"):
         assert [a["tick"] for a in ns[n].acts] == list(range(12))
         assert len(ns[n].feedback) == 12
-    assert ns["node-2"].feedback == []  # a stayed tick is never paired with the node's own action
+    # A2: the stayed ticks are trained as `stay` and flagged, never paired with the node's own
+    # (late) action; once unavailable the node gets nothing more
+    fb = ns["node-2"].feedback
+    assert [f["tick"] for f in fb] == [0, 1, 2, 3, 4]
+    assert {(f["executed_command"], f["action_index"], f["deadline_missed"]) for f in fb} == {
+        ("stay", 0, True)
+    }
     d, recs = replay_records(lv, "stall")
     assert all(r["actions"]["node-2"] == "stay" for r in recs)
     assert all(e["event"] != "missing_action" for r in recs for e in r["events"])
@@ -137,34 +146,50 @@ def test_coordinator_sends_each_step_key_once_and_discards_late_replies(
     live: Any, nodes: Any
 ) -> None:
     """Guarantee: one act and one feedback per (episode, tick) per node, never replayed or
-    retried; a reply that arrives after its tick was decided is dropped, not applied later."""
+    retried; a reply that arrives after its tick was decided is dropped, not applied later.
+
+    The slow act (tick 1) and the slow feedback (tick 3) are held until the test has seen the
+    coordinator record the miss, then released: the late reply arrives strictly after the
+    deadline, on any machine."""
     lv = live()
+    late_act, late_ack = threading.Event(), threading.Event()
     ns = nodes(
         **{
             "node-2": {
                 "policy": east_policy,
-                "stall": lambda ep, t: 0.6 if t == 1 else 0.0,
-                "feedback_stall": lambda ep, t: 0.6 if t == 3 else 0.0,
+                "stall": lambda ep, t: late_act if t == 1 else None,
+                "feedback_stall": lambda ep, t: late_ack if t == 3 else None,
             }
         }
     )
-    lv.start_run(run_body("late", ns, ticks=8, deadline_ms=150))
-    s = lv.wait_done("late")
+    try:
+        lv.start_run(run_body("late", ns, ticks=8, deadline_ms=1000))
+        lv.wait("late", lambda s: s["nodes"]["node-2"]["deadline_misses"] == 1, timeout=60)
+        late_act.set()  # the late "east" reply now arrives after the tick was decided
+        lv.wait("late", lambda s: s["nodes"]["node-2"]["feedback_failures"] == 1, timeout=60)
+        late_ack.set()
+        s = lv.wait_done("late")
+    finally:
+        late_act.set()
+        late_ack.set()
     assert s["nodes"]["node-2"]["deadline_misses"] == 1  # only tick 1
     assert s["nodes"]["node-2"]["feedback_failures"] == 1  # only tick 3
     for n, node in ns.items():
         assert len(set(step_keys(node.acts))) == len(node.acts) == 8, n
-        assert len(set(step_keys(node.feedback))) == len(node.feedback), n
-    # tick 1: the late "east" never lands and no feedback is sent for the stayed tick;
-    # the feedback that timed out at tick 3 is not retried
-    assert [f["tick"] for f in ns["node-2"].feedback] == [0, 2, 3, 4, 5, 6, 7]
+        assert len(set(step_keys(node.feedback))) == len(node.feedback) == 8, n
+        assert node.violations == [], n
+    fb = {f["tick"]: f for f in ns["node-2"].feedback}
+    # tick 1: the late "east" never lands; the node is told `stay` was executed
+    assert (fb[1]["executed_command"], fb[1]["deadline_missed"]) == ("stay", True)
+    assert (fb[0]["executed_command"], fb[0]["action_index"]) == ("east", 2)
+    assert not any(fb[t]["deadline_missed"] for t in (0, 2, 3, 4, 5, 6, 7))
     _, recs = replay_records(lv, "late")
     by_tick = {r["tick"]: r["actions"]["node-2"] for r in recs}
     assert by_tick[2] == "stay"  # executed tick index 1
     assert by_tick[1] == by_tick[3] == by_tick[4] == "east"
     events = lv.events("late")
     assert [e["sim_tick"] for e in metrics(events, "deadline_missed")] == [1]
-    assert [e["sim_tick"] for e in metrics(events, "feedback_failed")] == [3]
+    assert [e["sim_tick"] for e in metrics(events, "feedback_failed")] == [3]  # not retried
 
 
 def test_kill_node_removes_drone_and_survivors_continue(live: Any, nodes: Any) -> None:
@@ -187,9 +212,13 @@ def test_kill_node_removes_drone_and_survivors_continue(live: Any, nodes: Any) -
     m = json.loads((d / "manifest.json").read_text())
     assert m["removed_nodes"] == ["node-1"] and m["ticks"] == 20
     assert replay_final_hash_from_dir(d) == m["final_state_hash"]
-    # the killed node got no feedback after the kill and episode_end still reached it
+    # the killed node got no feedback after the kill and, being gone from the world, no
+    # episode_end (A4); the survivors did
     assert [f["tick"] for f in ns["node-1"].feedback] == list(range(5))
-    assert ns["node-1"].timeline[-1] == "control:episode_end"
+    assert "control:episode_end" not in ns["node-1"].timeline
+    for n in ("node-0", "node-2", "node-3"):
+        assert ns[n].timeline[-1] == "control:episode_end"
+    assert s["episodes_done"][0]["episode_end_sent"] == ["node-0", "node-2", "node-3"]
 
 
 def test_replay_reexecution_matches_final_hash_for_every_episode(live: Any, nodes: Any) -> None:
@@ -225,12 +254,19 @@ def test_same_seed_and_policy_give_same_final_state_hash(live: Any, nodes: Any) 
 
 def test_node_unavailable_in_one_episode_recovers_at_next_reset(live: Any, nodes: Any) -> None:
     lv = live()
-    ns = nodes(**{"node-2": {"stall": lambda ep, t: 1.5 if ep == 0 else 0.0}})
+    hang = threading.Event()
+    ns = nodes(**{"node-2": {"stall": lambda ep, t: hang if ep == 0 else None}})
     eps = [{"kind": "train", "seed": 1}, {"kind": "train", "seed": 2}]
-    lv.start_run(run_body("recover", ns, ticks=8, episodes=eps, deadline_ms=150))
-    s = lv.wait_done("recover", timeout=60)
+    try:
+        lv.start_run(run_body("recover", ns, ticks=8, episodes=eps, deadline_ms=600))
+        s = lv.wait_done("recover", timeout=120)
+    finally:
+        hang.set()
     assert s["nodes"]["node-2"]["health"] == "ready"
     assert [a["tick"] for a in ns["node-2"].acts if a["episode"] == 1] == list(range(8))
+    # unavailable in episode 0 (it still got episode_end), configured only once
+    assert ns["node-2"].timeline.count("control:episode_end") == 2
+    assert [c["command"] for c in ns["node-2"].controls].count("configure") == 1
 
 
 def test_telemetry_outage_drops_only_the_event_sink(live: Any, nodes: Any) -> None:
@@ -261,7 +297,7 @@ def terminated_flags(node: Any, episode: int = 0) -> list[tuple[int, bool, bool]
 def test_battery_termination_ends_one_drone_and_the_others_continue(live: Any, nodes: Any) -> None:
     # node-0 moves every tick (0.004 each) and runs out at its 5th step; the others stay
     # (0.001 each) and survive the 12-tick episode.
-    lv = live(world_kwargs={"n_targets": 0, "battery_scale": 0.02})
+    lv = live()
     ns = nodes(
         **{
             "node-0": {"policy": lambda n, e, t, o: ("north", "south")[t % 2]},
@@ -270,7 +306,7 @@ def test_battery_termination_ends_one_drone_and_the_others_continue(live: Any, n
             "node-3": {"policy": stay_policy},
         }
     )
-    lv.start_run(run_body("dead", ns, ticks=12))
+    lv.start_run(run_body("dead", ns, ticks=12, battery_scale=0.02))
     s = lv.wait_done("dead")
     assert terminated_flags(ns["node-0"]) == [(i, i == 4, False) for i in range(5)]
     assert [a["tick"] for a in ns["node-0"].acts] == list(range(5))
@@ -295,10 +331,10 @@ def test_episode_ends_when_every_drone_has_terminated_and_next_episode_starts(
     live: Any, nodes: Any
 ) -> None:
     # all drones stay (0.001 each) with battery for 20 ticks; the plan allows 60
-    lv = live(world_kwargs={"n_targets": 0, "battery_scale": 0.02})
+    lv = live()
     ns = nodes(**{f"node-{i}": {"policy": stay_policy} for i in range(4)})
     eps = [{"kind": "train", "seed": 1}, {"kind": "validation", "seed": 2}]
-    lv.start_run(run_body("gone", ns, ticks=60, episodes=eps))
+    lv.start_run(run_body("gone", ns, ticks=60, episodes=eps, battery_scale=0.02))
     s = lv.wait_done("gone")
     first, second = s["episodes_done"]
     assert first["ticks"] == 20 and second["ticks"] == 20  # loop exit on an empty live set
