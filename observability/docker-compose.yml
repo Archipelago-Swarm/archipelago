@@ -1,23 +1,28 @@
-# Local profile: docker compose -f observability/docker-compose.yml up
-# Local-only credentials; production uses TIGERDATA_URL with sslmode=require.
+# Local profile: supply the required environment secrets, then docker compose -f observability/docker-compose.yml up.
 services:
   timescaledb:
     image: timescale/timescaledb:2.17.2-pg16
     environment:
-      POSTGRES_USER: archipelago
-      POSTGRES_PASSWORD: local-dev-only
+      POSTGRES_PASSWORD: ${ARCHIPELAGO_DB_ADMIN_PASSWORD:?set database admin password}
       POSTGRES_DB: archipelago
+      TIGERDATA_GRAFANA_PASSWORD: ${TIGERDATA_GRAFANA_PASSWORD:?set reader password}
     ports: ["127.0.0.1:5432:5432"]
+    volumes:
+      - ../packages/storage/migrations/0001_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../packages/storage/migrations/0002_roles.sql:/docker-entrypoint-initdb.d/02-roles.sql:ro
+      - ./grafana/init-reader.sh:/docker-entrypoint-initdb.d/03-reader.sh:ro
   grafana:
     image: grafana/grafana:11.2.0
     depends_on: [timescaledb]
+    entrypoint: ["/bin/sh", "/etc/grafana/require-reader.sh"]
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: local-dev-only
-      TIGERDATA_GRAFANA_HOST: timescaledb:5432
-      TIGERDATA_GRAFANA_SSLMODE: disable
-      TIGERDATA_GRAFANA_USER: archipelago
-      TIGERDATA_GRAFANA_PASSWORD: local-dev-only
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?set Grafana admin password}
+      TIGERDATA_GRAFANA_HOST: ${TIGERDATA_GRAFANA_HOST:-timescaledb:5432}
+      TIGERDATA_GRAFANA_SSLMODE: ${TIGERDATA_GRAFANA_SSLMODE:-disable}
+      TIGERDATA_GRAFANA_USER: ${TIGERDATA_GRAFANA_USER:?must be archipelago_reader}
+      TIGERDATA_GRAFANA_PASSWORD: ${TIGERDATA_GRAFANA_PASSWORD:?set reader password}
     ports: ["127.0.0.1:3000:3000"]
     volumes:
+      - ./grafana/require-reader.sh:/etc/grafana/require-reader.sh:ro
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro

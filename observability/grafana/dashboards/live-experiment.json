@@ -1,0 +1,710 @@
+{
+  "uid": "archipelago-live",
+  "title": "Archipelago live experiment",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "5s",
+  "timezone": "utc",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "tags": [
+    "archipelago",
+    "live",
+    "experiment"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "run_id",
+        "type": "query",
+        "label": "Run",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "tigerdata"
+        },
+        "query": "SELECT run_id FROM runs ORDER BY started_at DESC",
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Peer fault phases",
+        "enable": true,
+        "hide": false,
+        "iconColor": "orange",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "tigerdata"
+        },
+        "target": {
+          "refId": "Fault",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, payload->>'phase' AS text, 'peer-fault' AS tags FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'fault_phase' AND payload->>'phase' IN ('partition', 'recovery') ORDER BY ts"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Coverage — training",
+      "description": "Training samples only. Missing samples remain No data.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'value' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'coverage' AND payload->>'phase' = 'train' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Coverage — frozen evaluation",
+      "description": "Frozen evaluation only; no optimizer updates. Missing samples remain No data.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'value' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'coverage' AND payload->>'phase' = 'eval' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Episode return — training",
+      "description": "Training samples only. Missing samples remain No data.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'value' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'episode_return' AND payload->>'phase' = 'train' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Episode return — frozen evaluation",
+      "description": "Frozen evaluation only; no optimizer updates. Missing samples remain No data.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'value' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'episode_return' AND payload->>'phase' = 'eval' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Optimizer updates per node",
+      "description": "Canonical learning events. Update count and policy version are counters, not rates.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'update_count' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'learning_event' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Training loss per node",
+      "description": "Canonical learning events. Update count and policy version are counters, not rates.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'loss' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'learning_event' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Policy version per node",
+      "description": "Canonical learning events. Update count and policy version are counters, not rates.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'new_version' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'learning_event' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Peer decisions — accepted / rejected",
+      "description": "Decision counts in the selected time range. Empty means no recorded decisions.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT payload->>'transfer' AS decision, COUNT(*) AS count FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'learning_event' AND payload->>'transfer' IN ('accepted', 'rejected') GROUP BY payload->>'transfer'"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Peer decisions — reasons and candidate scores",
+      "description": "Canonical LearningEvent has no sender field. Node identifies the deciding recipient; sender provenance is not inferred.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id, payload->>'transfer' AS decision, payload->>'reason' AS reason, CAST(payload->>'candidate_score' AS DOUBLE PRECISION) AS candidate_score, CAST(payload->>'previous_version' AS BIGINT) AS previous_version, CAST(payload->>'new_version' AS BIGINT) AS new_version FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'learning_event' AND payload->>'transfer' IN ('accepted', 'rejected') ORDER BY ts DESC"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "state-timeline",
+      "title": "Peer partition / recovery phase",
+      "description": "Recorded fault_phase samples only; no invented partition boundaries or zero-fill.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "always"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id, payload->>'phase' AS phase FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'fault_phase' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Action deadline misses",
+      "description": "Canonical metric samples; wall-clock timestamps in UTC.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'value' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'deadline_missed' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Unavailable nodes",
+      "description": "Canonical metric samples; wall-clock timestamps in UTC.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'value' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'node_unavailable' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Telemetry spool backlog per node",
+      "description": "Canonical metric samples; wall-clock timestamps in UTC.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'value' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'telemetry_backlog' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Telemetry spool dropped events per node",
+      "description": "Canonical metric samples; wall-clock timestamps in UTC.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'value' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'telemetry_dropped' ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Persistence dropped rows",
+      "description": "Writer backpressure drops; each row records the number shed, not a cumulative counter.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, kind AS metric, dropped AS value FROM dropped_metrics WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Resident memory per node",
+      "description": "Canonical metric samples; wall-clock timestamps in UTC.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "tigerdata"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "connectNulls": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'value' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'metric_sample' AND payload->>'metric' = 'rss_bytes' ORDER BY ts"
+        }
+      ]
+    }
+  ]
+}
