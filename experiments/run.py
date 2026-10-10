@@ -56,7 +56,7 @@ def rollout(env, act, seed):
 def run_cell(mode, scenario, seed, episodes, steps):
     """Train under the schedule, then score on TEST. Same env seeds for every mode."""
     env, agents = make_env(), make_env().possible_agents
-    t0, rejected = time.perf_counter(), [0]
+    t0, rejected, sent = time.perf_counter(), [0], [0]
     if mode == "rule":
         rngs = {a: random.Random(seed) for a in agents}
         visits = {a: {} for a in agents}
@@ -88,7 +88,9 @@ def run_cell(mode, scenario, seed, episodes, steps):
                 and i % 5 == 4
             ):
                 for a, b in ((agents[0], agents[1]), (agents[1], agents[0])):
-                    ev = offer(L[b], encode(L[a]), lambda p: evaluate(p, VAL), sender=a)
+                    payload = encode(L[a])
+                    sent[0] += len(payload)
+                    ev = offer(L[b], payload, lambda p: evaluate(p, VAL), sender=a)
                     rejected[0] += not ev["accepted"]  # information_only never loads parameters
         snaps = {
             a: L[a].snapshot() for a in agents
@@ -112,6 +114,7 @@ def run_cell(mode, scenario, seed, episodes, steps):
         "returns": [r for r, _ in res],
         "mean": float(np.mean([r for r, _ in res])),
         "rejected_exchanges": rejected[0],
+        "exchange_bytes": sent[0],
         "train_env_steps": steps[0],
         "replay_hashes": [h for _, h in res],
         "wall_s": time.perf_counter() - t0,
@@ -141,6 +144,8 @@ def summarise(rows, baseline="independent"):
                         "mean_diff": float(np.mean(ds)),
                         "ci95": boot_ci(ds),
                         "wins": sum(d > 0 for d in ds),
+                        # shortcut: no observation sharing exists yet, so this mode is a stub
+                        "stub": mode == "information_only",
                     }
                 )
     return out

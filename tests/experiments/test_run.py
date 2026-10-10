@@ -44,3 +44,14 @@ def test_node_failure_changes_test_outcome():
     a = run.run_cell("independent", "node_failure", 0, 4, [0])
     b = run.run_cell("independent", "connected", 0, 4, [0])
     assert a["replay_hashes"] != b["replay_hashes"]
+
+
+def test_information_only_flagged_stub_and_bytes_counted():
+    rows = [
+        run.run_cell(m, "connected", 0, 5, [0]) for m in ("independent", "information_only", "p2p")
+    ]
+    assert rows[1]["exchange_bytes"] > 0 and rows[0]["exchange_bytes"] == 0
+    assert {r["mode"]: r["stub"] for r in run.summarise(rows)} == {
+        "information_only": True,
+        "p2p": False,
+    }
