@@ -1212,35 +1212,30 @@ tasks:
     by: cloud/w2
     note: ''
 - id: T29
-  name: 'Live integration: API, dashboard, persistence and local end-to-end smoke'
-  description: Wire services/api (ARCHIPELAGO_ADAPTER=live) to the coordinator, add Compose services coordinator
-    and node-01..04, live dashboard panels, telemetry ingest to the existing Persister, and tests/e2e/test_live_local.py
-    (coordinator plus four node processes on localhost).
+  name: 'Live integration gate: local end-to-end smoke and compose full test'
+  description: 'Integration gate after T32-T35: tests/e2e/test_live_local.py (coordinator plus four node
+    processes on localhost) and the compose full test assert the live-run behavior end to end. Only e2e
+    tests and glue live here.'
   state: QUEUED
   priority: 2
   owner: null
   machine: null
   branch: null
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T20:47:12Z'
   dependencies:
-  - T27
-  - T28
   - T04
   - T06
   - T08
+  - T27
+  - T28
+  - T32
+  - T33
+  - T34
+  - T35
   blocked_by: []
   owned_paths:
-  - services/api/**
-  - tests/api/**
-  - apps/web/**
-  - tests/web/**
   - tests/e2e/**
-  - infra/compose/**
-  - infra/docker/**
-  - tests/infra/**
-  - observability/**
-  - tests/observability/**
   contracts:
   - agents/architecture/live-runtime.md
   acceptance:
@@ -1248,23 +1243,12 @@ tasks:
     - command: uv run pytest tests/e2e/test_live_local.py -q
       expected_exit_code: 0
       tier: integration
-    - command: uv run pytest tests/api tests/infra -q
-      expected_exit_code: 0
-      tier: full
-      needs:
-      - docker
     assertions:
-    - description: Live mode never falls back to FixtureAdapter and /readyz fails when the coordinator
-        is unreachable.
     - description: 'Local e2e: optimizer updates in all four node processes, distinct per-node policy
         hashes, actions originate from nodes, a cut link carries zero peer traffic while local updates
         continue, an offer is transmitted and a decision is logged, a restarted node resumes from checkpoint.'
-    - description: Dashboard shows positions/actions, update counts/loss/versions, peer offers with decisions,
-        topology and fault phase, train vs frozen-eval curves, resources, telemetry freshness; disconnected,
-        stale and replay states are labeled.
     - description: Compose full test brings up coordinator and four nodes on real container networking
         and passes the same assertions.
-    - description: TigerData outage does not stop nodes or the world; backlog is bounded and catches up.
   retry_policy:
     test_failure: 5
     build_failure: 3
@@ -1273,8 +1257,13 @@ tasks:
   last_good_commit: null
   artifacts: []
   handoff_file: null
-  notes: Largest integration slice; keep to one vertical candidate. Cross-host peer URLs are covered in
-    T31.
+  notes: 'Split on 2026-10-10 (ADR-0009): API T32, telemetry T33, dashboard T34, compose T35. This task
+    is the e2e gate; it edits tests/e2e only.'
+  history:
+  - at: '2026-10-10T20:47:12Z'
+    event: split
+    by: controller
+    note: split into T32-T35
 - id: T30
   name: Experiment protocol repair, live pilot and evidence
   description: Repair experiments/run.py accounting and protocol mismatches, define the information-sharing
@@ -1382,3 +1371,159 @@ tasks:
   handoff_file: null
   notes: Blocked until the operator attaches Vultr and TigerData connections after local readiness (single
     consolidated request).
+- id: T32
+  name: 'Live API adapter: no fixture fallback, readiness and telemetry ingest endpoint'
+  description: services/api runs ARCHIPELAGO_ADAPTER=live against the coordinator HTTP interface, fails
+    /readyz when the coordinator is unreachable, never falls back to FixtureAdapter, and exposes the node
+    telemetry ingest path.
+  state: QUEUED
+  priority: 2
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:47:12Z'
+  updated_at: '2026-10-10T20:47:12Z'
+  dependencies:
+  - T28
+  - T04
+  blocked_by: []
+  owned_paths:
+  - services/api/**
+  - tests/api/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/api -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Live mode never falls back to FixtureAdapter and /readyz fails when the coordinator
+        is unreachable.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Split from T29. Coordinator interface: agents/architecture/live-runtime.md. Persistence internals
+    stay with T14/T15.'
+- id: T33
+  name: 'Telemetry persistence for live runs: Persister ingest, bounded backlog, outage catch-up'
+  description: Live telemetry reaches the existing Persister; a TigerData outage neither stops nodes nor
+    the world, the backlog is bounded and catches up.
+  state: QUEUED
+  priority: 3
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:47:12Z'
+  updated_at: '2026-10-10T20:47:12Z'
+  dependencies:
+  - T28
+  - T08
+  blocked_by: []
+  owned_paths:
+  - packages/storage/**
+  - tests/storage/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/storage -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: TigerData outage does not stop nodes or the world; backlog is bounded and catches up.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Split from T29. T15 also edits packages/storage; the path lock serializes them.
+- id: T34
+  name: Live dashboard panels and connection states
+  description: apps/web shows positions/actions, update counts/loss/versions, peer offers with decisions,
+    topology and fault phase, train vs frozen-eval curves, resources, telemetry freshness; disconnected,
+    stale and replay states are labeled.
+  state: QUEUED
+  priority: 3
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:47:12Z'
+  updated_at: '2026-10-10T20:47:12Z'
+  dependencies:
+  - T06
+  - T32
+  blocked_by: []
+  owned_paths:
+  - apps/web/**
+  - tests/web/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: npm --prefix apps/web test --if-present
+      expected_exit_code: 0
+      tier: integration
+    - command: npm --prefix apps/web run build
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Dashboard shows positions/actions, update counts/loss/versions, peer offers with decisions,
+        topology and fault phase, train vs frozen-eval curves, resources, telemetry freshness; disconnected,
+        stale and replay states are labeled.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Split from T29. Develop against the API fixture shapes until T32 lands; verify command list against
+    apps/web/package.json.
+- id: T35
+  name: 'Compose services: coordinator and node-01..04'
+  description: Compose stack adds coordinator and four node containers on real container networking with
+    checkpoints on volumes.
+  state: QUEUED
+  priority: 3
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:47:12Z'
+  updated_at: '2026-10-10T20:47:12Z'
+  dependencies:
+  - T27
+  - T28
+  blocked_by: []
+  owned_paths:
+  - infra/compose/**
+  - infra/docker/**
+  - tests/infra/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/infra -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: 'Compose config validates and, where Docker is available, the stack starts coordinator
+        plus four nodes (not run without Docker: report not run).'
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Split from T29.
