@@ -6,6 +6,10 @@ events:
   event: human_intervention
   by: bootstrap
   note: Bootstrap requested by operator prompt (one-time setup)
+- at: '2026-10-10T19:30:00Z'
+  event: human_intervention
+  by: operator
+  note: 'Assignment: live decentralized-learning experiment on Vultr+TigerData; tasks T24-T31 registered'
 tasks:
 - id: T01
   name: Bootstrap workspace and freeze contracts
@@ -892,3 +896,410 @@ tasks:
   handoff_file: null
   notes: 'Source: ADR-0007 risks. Unverified claims in PROTOCOL section 13 stay unverified until this
     passes.'
+- id: T24
+  name: Live-runtime interface agreement and task registration
+  description: Integrator-authored interface agreement (agents/architecture/live-runtime.md), ADR-0008,
+    ownership domains and ledger entries T24-T31 for the live decentralized-learning experiment.
+  state: QUEUED
+  priority: 0
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:30:00Z'
+  dependencies: []
+  blocked_by: []
+  owned_paths:
+  - agents/architecture/live-runtime.md
+  - agents/decisions/0008-live-runtime.md
+  - agents/OWNERSHIP.yaml
+  - agents/TASKS.yaml
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: python agents/controller.py validate
+      expected_exit_code: 0
+      tier: fast
+    assertions:
+    - description: Independent review finds no contradiction between the agreement and the existing code
+        (learning, peer, transport, sim2d adapter, API).
+    - description: Every later task cites the agreement and none duplicates another task's owned paths.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Bootstrap exception: authored by the integrator; independent review runs while T26/T28 implement.
+    Amendments go through the integrator.'
+- id: T25
+  name: Make the legacy runners safe to leave on disk
+  description: driver.py/night.py/watchdog.py merge into and reset main of the checkout they run in and
+    plan from BOARD.md; the ledger is now authoritative. Add a hard refusal when agents/TASKS.yaml exists,
+    document the real controlling flags of launch.py, stop presenting run-config.example.json as consumed.
+  state: QUEUED
+  priority: 2
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:30:00Z'
+  dependencies:
+  - T22
+  blocked_by: []
+  owned_paths:
+  - tools/agents/driver.py
+  - tools/agents/night.py
+  - tools/agents/watchdog.py
+  - tests/agents/**
+  - agents/operations/**
+  contracts:
+  - agents/PROTOCOL.md
+  - agents/decisions/0004-no-persistent-watchers.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/agents -q
+      expected_exit_code: 0
+      tier: fast
+    assertions:
+    - description: Starting driver.py, night.py or watchdog.py with the ledger present exits nonzero with
+        an explanatory message unless an explicit legacy acknowledgement flag is passed (tested).
+    - description: No remaining default code path in driver.py resets or merges the user's main checkout;
+        the integration path is removed or refuses.
+    - description: run-config.example.json is either consumed by a tested loader or its header states
+        which flags actually control behavior.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Scoped narrowly: retiring the runners entirely is T20 after the T23 live trial. Reviewer-failure,
+    commit-binding, stale-generation and stop/deadline behavior is already enforced by controller.py (verify
+    requires the verified commit; missing verdicts are infrastructure failures); verified, not rebuilt.'
+- id: T26
+  name: PyTorch CPU learner with peer-protocol compatibility
+  description: 'TorchLearner per agents/architecture/live-runtime.md section 4 and 7: per-instance policy/target/optimizer/replay/RNG,
+    snapshot inference, param-map-v1 import/export shared with the NumPy baseline, transactional generation
+    checkpoints, thread control. NumPy learner kept and labeled as regression baseline.'
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:30:00Z'
+  dependencies:
+  - T07
+  blocked_by: []
+  owned_paths:
+  - packages/learning/**
+  - tests/learning/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  - packages/learning/archipelago_learning/peer.py
+  acceptance:
+    commands:
+    - command: uv run pytest tests/learning -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Training changes parameters and a controlled behavior test; local-update and peer-import
+        changes are separate events.
+    - description: Two TorchLearner instances share no mutable state (parameters, optimizer, replay, RNG).
+    - description: A NumPy-exported payload loads into TorchLearner and vice versa; incompatible encoder,
+        nonfinite, wrong dtype/shape, oversize and zip-bomb payloads are rejected with named reasons;
+        pickle payloads are never loaded.
+    - description: 'Accepted candidate: target equals new policy, optimizer re-created, structured event
+        with source node/version/sha256/pre-post versions/scores; rollback restores the previous parameters.'
+    - description: Checkpoint generations restore policy, target, optimizer, replay, RNG, counters; killing
+        the writer between any two file writes leaves a loadable previous generation (tested by fault
+        injection).
+    - description: Thread count is controlled by env/arg and recorded; peak RSS of a 4-node-sized run
+        is measured and recorded in the handoff.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Dependency torch==2.14.1 comes from the integrator-owned torch dependency group (T24 PR). Install
+    the PyPI wheel locally (uv sync --frozen --group torch); CI/images use the CPU wheel.
+- id: T27
+  name: Node runtime process (act/feedback/control/peer/telemetry)
+  description: 'archipelago_noderuntime: the per-container process of agents/architecture/live-runtime.md
+    sections 3, 5, 7, 8. Wires TorchLearner, LearnerNode, PeerServer, node-private validation world, checkpoint
+    restore, telemetry spool and shipper.'
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:30:00Z'
+  dependencies:
+  - T26
+  - T05
+  blocked_by: []
+  owned_paths:
+  - packages/node/runtime/**
+  - tests/noderuntime/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  - packages/node/peer/archipelago_peer/__init__.py
+  - packages/node/learner/archipelago_learner/__init__.py
+  acceptance:
+    commands:
+    - command: uv run pytest tests/noderuntime -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: /v1/act and /v1/feedback are idempotent per (run_id, episode, tick); stale ticks get
+        409; auth is enforced; oversize bodies are rejected.
+    - description: Acting never blocks on training, peer I/O or telemetry (tested with a stalled peer
+        and a stalled sink).
+    - description: 'Training happens in the node process: after N feedback calls the optimizer step count
+        and replay size match; eval mode freezes optimizer, exploration and replay.'
+    - description: Peer schedule cuts are enforced by the node itself by tick; cut links carry zero offers
+        while local updates continue; accepted/rejected decisions are logged with reasons.
+    - description: Killing the process mid-write and restarting restores the last complete generation
+        and continues sequence numbers without event_id collisions.
+    - description: Telemetry spool is bounded, counts drops, and catches up idempotently after an outage.
+    - description: Idle and training RSS are measured; the compose memory limit proposal is recorded.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: In-process fake coordinator in tests; the real coordinator is T28 and the joint smoke is T29.
+- id: T28
+  name: Simulation coordinator service
+  description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
+    fallback, episode and train/validation/test schedules, peer-fault schedule distribution, node health,
+    authoritative replay and privileged snapshots. Does not own models.'
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:30:00Z'
+  dependencies:
+  - T03
+  blocked_by: []
+  owned_paths:
+  - services/coordinator/**
+  - tests/coordinator/**
+  - packages/adapters/sim2d/**
+  - tests/sim/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  - packages/adapters/sim2d/archipelago_sim2d/adapter.py
+  acceptance:
+    commands:
+    - command: uv run pytest tests/coordinator tests/sim -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Each node receives only its own contract Observation; no privileged snapshot field
+        reaches a node (tested).
+    - description: A missing or late node action becomes stay with a deadline_missed record; five consecutive
+        misses mark the node unavailable; one stalled node does not delay the others beyond the deadline.
+    - description: Duplicate and stale feedback/act requests are handled idempotently; reset/start/pause/resume/stop/checkpoint
+        transitions are validated.
+    - description: kill_node removes the drone from the world via the adapter; surviving nodes continue;
+        terminations and truncations are handled per agents/architecture/live-runtime.md.
+    - description: Replay written for each episode reproduces the final state hash from recorded actions.
+    - description: Production configuration fails visibly when the real simulator is unavailable; no fixture
+        fallback.
+    - description: Event ids are unique across runs and sequence numbers continue across coordinator restarts.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Tested against in-process fake nodes; the real node runtime is T27 and the joint smoke is T29.
+- id: T29
+  name: 'Live integration: API, dashboard, persistence and local end-to-end smoke'
+  description: Wire services/api (ARCHIPELAGO_ADAPTER=live) to the coordinator, add Compose services coordinator
+    and node-01..04, live dashboard panels, telemetry ingest to the existing Persister, and tests/e2e/test_live_local.py
+    (coordinator plus four node processes on localhost).
+  state: QUEUED
+  priority: 2
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:30:00Z'
+  dependencies:
+  - T27
+  - T28
+  - T04
+  - T06
+  - T08
+  blocked_by: []
+  owned_paths:
+  - services/api/**
+  - tests/api/**
+  - apps/web/**
+  - tests/web/**
+  - tests/e2e/**
+  - infra/compose/**
+  - infra/docker/**
+  - tests/infra/**
+  - observability/**
+  - tests/observability/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/e2e/test_live_local.py -q
+      expected_exit_code: 0
+      tier: integration
+    - command: uv run pytest tests/api tests/infra -q
+      expected_exit_code: 0
+      tier: full
+      needs:
+      - docker
+    assertions:
+    - description: Live mode never falls back to FixtureAdapter and /readyz fails when the coordinator
+        is unreachable.
+    - description: 'Local e2e: optimizer updates in all four node processes, distinct per-node policy
+        hashes, actions originate from nodes, a cut link carries zero peer traffic while local updates
+        continue, an offer is transmitted and a decision is logged, a restarted node resumes from checkpoint.'
+    - description: Dashboard shows positions/actions, update counts/loss/versions, peer offers with decisions,
+        topology and fault phase, train vs frozen-eval curves, resources, telemetry freshness; disconnected,
+        stale and replay states are labeled.
+    - description: Compose full test brings up coordinator and four nodes on real container networking
+        and passes the same assertions.
+    - description: TigerData outage does not stop nodes or the world; backlog is bounded and catches up.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Largest integration slice; keep to one vertical candidate. Cross-host peer URLs are covered in
+    T31.
+- id: T30
+  name: Experiment protocol repair, live pilot and evidence
+  description: Repair experiments/run.py accounting and protocol mismatches, define the information-sharing
+    message class, run the five required comparisons on the live runtime (pilot, then frozen manifest
+    and sweep), investigate why idle/rule-based beat learners, produce per-seed paired results with intervals.
+  state: QUEUED
+  priority: 2
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:30:00Z'
+  dependencies:
+  - T27
+  - T28
+  - T17
+  blocked_by: []
+  owned_paths:
+  - experiments/**
+  - tests/experiments/**
+  - packages/learning/**
+  - tests/learning/**
+  contracts:
+  - agents/architecture/evaluation.md
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/experiments tests/learning -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Per-cell train_env_steps, node-failure accounting, central_online budgets and information_only
+        semantics match agents/architecture/evaluation.md; historical results preserved and labeled.
+    - description: Modes 4 (information sharing, no model transfer) and 5 (information sharing plus validated
+        model candidates) receive identical non-model information.
+    - description: Rule-based, idle, independent, information-only and p2p modes use identical reward/observation
+        definitions, paired training seeds and frozen test scenarios; validation, bytes, wall time and
+        compute overhead recorded.
+    - description: Pilot diagnosis of idle/rule-based outperforming learners is recorded with action traces
+        and reward audit before any final sweep; no tuning on test seeds.
+    - description: Manifest frozen before the final sweep; connected, partition/reconnect, node-restart
+        and telemetry-outage scenarios verified to reach their fault ticks; per-seed results and paired
+        intervals published; a controlled donor/recipient test verifies the transfer mechanism separately
+        from the main experiment.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Depends on T17 for real CTDE/node-loss baselines only as secondary comparisons; the first live
+    experiment must not wait on a sophisticated central baseline (T17 scope may be reduced by the integrator).
+- id: T31
+  name: Vultr and TigerData deployment with operational evidence
+  description: Deploy the verified compose stack to one Vultr CPU host with pinned image digests, authenticated
+    HTTPS and TigerData; optional second host with secured cross-host peer URLs; run the bounded live
+    experiment; collect inventory, spend and rollback evidence.
+  state: QUEUED
+  priority: 3
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T19:30:00Z'
+  dependencies:
+  - T29
+  - T30
+  blocked_by:
+  - human:Vultr and TigerData connections, selected resources, approved cost estimate
+  owned_paths:
+  - infra/**
+  - tests/infra/**
+  - agents/reports/**
+  - agents/handoffs/T31/**
+  contracts:
+  - infra/runbooks/vultr-deploy.md
+  - infra/runbooks/budget-guard.md
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: bash infra/scripts/smoke.sh
+      expected_exit_code: 0
+      tier: full
+      needs:
+      - credentials
+    assertions:
+    - description: Spend stays within $100 cumulative and $200/month projected; account resources (max
+        five instances) and credits are inventoried before and after; stopped-resource billing verified.
+    - description: Same tested image digests are deployed; commit, digests, host inventory and region
+        recorded; peer, control and database ports are not public.
+    - description: Authenticated live dashboard URL shows the deployed run; TigerData persistence and
+        outage catch-up verified on the deployed stack; checkpoint restoration after container restart
+        verified there.
+    - description: Rollback to the previous digests verified; scheduled stop and cleanup performed with
+        evidence preserved first.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Blocked until the operator attaches Vultr and TigerData connections after local readiness (single
+    consolidated request).

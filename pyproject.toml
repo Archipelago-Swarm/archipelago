@@ -6,6 +6,10 @@ requires-python = ">=3.12"
 dependencies = ["archipelago-contracts", "archipelago-api"]
 
 [dependency-groups]
+# Live learners (agents/architecture/live-runtime.md section 10). Not part of `dev`: the PyPI Linux wheel
+# pulls ~3 GB of CUDA packages. Local dev: `uv sync --frozen --group torch`. CI/images install the CPU
+# wheel: `uv pip install --torch-backend cpu torch==2.14.1`.
+torch = ["torch==2.14.1"]
 dev = [
     "pytest>=8",
     "httpx>=0.27",

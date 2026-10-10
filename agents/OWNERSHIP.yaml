@@ -7,8 +7,8 @@ roles:
   verifier: B        # writes VERIFICATION.yaml; does not modify implementation code
   reviewer: B        # process/reliability review
 default_allocation:
-  A: [simulation, runtime, networking, adapters3d, agents]
-  B: [learning, telemetry, infrastructure, web, testing]
+  A: [simulation, runtime, networking, adapters3d, agents, coordinator, e2e]
+  B: [learning, noderuntime, telemetry, infrastructure, web, testing]
 domains:
   contracts:         # public interfaces; change needs an ADR and the integrator
     paths: [packages/contracts/**, tests/contracts/**]
@@ -22,6 +22,12 @@ domains:
     paths: [services/api/**, tests/api/**]
   web:
     paths: [apps/web/**, tests/web/**]
+  coordinator:       # live-runtime world service (agents/architecture/live-runtime.md)
+    paths: [services/coordinator/**, tests/coordinator/**]
+  noderuntime:       # per-drone container runtime
+    paths: [packages/node/runtime/**, tests/noderuntime/**]
+  e2e:
+    paths: [tests/e2e/**]
   telemetry:
     paths: [packages/storage/**, observability/**, tests/storage/**, tests/observability/**]
   adapters3d:

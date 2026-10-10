@@ -5,5 +5,5 @@ COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
 RUN apt-get update && apt-get install -y --no-install-recommends git nodejs npm && rm -rf /var/lib/apt/lists/*
 WORKDIR /repo
 COPY . .
-RUN uv sync --frozen && npm ci
+RUN uv sync --frozen && scripts/install-torch-cpu.sh && npm ci
 CMD ["bash", "scripts/check.sh"]
