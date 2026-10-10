@@ -1,4 +1,5 @@
-"""In-memory peer transport with directed link gates and seeded faults (T05 slice 1-4, memory only)."""
+"""In-memory peer transport with directed link gates and seeded faults (T05, memory only)."""
+
 from __future__ import annotations
 
 import hashlib
@@ -21,7 +22,7 @@ class Envelope:
     digest: str = ""
 
     @staticmethod
-    def make(src: str, dst: str, seq: int, payload: bytes) -> "Envelope":
+    def make(src: str, dst: str, seq: int, payload: bytes) -> Envelope:
         return Envelope(src, dst, seq, payload, VERSION, hashlib.sha256(payload).hexdigest())
 
 
@@ -40,7 +41,9 @@ class Network:
     Telemetry is not routed here (separate channel).
     """
 
-    def __init__(self, links, seed: int = 0, loss: float = 0.0, delay: int = 0, bandwidth: int | None = None):
+    def __init__(
+        self, links, seed: int = 0, loss: float = 0.0, delay: int = 0, bandwidth: int | None = None
+    ):
         self.links = set(links)
         self.rng = random.Random(seed)
         self.loss, self.delay, self.bandwidth = loss, delay, bandwidth

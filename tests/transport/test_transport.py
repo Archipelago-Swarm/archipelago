@@ -19,7 +19,8 @@ def test_cut_link_blocked_allowed_works():
 
 def test_reject_duplicate_stale_oversized_badhash():
     net = Network({("a", "b")})
-    net.send(mk("a", "b", 2)); net.send(mk("a", "b", 2)); net.send(mk("a", "b", 1))
+    for s in (2, 2, 1):
+        net.send(mk("a", "b", s))
     assert not net.send(mk("a", "b", 3, b"x" * (MAX_PAYLOAD + 1)))
     bad = Envelope("a", "b", 9, b"x", 1, "bogus")
     net.send(bad)
@@ -41,4 +42,5 @@ def test_seeded_loss_reproducible_and_send_nonblocking():
     def run():
         n = Network({("a", "b")}, seed=7, loss=0.5)
         return [n.send(mk("a", "b", i)) for i in range(20)]
+
     assert run() == run()
