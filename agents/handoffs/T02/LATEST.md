@@ -20,6 +20,7 @@ Rate-limit waits persist their next eligible UTC time and use a reported reset w
 - A single `claude -p` one-turn smoke with the runner's output/permission/turn flags returned `OK`, exit 0, on Claude Code 2.1.296. This was a CLI/auth smoke, not an overnight task run.
 - The first Windows full check caught CRLF conversion of generated TypeScript. `.gitattributes` now pins TS/JS to LF; generator check and subsequent full suite pass.
 - T02's first Linux CI bootstrap exposed missing Git identity in the supervisor's temporary coordination clone. The runner now copies the calling repository's configured identity into that clone and checks identity during preflight; the local two-clone test passes. CI rerun remains the gate.
+- The Docker smoke image also needed the `git` executable because the new supervisor tests exercise real local repositories. The image now installs it; container CI rerun remains the gate.
 
 ## Remaining gate / limits
 
