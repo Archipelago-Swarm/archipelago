@@ -1,0 +1,126 @@
+# Integrated stack. Profile "local" adds TimescaleDB; production (no profile) uses TigerData over TLS.
+#   docker compose -f infra/compose/compose.yml --env-file infra/compose/.env --profile local config -q
+# NOT RUN: validated statically only (YAML parse); `docker compose config` needs Docker.
+name: archipelago
+
+x-hardening: &hardening
+  restart: unless-stopped
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  read_only: true
+  tmpfs: ["/tmp"]
+  logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+
+networks:
+  edge: {}                  # proxy <-> internet only
+  core: { internal: true }  # no egress, no published ports
+  egress: {}                # API and Grafana reach TigerData over TLS
+  peers: { internal: true } # node-to-node HTTP only
+
+volumes:
+  api-data: {}
+  grafana-data: {}
+  caddy-data: {}
+  caddy-config: {}
+  pg-data: {}
+  node-01: {}
+  node-02: {}
+  node-03: {}
+  node-04: {}
+
+services:
+  proxy:
+    <<: *hardening
+    image: caddy:2.8-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.invalid}
+    volumes:
+      - ../proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    cap_add: [NET_BIND_SERVICE]  # caddy binary carries this file capability; exec fails without it
+    networks: [edge, core]
+    depends_on: [api, web]
+    mem_limit: 128m
+    cpus: 0.5
+
+  web:
+    <<: *hardening
+    image: archipelago/web:${IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: infra/docker/web.Dockerfile }
+    networks: [core]
+    mem_limit: 64m
+    cpus: 0.25
+
+  api:
+    <<: *hardening
+    image: archipelago/api:${IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: infra/docker/api.Dockerfile }
+    environment:
+      ARCHIPELAGO_API_TOKEN: ${ARCHIPELAGO_API_TOKEN:?set in .env}
+      ARCHIPELAGO_ALLOWED_ORIGINS: ${ARCHIPELAGO_ALLOWED_ORIGINS:-}
+      TIGERDATA_URL: ${TIGERDATA_URL:-}
+    volumes: ["api-data:/data"]
+    networks: [core, egress]
+    mem_limit: 512m
+    cpus: 1.0
+
+  grafana:
+    <<: *hardening
+    read_only: false  # Grafana writes its sqlite db and plugins under /var/lib/grafana
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set in .env}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: https://${SITE_ADDRESS:-localhost}/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      TIGERDATA_GRAFANA_HOST: ${TIGERDATA_GRAFANA_HOST:-timescaledb:5432}
+      TIGERDATA_GRAFANA_USER: ${TIGERDATA_GRAFANA_USER:-archipelago}
+      TIGERDATA_GRAFANA_PASSWORD: ${TIGERDATA_GRAFANA_PASSWORD:-local-dev-only}
+      TIGERDATA_GRAFANA_SSLMODE: ${TIGERDATA_GRAFANA_SSLMODE:-disable}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [core, egress]
+    mem_limit: 384m
+    cpus: 0.5
+
+  timescaledb:
+    profiles: ["local"]
+    restart: unless-stopped
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: archipelago
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:-local-dev-only}
+      POSTGRES_DB: archipelago
+    volumes: ["pg-data:/var/lib/postgresql/data"]
+    networks: [core]  # no published port; debug with `docker compose exec`
+    mem_limit: 512m
+    cpus: 1.0
+
+  # Four isolated nodes: own volume and env; no access to api volume, the DB or other volumes.
+  node-01: &node
+    <<: *hardening
+    image: archipelago/node:${IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: infra/docker/node.Dockerfile }
+    environment: { NODE_ID: node-01, PEER_PORT: "9000", OMP_NUM_THREADS: "1" }
+    volumes: ["node-01:/node-data"]
+    networks: [peers]
+    mem_limit: 512m
+    cpus: 0.5
+  node-02:
+    <<: *node
+    environment: { NODE_ID: node-02, PEER_PORT: "9000", OMP_NUM_THREADS: "1" }
+    volumes: ["node-02:/node-data"]
+  node-03:
+    <<: *node
+    environment: { NODE_ID: node-03, PEER_PORT: "9000", OMP_NUM_THREADS: "1" }
+    volumes: ["node-03:/node-data"]
+  node-04:
+    <<: *node
+    environment: { NODE_ID: node-04, PEER_PORT: "9000", OMP_NUM_THREADS: "1" }
+    volumes: ["node-04:/node-data"]
