@@ -56,7 +56,7 @@ def rollout(env, act, seed):
 def run_cell(mode, scenario, seed, episodes, steps):
     """Train under the schedule, then score on TEST. Same env seeds for every mode."""
     env, agents = make_env(), make_env().possible_agents
-    t0 = time.perf_counter()
+    t0, rejected = time.perf_counter(), [0]
     if mode == "rule":
         rngs = {a: random.Random(seed) for a in agents}
         visits = {a: {} for a in agents}
@@ -81,9 +81,15 @@ def run_cell(mode, scenario, seed, episodes, steps):
                 )  # failed node stops learning
             episode(env, L, s, 0.2)
             steps[0] += env.world.tick * len(agents)
-            if mode == "p2p" and up and alive1(scenario, i, episodes) and i % 5 == 4:
+            if (
+                mode in ("p2p", "information_only")
+                and up
+                and alive1(scenario, i, episodes)
+                and i % 5 == 4
+            ):
                 for a, b in ((agents[0], agents[1]), (agents[1], agents[0])):
-                    offer(L[b], encode(L[a]), lambda p: evaluate(p, VAL), sender=a)
+                    ev = offer(L[b], encode(L[a]), lambda p: evaluate(p, VAL), sender=a)
+                    rejected[0] += not ev["accepted"]  # information_only never loads parameters
         snaps = {
             a: L[a].snapshot() for a in agents
         }  # ctde/central: decentralised copies at inference
@@ -91,6 +97,11 @@ def run_cell(mode, scenario, seed, episodes, steps):
 
         def act(a, o):
             return probes[a].act(_norm(o), 0.0, snaps[a])
+
+    act0 = act
+
+    def act(a, o):  # node_failure: node-1 is down at test too, so it just stays put
+        return 0 if scenario == "node_failure" and a == agents[1] else act0(a, o)
 
     res = [rollout(env, act, s) for s in TEST]
     return {
@@ -100,6 +111,8 @@ def run_cell(mode, scenario, seed, episodes, steps):
         "episodes": episodes,
         "returns": [r for r, _ in res],
         "mean": float(np.mean([r for r, _ in res])),
+        "rejected_exchanges": rejected[0],
+        "train_env_steps": steps[0],
         "replay_hashes": [h for _, h in res],
         "wall_s": time.perf_counter() - t0,
     }

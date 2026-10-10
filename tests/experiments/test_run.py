@@ -25,3 +25,22 @@ def test_main_writes_bundle(tmp_path):
     run.main(["--seeds", "2", "--episodes", "4", "--scenarios", "split", "--out", str(tmp_path)])
     for f in ("raw.jsonl", "summary.json", "manifest.json"):
         assert (tmp_path / f).exists()
+
+
+def test_matched_budget_and_paired_summary():
+    rows = [
+        run.run_cell(m, "connected", s, 5, [0])
+        for m in ("independent", "p2p", "information_only")
+        for s in range(2)
+    ]
+    assert {(r["episodes"], len(r["returns"])) for r in rows} == {(5, len(run.TEST))}
+    summ = {r["mode"]: r for r in run.summarise(rows)}
+    assert summ["p2p"]["n"] == 2 and summ["p2p"]["ci95"][0] <= summ["p2p"]["ci95"][1]
+    assert all(r["rejected_exchanges"] > 0 for r in rows if r["mode"] == "information_only")
+    assert not set(run.TEST) & set(run.VAL)
+
+
+def test_node_failure_changes_test_outcome():
+    a = run.run_cell("independent", "node_failure", 0, 4, [0])
+    b = run.run_cell("independent", "connected", 0, 4, [0])
+    assert a["replay_hashes"] != b["replay_hashes"]
