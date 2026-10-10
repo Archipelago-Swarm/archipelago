@@ -468,13 +468,13 @@ tasks:
   name: Persist run events so replay survives restart
   description: services/api keeps events in memory only, so replay is empty after a restart (T10 acceptance
     check 4). Persist events and serve replay from the store.
-  state: CLAIMED
+  state: REVIEW
   priority: 1
   owner: cloud/w3
   machine: cloud
   branch: agent/T14-persist-run-events-so-replay-sur
   created_at: '2026-10-10T18:30:00Z'
-  updated_at: '2026-10-10T20:44:16Z'
+  updated_at: '2026-10-10T20:49:59Z'
   dependencies:
   - T04
   blocked_by: []
@@ -504,7 +504,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: null
+  last_good_commit: cfb02ed035f12c5f6df18cb0f72d86527970bda4
   artifacts: []
   handoff_file: agents/handoffs/T14/LATEST.md
   notes: 'Source: agents/handoffs/T10/LATEST.md known gaps; agents/issues/docker-runtime-tests-20261010.md.'
@@ -513,6 +513,18 @@ tasks:
     event: transition
     from: QUEUED
     to: CLAIMED
+    by: cloud/w3
+    note: ''
+  - at: '2026-10-10T20:47:19Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: cloud/w3
+    note: ''
+  - at: '2026-10-10T20:49:59Z'
+    event: to_review
+    from: ACTIVE
+    to: REVIEW
     by: cloud/w3
     note: ''
 - id: T15
@@ -801,13 +813,13 @@ tasks:
   name: Control-plane bootstrap
   description: Retrospective, task ledger, controller, protocol, tiered checks and CI changes that replace
     branch mail and watchers.
-  state: REVIEW
+  state: COMPLETE
   priority: 0
   owner: bootstrap/claude
   machine: A
   branch: claude/quirky-dirac-4eomw1
   created_at: '2026-10-10T18:24:10Z'
-  updated_at: '2026-10-10T18:36:25Z'
+  updated_at: '2026-10-10T20:52:22Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -851,13 +863,26 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: 41c334f
+  last_good_commit: a73546c
   artifacts:
   - agents/reports/LAST_RUN_RETROSPECTIVE.md
   - agents/reports/AUTONOMY_READINESS.md
   handoff_file: agents/handoffs/BOOTSTRAP/LATEST.md
   notes: 'Dogfooded: bootstrap enters the ledger at REVIEW, not COMPLETE. Needs verifier/human PASS and
     a green CI run.'
+  history:
+  - at: '2026-10-10T20:50:17Z'
+    event: verify_pass
+    from: REVIEW
+    to: INTEGRATION
+    by: cloud/verifier
+    note: ''
+  - at: '2026-10-10T20:52:22Z'
+    event: complete
+    from: INTEGRATION
+    to: COMPLETE
+    by: integrator/cloud
+    note: merged at a73546c
 - id: T23
   name: Live trial of the launcher in cloud sessions
   description: 'Run launch.py in Claude cloud sessions (no machines A/B): a routine ticks, one worker
@@ -908,13 +933,13 @@ tasks:
   name: Live-runtime interface agreement and task registration
   description: Integrator-authored interface agreement (agents/architecture/live-runtime.md), ADR-0008,
     ownership domains and ledger entries T24-T31 for the live decentralized-learning experiment.
-  state: REVIEW
+  state: COMPLETE
   priority: 0
   owner: A/integrator
   machine: A
   branch: agent/T24-live-runtime-interface-agreement
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:32:10Z'
+  updated_at: '2026-10-10T20:52:25Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -938,7 +963,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: d30d299
+  last_good_commit: e8e38a6
   artifacts: []
   handoff_file: agents/handoffs/T24/LATEST.md
   notes: 'Bootstrap exception: authored by the integrator; independent review runs while T26/T28 implement.
@@ -962,6 +987,18 @@ tasks:
     to: REVIEW
     by: A/integrator
     note: ''
+  - at: '2026-10-10T20:48:28Z'
+    event: verify_pass
+    from: REVIEW
+    to: INTEGRATION
+    by: cloud/verifier
+    note: ''
+  - at: '2026-10-10T20:52:25Z'
+    event: complete
+    from: INTEGRATION
+    to: COMPLETE
+    by: integrator/cloud
+    note: merged at e8e38a6
 - id: T25
   name: Make the legacy runners safe to leave on disk
   description: driver.py/night.py/watchdog.py merge into and reset main of the checkout they run in and
@@ -1014,13 +1051,13 @@ tasks:
   description: 'TorchLearner per agents/architecture/live-runtime.md section 4 and 7: per-instance policy/target/optimizer/replay/RNG,
     snapshot inference, param-map-v1 import/export shared with the NumPy baseline, transactional generation
     checkpoints, thread control. NumPy learner kept and labeled as regression baseline.'
-  state: ACTIVE
+  state: QUEUED
   priority: 1
   owner: cloud/w1
   machine: cloud
   branch: agent/T26-pytorch-cpu-learner-with-peer-pr
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:47:09Z'
+  updated_at: '2026-10-10T20:51:58Z'
   dependencies:
   - T07
   blocked_by: []
@@ -1088,6 +1125,12 @@ tasks:
     to: ACTIVE
     by: cloud/w1
     note: ''
+  - at: '2026-10-10T20:51:58Z'
+    event: requeue
+    from: ACTIVE
+    to: QUEUED
+    by: cloud/w1
+    note: 'janitor mode: fan-out stopped'
 - id: T27
   name: Node runtime process (act/feedback/control/peer/telemetry)
   description: 'archipelago_noderuntime: the per-container process of agents/architecture/live-runtime.md
@@ -1143,13 +1186,13 @@ tasks:
   description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
     fallback, episode and train/validation/test schedules, peer-fault schedule distribution, node health,
     authoritative replay and privileged snapshots. Does not own models.'
-  state: CLAIMED
+  state: REVIEW
   priority: 1
-  owner: cloud/w2
+  owner: cloud/janitor
   machine: cloud
   branch: agent/T28-simulation-coordinator-service
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:44:13Z'
+  updated_at: '2026-10-10T21:06:39Z'
   dependencies:
   - T03
   blocked_by: []
@@ -1184,7 +1227,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: null
+  last_good_commit: 9fd6008750770ef684b48ba0b7815b503afc6b5f
   artifacts: []
   handoff_file: agents/handoffs/T28/LATEST.md
   notes: Tested against in-process fake nodes; the real node runtime is T27 and the joint smoke is T29.
@@ -1210,6 +1253,36 @@ tasks:
     from: QUEUED
     to: CLAIMED
     by: cloud/w2
+    note: ''
+  - at: '2026-10-10T20:47:16Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: cloud/w2
+    note: ''
+  - at: '2026-10-10T20:52:01Z'
+    event: requeue
+    from: ACTIVE
+    to: QUEUED
+    by: cloud/w2
+    note: janitor mode
+  - at: '2026-10-10T21:03:41Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: cloud/janitor
+    note: ''
+  - at: '2026-10-10T21:06:36Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: cloud/janitor
+    note: ''
+  - at: '2026-10-10T21:06:39Z'
+    event: to_review
+    from: ACTIVE
+    to: REVIEW
+    by: cloud/janitor
     note: ''
 - id: T29
   name: 'Live integration gate: local end-to-end smoke and compose full test'
