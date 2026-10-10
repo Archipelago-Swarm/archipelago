@@ -229,7 +229,33 @@ def worktree_for(plan: dict[str, Any], task: dict[str, Any]) -> tuple[Path, str]
             git("merge", "--no-edit", plan["main_sha"], cwd=path)
         else:
             git("worktree", "add", "-b", branch, str(path), plan["main_sha"])
+    normalize_generated_checkout(path)
     return path, branch
+
+
+def normalize_generated_checkout(path: Path) -> None:
+    """Refresh a tracked generated file when a Windows worktree inherits old CRLF."""
+    relative = "packages/contracts/generated/types.ts"
+    file = path / relative
+    if not file.exists():
+        return
+    tracked = subprocess.run(
+        ["git", "show", f"HEAD:{relative}"],
+        cwd=path,
+        capture_output=True,
+        check=False,
+    )
+    if tracked.returncode:
+        raise NightError(f"Cannot verify tracked generated file in {path}")
+    current = file.read_bytes()
+    if current == tracked.stdout:
+        return
+    if current.replace(b"\r\n", b"\n") != tracked.stdout:
+        raise NightError(f"Generated file has real content drift in {path}: {relative}")
+    file.write_bytes(tracked.stdout)
+    git("add", "--", relative, cwd=path)  # refresh index; identical blob remains unstaged
+    if git("diff", "--cached", "--name-only", cwd=path):
+        raise NightError(f"Generated file normalization unexpectedly staged changes in {path}")
 
 
 def changed_paths(path: Path) -> set[str]:
@@ -257,9 +283,12 @@ def check_paths(path: Path, task: dict[str, Any]) -> None:
 def run_process(args: list[str], cwd: Path, timeout: float, log: Path) -> tuple[int, str, bool]:
     log.parent.mkdir(parents=True, exist_ok=True)
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+    executable = shutil.which(args[0])
+    if executable is None:
+        raise NightError(f"Child executable unavailable: {args[0]}")
     with log.open("w", encoding="utf-8") as output:
         child = subprocess.Popen(
-            args,
+            [executable, *args[1:]],
             cwd=cwd,
             stdin=subprocess.DEVNULL,
             stdout=output,

@@ -104,6 +104,25 @@ class NightUnitTests(unittest.TestCase):
         self.assertIn("--max-budget-usd", args)
         self.assertNotIn("Edit", args)
 
+    def test_generated_checkout_normalizes_only_line_endings(self) -> None:
+        with TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            git_at(repo, "init")
+            git_at(repo, "config", "user.name", "Test A")
+            git_at(repo, "config", "user.email", "a@example.invalid")
+            file = repo / "packages/contracts/generated/types.ts"
+            file.parent.mkdir(parents=True)
+            file.write_bytes(b"export type A = string;\n")
+            git_at(repo, "add", ".")
+            git_at(repo, "commit", "-m", "generated")
+            file.write_bytes(b"export type A = string;\r\n")
+            night.normalize_generated_checkout(repo)
+            self.assertEqual(file.read_bytes(), b"export type A = string;\n")
+            self.assertEqual(git_at(repo, "status", "--porcelain"), "")
+            file.write_bytes(b"export type B = string;\r\n")
+            with self.assertRaisesRegex(night.NightError, "real content drift"):
+                night.normalize_generated_checkout(repo)
+
 
 class TwoComputerProtocolTests(unittest.TestCase):
     def test_new_night_branch_preserves_existing_b_work(self) -> None:
