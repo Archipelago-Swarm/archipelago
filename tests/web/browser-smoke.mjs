@@ -85,6 +85,15 @@ try {
   await until(() => fetch(`http://127.0.0.1:${API}/healthz`).then((r) => r.status < 500), "api restart");
   await waitText(/INTERRUPTED \(not live\)/, "restart marks the orphaned run interrupted, not LIVE");
   assert.doesNotMatch(await text(), /DISCONNECTED|LIVE/, "reconnected without false LIVE");
-  console.log(`ok: browser smoke start/pause/resume/stop/replay/disconnect/reconnect for ${id}`);
+  const btnsDisabled = () => js(`[...document.querySelectorAll('[aria-label="Run controls"] button')].every((b) => b.disabled)`);
+  assert.ok(await btnsDisabled(), "interrupted run: command buttons disabled");
+  // terminal-run navigation: fresh load of the completed and interrupted runs shows honest, non-live state with no stream error
+  for (const [rid, re] of [[id, /COMPLETED \(not live\)/], [await js(`new URL(location.href).searchParams.get("run")`), /INTERRUPTED \(not live\)/]]) {
+    await send("Page.navigate", { url: `http://127.0.0.1:${WEB}/?run=${rid}` });
+    await waitText(re, `reopen ${rid}`);
+    assert.doesNotMatch(await text(), /DISCONNECTED|LIVE/, `reopened ${rid} is not live or disconnected`);
+    assert.ok(await btnsDisabled(), `reopened ${rid}: command buttons disabled`);
+  }
+  console.log(`ok: browser smoke start/pause/resume/stop/replay/disconnect/reconnect/terminal-reopen for ${id}`);
   ws.close();
 } catch (e) { console.error(e); process.exitCode = 1; } finally { kill(); }

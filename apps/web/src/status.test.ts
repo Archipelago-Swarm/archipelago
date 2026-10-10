@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { isTerminal, liveReducer, sourceLabel, type Live } from "./status";
+import { commandsDisabled, isTerminal, liveReducer, sourceLabel, type Live } from "./status";
 
 it("never labels a disconnected live stream as live", () => {
   expect(sourceLabel("live", "connected")).toBe("LIVE");
@@ -21,4 +21,11 @@ it("a recovered run (status only, empty snapshot) reads interrupted, has no snap
   expect(s.snap).toBeNull();
   expect(isTerminal(s.status)).toBe(true);
   expect(sourceLabel("live", s.conn, s.status)).toBe("INTERRUPTED (not live)");
+});
+
+it("disables commands unless live, connected and non-terminal", () => {
+  expect(commandsDisabled("live", "connected", "running")).toBe(false);
+  for (const st of ["completed", "failed", "interrupted"]) expect(commandsDisabled("live", "connected", st)).toBe(true);
+  expect(commandsDisabled("live", "disconnected", "running")).toBe(true);
+  expect(commandsDisabled("replay", "connected")).toBe(true);
 });

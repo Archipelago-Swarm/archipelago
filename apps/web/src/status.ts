@@ -2,6 +2,7 @@ export type Source = "fixture" | "live" | "replay";
 export type Conn = "connected" | "disconnected";
 
 // Stale state must never read as live: any non-connected live stream is labelled stale.
+export const commandsDisabled = (source: Source, conn: Conn, status?: string): boolean => source !== "live" || conn !== "connected" || isTerminal(status);
 export const isTerminal = (status?: string): boolean => !!status && ["completed", "failed", "interrupted"].includes(status);
 
 export function sourceLabel(source: Source, conn: Conn, status?: string): string {
