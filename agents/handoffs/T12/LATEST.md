@@ -87,3 +87,22 @@ The repo `.venv` is Python 3.13 and has no pybullet, so there the flight test sk
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A (run 20261010T064812Z)
+- Reserved paths this run: `packages/adapters/pybullet3d/`, `infra/3d/`; the adapter still lives in `packages/adapters/pybullet/` (outside them).
+- My `git mv` of it to `pybullet3d/` was denied by the permission classifier, so I did not move it. Supervisor/integrator: do the move (also update `tests/adapters3d/conftest.py` path, README, night-plan refs) or amend the reserved paths.
+- Added `infra/3d/README.md` (build/run pointer). `python -m pytest tests/adapters3d -q` -> 4 passed.
+- Still open: gym-pybullet-drones integration (the README SHA/MIT claim is unverified by me; no network API access here), takeoff/land contract commands, `Pose.z` ADR.
+
+## Supervisor checkpoint 2026-10-10T06:49:40Z
+
+- Run: 20261010T064812Z
+- Machine: A
+- Task/branch: T12 / agent/A/20261010T064812Z/T12
+- Base: 9c51804c09e35393b01cb97b0f0823cb6fe179bd
+- Round: 1
+- State: blocked
+- External check exit: not run
+- Independent review: not run
+- Next issue: Worker permission, exit 0; inspect local log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
