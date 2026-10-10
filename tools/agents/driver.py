@@ -146,9 +146,8 @@ def next_plan(run_hint, last, s):
             # A or B may have finished a prior run while the driver was offline.
             # Carry its newest checkpoint instead of forking unfinished work.
             refs = git("for-each-ref", "--sort=-committerdate", "--format=%(refname:short)",
-                       f"refs/remotes/origin/agent/{m}/*/{task}").splitlines()
-            if not refs and m == "B":
-                continue
+                       f"refs/remotes/origin/agent/{m}/*/{task}",
+                       f"refs/remotes/origin/agent/{m}/{task}/*").splitlines()
             if refs:
                 prior_ref = recovery_ref(task, refs[0])
                 carry = f"agent/{m}/{task}/carry-{run_hint or now().strftime('%Y%m%dT%H%M%S')}"
