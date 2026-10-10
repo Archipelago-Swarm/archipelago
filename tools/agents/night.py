@@ -79,6 +79,14 @@ def git(*args: str, cwd: Path | None = None, check: bool = True) -> str:
     return command(["git", *args], cwd, check=check).stdout.strip()
 
 
+def require_git_identity() -> tuple[str, str]:
+    name = git("config", "user.name", check=False)
+    email = git("config", "user.email", check=False)
+    if not name or not email:
+        raise NightError("Set Git user.name and user.email in this repository before running")
+    return name, email
+
+
 def read_plan_template() -> list[dict[str, Any]]:
     data = json.loads(PLAN_TEMPLATE.read_text(encoding="utf-8"))
     tasks = data["tasks"]
@@ -153,6 +161,9 @@ def publish_plan(hours: float) -> dict[str, Any]:
         git("clone", "-q", git("remote", "get-url", "origin"), str(coord), cwd=ROOT)
     elif git("status", "--porcelain", cwd=coord):
         raise NightError(f"Coordination checkout has unpublished changes: {coord}")
+    name, email = require_git_identity()
+    git("config", "user.name", name, cwd=coord)
+    git("config", "user.email", email, cwd=coord)
     git("fetch", "origin", cwd=coord)
     if previous:
         if git("branch", "--show-current", cwd=coord) != COORD_BRANCH:
@@ -767,6 +778,7 @@ def preflight(machine: str, billing: str, budget_usd: float | None) -> None:
             raise NightError(f"Missing required executable: {executable}")
     bash_executable()
     require_clean_main()
+    require_git_identity()
     if machine not in {"A", "B"}:
         raise NightError("Machine must be A or B")
 

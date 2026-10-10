@@ -5,7 +5,7 @@ This is the executable T02 runner, built around [Loop Engineering](https://blake
 ## Required before launching
 
 - T01 and T02 must be merged into `main`, with CI green. Clone or pull that main on both machines. Do not start from a task worktree or a dirty main checkout.
-- Both machines need Git push access, Claude Code authentication, Python 3.12+, `uv`, Node/npm, and Git Bash. B needs Docker before T08; without it the runner records T08 as blocked and continues no further B tasks.
+- Both machines need Git push access, a configured Git `user.name` and `user.email`, Claude Code authentication, Python 3.12+, `uv`, Node/npm, and Git Bash. B needs Docker before T08; without it the runner records T08 as blocked and continues no further B tasks.
 - Each person chooses `subscription` or `api` based on their own account. API mode requires a dollar cap. Subscription mode has wall-time, turn, and round caps but cannot promise a precise quota budget. The runner never changes billing mode.
 - Keep the computers awake, online, and plugged in. Leave the terminal processes open. `.agent-runtime/` is ignored and contains local logs, state, and worktrees. Do not delete it during a run.
 
