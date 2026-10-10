@@ -617,9 +617,15 @@ def run_machine(
                 task_state["issue"] = str(error) + "; local worktree preserved"
                 atomic_json(state_path, state)
                 break
+            # A resumed task can already contain its implementation in the
+            # carried branch. Review that work even if this round makes no new
+            # edits; otherwise a finished task is falsely stalled forever.
             implementation_changes = {
                 name
-                for name in changed_paths(path)
+                for name in (
+                    changed_paths(path)
+                    | set(git("diff", "--name-only", plan["main_sha"], cwd=path).splitlines())
+                )
                 if not name.startswith(f"agents/handoffs/{task['id']}/")
             }
             check_code: int | None = None
