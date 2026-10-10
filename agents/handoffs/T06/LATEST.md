@@ -251,3 +251,20 @@
 - The richer T06 implementation from run `20261010T130137Z` is preserved on this reconciliation branch and merged with current `main`.
 - Run `20261010T132342Z` forked from `main` after a carry-branch name collision. Its `App.tsx` is an alternative, smaller implementation, so it was not combined blindly; that branch remains pushed for reference.
 - The failed full check on B was caused by selecting the WSL `bash` shim. `main` now selects Git Bash on Windows; B does not need WSL for T06 checks. Resume T06 from this branch and rerun the full gate and browser smoke.
+
+## Worker update, run 20261010T140025Z (uncommitted; supervisor commits)
+- No code change; the slice was already complete on this branch. Re-verified on B: `npx tsc --noEmit` clean, `npx vitest run` 21/21 pass, and `node tests/web/browser-smoke.mjs` printed `ok: browser smoke start/pause/resume/stop/replay/disconnect/reconnect` (headless Edge, real API, fixture adapter).
+- Not done: smoke used the fixture adapter, not real sim2d; full `scripts/check.sh` not run by me; `learning_event` wire shape still assumed; task card status untouched (outside my paths).
+
+## Supervisor checkpoint 2026-10-10T14:03:47Z
+
+- Run: 20261010T140025Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T140025Z/T06
+- Base: 0ad50f5c5e6d368bcc1ffe4dc7ee324d973af05c
+- Round: 1
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
