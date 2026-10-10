@@ -69,6 +69,10 @@ class Sim2DAdapter:
         starts = {n.node_id: (int(n.start_pose.x), int(n.start_pose.y)) for n in config.nodes}
         if len(set(starts.values())) != len(starts):
             raise ValueError("node start poses must be distinct")
+        if any(
+            not (0 <= x < self.world.size and 0 <= y < self.world.size) for x, y in starts.values()
+        ):
+            raise ValueError("node start poses must be inside the grid")
         raw = self.world.reset(seed=config.seeds["env"], starts=starts)
         return {n: self._obs(n, o) for n, o in raw.items()}
 
@@ -94,7 +98,7 @@ class Sim2DAdapter:
         poses = {n: Pose(x=p[0] + 0.5, y=p[1] + 0.5) for n, p in s["poses"].items()}
         return WorldSnapshot(
             **self._meta(None, "snap"),
-            run_status="running",
+            run_status="running" if self.world.agents else "completed",  # type: ignore[union-attr]
             poses=poses,
             obstacles=[tuple(o) for o in s["obstacles"]],
             coverage=s["coverage"],
@@ -109,6 +113,8 @@ class Sim2DAdapter:
         manifest = {
             "run_id": self._run_id,
             "seed": self._cfg.seeds["env"],
+            "simulator_version": self._cfg.simulator_version,
+            "world_kwargs": self.kw,
             "ticks": len(self.replay),
             "final_state_hash": self.world.trace_hash(),  # type: ignore[union-attr]
             "replay_sha256": hashlib.sha256(body.encode()).hexdigest(),
