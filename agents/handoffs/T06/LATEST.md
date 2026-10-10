@@ -87,3 +87,21 @@
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update (run 20261010T063026Z, round 2)
+- Ran `scripts/check.sh` locally. The only failure is `tests/transport/test_peer_http.py::test_http_bad_requests` (WinError 10053, a Windows socket abort). It is outside T06 paths, so I did not touch it. All web steps pass: lint, typecheck, test, build.
+- `apps/web/vite.config.ts`: vitest now also includes `tests/web/**`, so `npm test` runs the session smoke (4 tests pass, previously 3).
+- Still open: real Transport (needs T03/T04), Playwright browser smoke, real node health, obstacle typing cast.
+
+## Supervisor checkpoint 2026-10-10T06:31:39Z
+
+- Run: 20261010T063026Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T063026Z/T06
+- Base: a5076ce701a3a7a99a7c3d147779d98c36270f28
+- Round: 2
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
