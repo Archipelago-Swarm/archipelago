@@ -108,3 +108,8 @@
 - Fix (branch `agent/B/transport-413-drain`, one file, `packages/node/peer/archipelago_peer/__init__.py`): always consume the request body first; bodies over the limit are drained in 64 KiB chunks (capped at 8x MAX_PAYLOAD) and discarded.
 - Evidence: `uv run pytest tests/transport` passed 12/12 runs after the fix; ruff clean. No test change needed.
 - Ownership: this file is in T05's reserved paths (A). B did not touch `main`; A or the integrator should review and merge.
+
+## Review fixes (agent/A/T05/review-fixes)
+
+- Fixed: payload larger than bandwidth no longer strands (goes alone, FIFO order kept); Content-Length and field-type validation return 400; `PeerClient.catch_up` before any send returns 0; bad-hash/oversized envelopes no longer become the catch-up source; weak tests replaced with behavior tests.
+- Not fixed (design/contract scope): HTTP delay is per-request ticks, `send` blocks on a dead peer, seq restart and unauthenticated `src`, retry byte double-counting. T05 card/BOARD status drift is the integrator's.

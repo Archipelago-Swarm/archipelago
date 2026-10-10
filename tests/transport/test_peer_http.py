@@ -125,11 +125,41 @@ def test_cut_and_restore_link_receiver_requests_latest_only():
             s.close()
 
 
-def test_bandwidth_deferred_is_202_and_small_passes():
+def test_payload_over_bandwidth_is_not_stranded():
     srv = PeerServer("b", {("a", "b")}, bandwidth=10)
     try:
-        assert post(srv.url, Envelope.make("a", "b", 1, b"x" * 20)) == 202
-        assert srv.receive() is None
+        assert post(srv.url, Envelope.make("a", "b", 1, b"x" * 20)) == 200
+        assert srv.receive().seq == 1
         assert post(srv.url, Envelope.make("a", "b", 2, b"y")) == 200
     finally:
         srv.close()
+
+
+def _raw_hdr(srv, headers, body=b""):
+    import http.client
+
+    c = http.client.HTTPConnection(srv.url.split("//")[1], timeout=2)
+    c.putrequest("POST", "/envelope", skip_accept_encoding=True)
+    for k, v in headers.items():
+        c.putheader(k, v)
+    c.endheaders(body)
+    return c.getresponse().status
+
+
+def test_malformed_requests_get_400():
+    srv = PeerServer("b", {("a", "b")})
+    try:
+        assert _raw_hdr(srv, {"Content-Length": "-1"}) == 400
+        assert _raw_hdr(srv, {"Content-Length": "abc"}) == 400
+        for d in (
+            {"src": ["x"], "seq": 1, "version": 1, "digest": "", "payload": ""},
+            {"src": "a", "seq": "1", "version": 1, "digest": "", "payload": ""},
+        ):
+            b = json.dumps(d).encode()
+            assert _raw_hdr(srv, {"Content-Length": str(len(b))}, b) == 400
+    finally:
+        srv.close()
+
+
+def test_catch_up_before_any_send_is_noop():
+    assert PeerClient("a", {"b": "http://127.0.0.1:1"}).catch_up("b") == 0
