@@ -56,6 +56,9 @@ class Run:
     commands: dict[str, dict[str, Any]] = field(default_factory=dict)
     task: asyncio.Task[None] | None = None
     final: dict[str, Any] | None = None  # kept: close() clears the adapter world
+    last_world: dict[str, Any] | None = None  # live mode: newest canonical WorldSnapshot event
+    plan: str | None = None  # live mode: allowlisted plan name the run was started with
+    commit: str | None = None  # live mode: coordinator commit, for persisted run identity
 
     def view(self) -> dict[str, Any]:
         return {
@@ -66,6 +69,7 @@ class Run:
             "tick": self.tick,
             "config": self.config.model_dump(mode="json"),
             "artifacts": [],  # T08 fills the artifact manifest
+            **({"plan": self.plan} if self.plan is not None else {}),
         }
 
 
@@ -151,6 +155,9 @@ class RunManager:
 
     def snapshot_event(self, run: Run) -> dict[str, Any]:
         snap: dict[str, Any] = run.final or {}
+        if run.final is None and run.adapter is None and run.last_world is not None:
+            drop = {"type", "tick", "status", "context", "source_sequence"}
+            snap = {k: v for k, v in run.last_world.items() if k not in drop}
         if run.final is None and run.adapter is not None:
             snap = (
                 run.adapter.snapshot()
@@ -167,28 +174,58 @@ class RunManager:
             "snapshot": snap,
         }
 
-    def _set(self, run: Run, status: Status, reason: str | None = None) -> None:
+    def _set(
+        self, run: Run, status: Status, reason: str | None = None, revision: int | None = None
+    ) -> None:
+        """Change status. Live runs pass the coordinator's revision so clients can use it."""
         run.status, run.reason = status, reason or run.reason
-        run.revision += 1
+        run.revision = run.revision + 1 if revision is None else revision
         self._emit(run, "status", reason=run.reason)
         self._save()
 
-    def create(self, key: str, config: RunConfig) -> tuple[Run, bool]:
-        chash = config.model_dump_json()
+    def precheck(self, key: str, config: RunConfig, fingerprint: str | None = None) -> Run | None:
+        """Replay detection and admission checks with no side effects.
+
+        Returns the existing run for an idempotent replay, None when a new run may be
+        registered, and raises Conflict otherwise.
+        """
+        chash = fingerprint or config.model_dump_json()
         if key in self.keys:
             old_hash, rid = self.keys[key]
             if old_hash != chash:
                 raise Conflict("idempotency key reused with a different config")
-            return self.runs[rid], False
+            return self.runs[rid]
         if config.run_id in self.runs:
             raise Conflict("run_id already exists")
         if self.active_count() >= self.s.max_active_runs:
             raise Conflict("run capacity reached")
-        run = Run(config, chash)
+        return None
+
+    def register(
+        self,
+        key: str,
+        config: RunConfig,
+        *,
+        git_sha: str | None = None,
+        plan: str | None = None,
+        fingerprint: str | None = None,
+    ) -> tuple[Run, bool]:
+        """Idempotency, uniqueness and capacity checks plus bookkeeping; starts nothing."""
+        existing = self.precheck(key, config, fingerprint)
+        if existing is not None:
+            return existing, False
+        chash = fingerprint or config.model_dump_json()
+        run = Run(config, chash, plan=plan, commit=git_sha)
         self.runs[config.run_id], self.keys[key] = run, (chash, config.run_id)
         if self.sink is not None:
-            self.sink.record_run(config.run_id, config.scenario_hash)
+            self.sink.record_run(config.run_id, config.scenario_hash, git_sha)
         self._set(run, "starting")
+        return run, True
+
+    def create(self, key: str, config: RunConfig) -> tuple[Run, bool]:
+        run, created = self.register(key, config)
+        if not created:
+            return run, False
         try:
             run.adapter = self.factory(config)
             run.adapter.reset(config)

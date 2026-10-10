@@ -302,7 +302,7 @@
           "format": "time_series",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'loss' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'learning_event' ORDER BY ts"
+          "rawSql": "SELECT ts AS time, node_id AS metric, CAST(payload->>'loss' AS DOUBLE PRECISION) AS value FROM events WHERE run_id = ${run_id:sqlstring} AND $__timeFilter(ts) AND kind = 'learning_event' AND payload->>'loss' IS NOT NULL ORDER BY ts"
         }
       ]
     },

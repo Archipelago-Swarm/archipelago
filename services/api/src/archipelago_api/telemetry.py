@@ -22,10 +22,11 @@ from archipelago_contracts.models import (
     Id,
     LearningEvent,
     MetricSample,
+    PeerEnvelope,
     WorldSnapshot,
 )
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from .eventlog import EventLog
 from .runs import Run, RunManager
@@ -36,10 +37,23 @@ _MODELS: dict[str, type[Event]] = {
     "action": Action,
     "learning_event": LearningEvent,
     "metric_sample": MetricSample,
+    "peer_envelope": PeerEnvelope,  # lets the dashboard attribute offers to their sender
     "world_snapshot": WorldSnapshot,
 }
 _ID = TypeAdapter(Id)
 log = logging.getLogger("archipelago.telemetry")
+
+
+class Context(BaseModel):
+    """A7 request-level identity. Canonical records cannot carry these fields themselves."""
+
+    model_config = ConfigDict(extra="forbid")
+    commit: str = Field(pattern=r"^[A-Za-z0-9_.:-]{1,64}$")
+    config_hash: str = Field(pattern=r"^[A-Za-z0-9_.:-]{1,128}$")
+    seed: int
+    host: Id
+    boot_id: Id
+    episode: int | None = Field(default=None, ge=0)
 
 
 class TelemetryIngest:
@@ -147,7 +161,9 @@ class TelemetryIngest:
             return None
         return "[redacted]" if self._token in value else value
 
-    def admit(self, items: list[Any]) -> dict[str, Any]:
+    def admit(self, items: list[Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Validate and publish a batch. `context` is stored with each accepted event and
+        passed to the Persister so persisted rows carry commit/config/seed/host identity."""
         accepted: list[tuple[Run, dict[str, Any]]] = []
         rejected: list[dict[str, Any]] = []
         duplicates = 0
@@ -186,6 +202,10 @@ class TelemetryIngest:
             event["type"] = event["kind"]
             event["tick"] = event["sim_tick"]
             event["status"] = run.status
+            if context:
+                event["context"] = context
+            if event["kind"] == "world_snapshot":
+                run.last_world = event  # a late WebSocket subscriber starts from the newest one
             run.events.append(event)
             while len(run.events) > self.manager.s.event_log_size:
                 run.events.popleft()
@@ -194,7 +214,7 @@ class TelemetryIngest:
             if self.manager.sink is not None:
                 try:
                     # Persister.record_event only enqueues; database I/O is in its worker.
-                    self.manager.sink.record_event(run.config.run_id, event)
+                    self.manager.sink.record_event(run.config.run_id, event, context)
                 except Exception:
                     log.warning("telemetry persistence enqueue failed")
             for sub in run.subs:
@@ -223,30 +243,40 @@ class _QueuedLog(EventLog):
 
 
 def make_router(
-    manager: RunManager, *, token: str | None = None, capacity: int = 2000
+    manager: RunManager,
+    *,
+    token: str | None = None,
+    capacity: int = 2000,
+    ingest: TelemetryIngest | None = None,
 ) -> APIRouter:
-    """Use TELEMETRY_TOKEN by default; fail closed for missing/short/shared tokens."""
-    ingest = TelemetryIngest(
-        manager, os.environ.get("TELEMETRY_TOKEN", "") if token is None else token, capacity
-    )
+    """Use TELEMETRY_TOKEN by default; fail closed for missing/short/shared tokens.
+
+    Pass `ingest` when the application already owns one (live mode feeds coordinator events
+    through the same admission path).
+    """
+    if ingest is None:
+        ingest = TelemetryIngest(
+            manager, os.environ.get("TELEMETRY_TOKEN", "") if token is None else token, capacity
+        )
+    ingest_ = ingest
 
     @asynccontextmanager
     async def lifespan(_: Any) -> AsyncIterator[None]:
-        await asyncio.to_thread(ingest.restore_dedupe)
-        ingest.start()
+        await asyncio.to_thread(ingest_.restore_dedupe)
+        ingest_.start()
         try:
             yield
         finally:
             # Nested router lifespans close before the parent app; preserve final status
             # events before closing the shared writer. RunManager.shutdown is idempotent.
             await manager.shutdown()
-            await ingest.stop()
+            await ingest_.stop()
 
     router = APIRouter(lifespan=lifespan)
 
     @router.post("/v1/telemetry")
     async def telemetry(request: Request) -> dict[str, Any]:
-        ingest.authorize(request)
+        ingest_.authorize(request)
         content_length = request.headers.get("content-length")
         if content_length is not None:
             try:
@@ -264,17 +294,23 @@ def make_router(
             body.extend(chunk)
         try:
             doc = json.loads(body, parse_constant=_bad_constant)
-            if not isinstance(doc, dict) or set(doc) != {"source", "boot_id", "events"}:
+            required = {"source", "boot_id", "events"}
+            if not isinstance(doc, dict) or not required <= set(doc) <= required | {"context"}:
                 raise ValueError("invalid envelope")
             _ID.validate_python(doc["source"])
             _ID.validate_python(doc["boot_id"])
             if not isinstance(doc["events"], list):
                 raise ValueError("invalid events")
+            context = (
+                Context.model_validate(doc["context"]).model_dump(exclude_none=True)
+                if "context" in doc
+                else {"host": doc["source"], "boot_id": doc["boot_id"]}
+            )
         except (ValueError, UnicodeDecodeError, ValidationError, RecursionError):
             raise HTTPException(400, "malformed telemetry JSON or envelope") from None
         if len(doc["events"]) > MAX_EVENTS:
             raise HTTPException(413, "too many telemetry events")
-        return ingest.admit(doc["events"])
+        return ingest_.admit(doc["events"], context)
 
     return router
 
