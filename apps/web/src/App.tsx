@@ -3,7 +3,7 @@ import type { WorldSnapshot } from "@archipelago/contracts";
 import runConfig from "../../../packages/contracts/fixtures/good/run_config.json";
 import snapshot from "../../../packages/contracts/fixtures/good/world_snapshot.json";
 import { ApiError, getRun, loadReplay, login, sendCommand, startRun } from "./client";
-import { connectStream, liveReducer, type Source } from "./status";
+import { connectStream, isTerminal, liveReducer, type Source } from "./status";
 import { View } from "./View";
 
 // JSON imports widen tuples; the fixture is schema-validated by the contracts tests.
@@ -55,7 +55,7 @@ export function App() {
         <label>Frame {frame + 1}/{frames.length} <input type="range" min={0} max={frames.length - 1} value={frame} onChange={(e) => setFrame(+e.target.value)} /></label>
       )}
       <div role="group" aria-label="Run controls">
-        {COMMANDS.map((c) => <button key={c} disabled={source !== "live" || conn !== "connected"} onClick={() => run(c)}>{c}</button>)}
+        {COMMANDS.map((c) => <button key={c} disabled={source !== "live" || conn !== "connected" || isTerminal(live.status)} onClick={() => run(c)}>{c}</button>)}
       </div>
       {error && <p role="alert">{error}</p>}
     </main>

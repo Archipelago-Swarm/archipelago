@@ -201,6 +201,14 @@ def test_restart_marks_active_runs_interrupted(tmp_path: Path) -> None:
     assert c2.get("/readyz").status_code == 200
 
 
+def test_recovered_run_streams_status_without_fake_snapshot(tmp_path: Path) -> None:
+    run = start(make(tmp_path))
+    c2 = make(tmp_path)
+    with c2.websocket_connect(f"/v1/runs/{run['run_id']}/stream") as ws:
+        first = ws.receive_json()
+    assert first["status"] == "interrupted" and not first.get("snapshot")
+
+
 def test_clean_shutdown_marks_interrupted(tmp_path: Path) -> None:
     with make(tmp_path) as c:
         start(c)
@@ -211,7 +219,7 @@ def test_clean_shutdown_marks_interrupted(tmp_path: Path) -> None:
 def test_real_sim2d_run_streams_and_completes(tmp_path: Path) -> None:
     pytest.importorskip("archipelago_sim2d")
     from archipelago_api.app import sim2d_factory
-    from archipelago_sim2d.smoke import make_config  # type: ignore[import-not-found,unused-ignore]
+    from archipelago_sim2d.smoke import make_config  # type: ignore[import-not-found,import-untyped,unused-ignore]
 
     s = Settings(api_token=TOKEN, data_dir=tmp_path, tick_interval=None)
     with TestClient(create_app(s, sim2d_factory()), headers=AUTH) as c:
