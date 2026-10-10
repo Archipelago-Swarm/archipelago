@@ -1,0 +1,4 @@
+# 2026-10-10T07:04:18Z Python 3.14.5 pybullet 202010061
+$ python -m pytest tests/adapters3d -q -rs (user-site: pybullet, gym-pybullet-drones, pydantic, numpy)
+.......                                                                  [100%]
+7 passed in 1.39s

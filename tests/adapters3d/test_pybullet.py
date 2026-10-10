@@ -104,3 +104,17 @@ def test_saved_smoke_evidence_shape_without_pybullet() -> None:
     assert "gym-pybullet-drones" in saved["upstream"]
     assert len(saved["poses3d"]) >= 2 and saved["drone_drone_collisions"] == 0
     assert all(len(p) == 3 and 0.5 < p[2] < 1.5 for p in saved["poses3d"].values())
+
+
+def test_physics_client_is_headless_direct() -> None:
+    pytest.importorskip("pybullet")
+    import pybullet as p
+    from archipelago_pybullet import PyBullet3DAdapter
+
+    cfg = parse_json((G / "run_config.json").read_text())
+    ad = PyBullet3DAdapter()
+    ad.reset(cfg)
+    try:  # a GUI/viewer client would report GUI; physics must run in DIRECT
+        assert p.getConnectionInfo(ad.env.CLIENT)["connectionMethod"] == p.DIRECT
+    finally:
+        ad.close()

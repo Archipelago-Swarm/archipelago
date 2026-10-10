@@ -12,7 +12,7 @@ Evidence: `evidence/smoke.json` (10 ticks east at 1 m/s, 2 drones, hover z~1.0, 
 
 ## Upstream (used, not just a target)
 https://github.com/utiasDSL/gym-pybullet-drones at `7ebad1ecabd28a7000add2d05f888aa2e837c2cc`
-(`git ls-remote` HEAD, 2026-10-10), MIT license (LICENSE fetched at that SHA). The adapter runs
+(`git ls-remote` HEAD, 2026-10-10), MIT license (evidence/LICENSE.upstream.txt fetched at that SHA; evidence/upstream-ls-remote.txt). The adapter runs
 upstream `CtrlAviary` (CF2X rotor/thrust physics, headless) and drives it with upstream `DSLPIDControl`
 (position/velocity targets from the five contract commands; takeoff/land = altitude target via `takeoff()`/`land()`).
 Extra imports of upstream (gymnasium, scipy, pillow, matplotlib, transforms3d) are listed in requirements.txt.
