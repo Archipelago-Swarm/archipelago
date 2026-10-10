@@ -7,7 +7,7 @@ make demo-build | demo-up | demo-run | demo-down      # the same steps one at a 
 ```
 
 `make demo` = `run_demo.py all`: `docker compose --profile local up -d --build --wait` (coordinator, `node-01..04`,
-api, web, proxy, grafana, timescaledb), wait for the API `/readyz`, log in with the dev token, `POST /v1/runs?plan=<name>`,
+api, web, proxy, grafana, timescaledb), wait for the API `/readyz`, log in with the dev token, `POST /v1/runs` (the mounted plan file is the plan; a single raw plan is named `default`),
 poll until the run is terminal, fetch `GET /v1/runs/{id}/events`, write `artifacts/demo/<run_id>/`, then
 `docker compose down -v` (always, also on failure; on failure the compose logs are saved first to
 `artifacts/demo/logs-failed/`). Artifacts stay in place. Needs a Docker daemon and the CPU torch wheel host

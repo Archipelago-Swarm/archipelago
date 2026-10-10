@@ -15,7 +15,14 @@ SCRIPT = ROOT / "infra/scripts/rollback.sh"
 COMPOSE_FILE = str(ROOT / "infra/compose/compose.yml")
 ENV_FILE = str(ROOT / "infra/compose/.env.example")
 PROJECT = "archi-t10-rollback"
-ENV = {**os.environ, "ARCHIPELAGO_API_TOKEN": "x" * 32, "GRAFANA_ADMIN_PASSWORD": "x" * 16}
+# Compose interpolates the whole file: every required secret needs a dummy value.
+ENV = {
+    **os.environ,
+    "ARCHIPELAGO_API_TOKEN": "x" * 32,
+    "GRAFANA_ADMIN_PASSWORD": "x" * 16,
+    **{k: "t" * 32 for k in ("COORDINATOR_TOKEN", "COORDINATOR_ADMIN_TOKEN", "NODE_CONTROL_TOKEN")},
+    **{k: "t" * 32 for k in ("PEER_TOKEN", "TELEMETRY_TOKEN")},
+}
 
 
 def run(*args, env=None):

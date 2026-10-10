@@ -6,6 +6,7 @@ windows, A3 restart-safe identity). Where the runtime does not yet behave as ame
 the evidence; nothing here is skipped or loosened.
 """
 
+import json
 import re
 import sys
 import threading
@@ -111,20 +112,21 @@ def test_exchange_windows_run_on_a_tick_cadence_and_see_the_cut(cut_run):
 def test_an_offer_decision_is_logged_inside_an_episode_not_only_at_its_end(make_cluster):
     c = make_cluster(ticks=SHORT, tick_interval_s=0.03, EXCHANGE_EVERY_TICKS="15")
     c.start_run("windows", episodes=TRAIN, seed=3)
-    seen = []
-
-    def sample(cl):
-        return sum(
-            (s["counters"]["decisions_accepted"] + s["counters"]["decisions_rejected"])
-            for s in (cl.node_status(n) for n in NODE_IDS)
-        )
-
-    for status, tick, total in poll_while_running(c, "windows", sample):
-        if status == "running" and tick is not None and tick < SHORT - 5:
-            seen.append((tick, total))
-    assert seen and max(t for _, t in seen) > 0, (
+    assert c.wait_run("windows")["status"] == "completed"
+    # Read the nodes' own spools after the run: no dependence on how often a poller happened to sample.
+    decisions = []
+    for n in NODE_IDS:
+        for seg in sorted((c.ckpt_dir(n) / "telemetry").glob("seg-*.jsonl")):
+            for line in seg.read_text().splitlines():
+                rec = json.loads(line)["record"] if line.strip() else {}
+                if rec.get("kind") == "learning_event" and rec.get("transfer") in (
+                    "accepted",
+                    "rejected",
+                ):
+                    decisions.append((n, rec["sim_tick"]))
+    assert any(0 < tick < SHORT - 5 for _, tick in decisions), (
         "no peer decision was logged before the last ticks of the episode; "
-        f"exchange only runs at episode_end (A1 not implemented): {seen[-3:]}"
+        f"exchange only runs at episode_end (A1 not implemented): {decisions[-6:]}"
     )
 
 

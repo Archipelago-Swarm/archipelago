@@ -129,9 +129,9 @@ def test_driver_uses_login_idempotency_key_and_plan_name(fake, tmp_path):
     posts = {p: h for m, p, h in f.seen if m == "POST"}
     assert "/v1/login" in posts
     start = next(h for p, h in posts.items() if p.startswith("/v1/runs"))
-    assert "plan=demo" in next(p for p in posts if p.startswith("/v1/runs"))
     assert len(start["Idempotency-Key"]) >= 16
     cfg = start["_body"]
+    assert "plan" not in cfg  # the mounted plan file is the plan; no name is sent
     assert cfg["budgets"]["max_ticks"] == 900 and cfg["fault_schedule"][0]["start_tick"] == 300
     assert start["Authorization"] == f"Bearer {TOKEN}"
 

@@ -253,7 +253,10 @@ class LiveBackend:
         except UpstreamError:
             raise Rejected(502, "coordinator unreachable") from None
         if code == 200:
-            self._mirror(run, out)
+            # A terminal status is applied by the driver only after it has drained the run's final
+            # events, so a client that sees "completed" also sees the complete event log.
+            if out.get("status") not in TERMINAL:
+                self._mirror(run, out)
             result = run.view()
             run.commands[command_id] = result
             return result
