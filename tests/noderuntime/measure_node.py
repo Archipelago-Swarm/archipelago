@@ -21,6 +21,7 @@ sys.path.insert(0, str(HERE))
 
 import numpy as np  # noqa: E402
 from archipelago_learning import TorchLearner, encode  # noqa: E402
+from archipelago_noderuntime import ENCODER_ID  # noqa: E402
 from archipelago_peer import post  # noqa: E402
 from archipelago_sim.env import GridWorld  # noqa: E402
 from archipelago_transport import Envelope  # noqa: E402
@@ -96,7 +97,7 @@ def main() -> None:
         c.control("checkpoint")
         res["checkpoint_seconds"] = round(time.perf_counter() - t0, 4)
         # act latency while a full-size validation (3 seeds x 900 ticks x 2 policies) runs
-        donor = TorchLearner("node-01", 28, 5, hidden=32, seed=7)
+        donor = TorchLearner("node-01", 28, 5, hidden=32, seed=7, encoder=ENCODER_ID)
         post(p.info["peer_url"], Envelope.make("node-01", "node-02", 3, encode(donor)))
         c.control("episode_end")
         lv, n0 = [], time.perf_counter()

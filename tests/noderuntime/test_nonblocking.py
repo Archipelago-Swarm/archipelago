@@ -3,6 +3,7 @@
 import time
 
 from archipelago_learning import TorchLearner, encode
+from archipelago_noderuntime import ENCODER_ID
 from archipelago_noderuntime.runtime import Runtime
 from archipelago_peer import post
 from archipelago_sim.env import GridWorld
@@ -125,7 +126,7 @@ def test_long_validation_and_checkpoint_do_not_stall_acting(tmp_path):
     ).start()
     try:
         c = proc.client
-        donor = TorchLearner(N1, 28, 5, hidden=32, seed=1)
+        donor = TorchLearner(N1, 28, 5, hidden=32, seed=1, encoder=ENCODER_ID)
         donor.load_params_numpy(mover_policy())
         d = Driver(c, run="run-t", episode=0)
         for _ in range(30):
@@ -135,7 +136,10 @@ def test_long_validation_and_checkpoint_do_not_stall_acting(tmp_path):
         c.control("episode_end")  # async: validation runs on the exchange thread
         t0 = time.perf_counter()
         during = 0
-        while c.status()["exchange_running"] or during == 0:
+        while True:  # the worker may not have picked the request up yet: wait for it to start
+            st = c.status()
+            if st["counters"]["exchanges"] >= 1 and not st["exchange_running"]:
+                break
             d.step()
             during += 1
         busy = time.perf_counter() - t0
