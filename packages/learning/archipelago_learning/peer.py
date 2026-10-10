@@ -60,6 +60,7 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None):
         "type": "peer_offer",
         "payload_sha256": hashlib.sha256(payload).hexdigest(),
         "local_version": learner.version,
+        "bytes": len(payload),
     }
     try:
         if learner.mode == "information_only":

@@ -106,10 +106,18 @@ class Learner:
             ).astype(np.float32)
         self.steps += 1
         self.version += 1
+        loss = float((err**2).mean())
         if self.steps % target_every == 0:
             self.target = {k: v.copy() for k, v in self.params.items()}
-        self.events.append({"type": "local_update", "step": self.steps, "version": self.version})
-        return float((err**2).mean())
+        self.events.append(
+            {
+                "type": "local_update",
+                "step": self.steps,
+                "version": self.version,
+                "loss": loss,
+            }
+        )
+        return loss
 
     # Checkpoints: model/optimizer, replay and RNG are separate files so each can be restored alone.
     def save(self, d):

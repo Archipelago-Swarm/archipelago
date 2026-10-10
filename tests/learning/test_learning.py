@@ -106,3 +106,69 @@ def test_transfer_vs_no_transfer_control():
     offer(treated, encode(teacher), score)
     print(f"transfer-eval: control={score(control.params):.2f} treated={score(treated.params):.2f}")
     assert score(treated.params) >= score(control.params)
+
+
+# --- grid sim, transport, contract events -------------------------------------------------
+
+
+def test_grid_training_changes_behavior():
+    from archipelago_learning.rollout import evaluate, make_learner, train
+
+    L = make_learner("a", 0)
+    before, s0 = L.snapshot(), evaluate(L.params, range(900, 903))
+    train(L, 15)
+    assert L.steps > 0 and not np.allclose(before["w1"], L.params["w1"])
+    assert evaluate(L.params, range(900, 903)) != s0  # greedy behavior on real episodes changed
+
+
+def test_grid_transfer_multiseed_reports_and_gates():
+    from archipelago_learning.rollout import transfer_experiment
+
+    rows = [transfer_experiment(s) for s in range(3)]
+    for r in rows:
+        print(f"grid-transfer {r}")
+    print(f"mean delta={np.mean([r['delta'] for r in rows]):+.3f}")
+    # A rejected offer leaves the arms identical (delta 0); any other delta is honest signal.
+    assert all(np.isfinite(r["delta"]) and (r["accepted"] or r["delta"] == 0) for r in rows)
+
+
+def test_mixing_accepted_is_bounded_and_changes_policy():
+    teacher = Learner("t", 3, 3, seed=1)
+    teacher.params["w1"] = teacher.params["w1"] + 1
+    mix = Learner("m", 3, 3, seed=2, mode="mixing")
+    own = {k: v.copy() for k, v in mix.params.items()}
+    ev = offer(mix, encode(teacher), lambda p: float(p["w1"].sum()), alpha=0.25)
+    assert ev["accepted"]
+    assert np.allclose(mix.params["w1"], 0.75 * own["w1"] + 0.25 * teacher.params["w1"])
+    step = np.abs(mix.params["w1"] - own["w1"]).max()
+    assert 0 < step <= 0.25 * np.abs(teacher.params["w1"] - own["w1"]).max() + 1e-6  # bounded
+
+
+def test_partition_islands_learn_then_heal_and_emit_contract_events():
+    from archipelago_learner import LearnerNode
+    from archipelago_learning.rollout import episode, make_env, make_learner
+    from archipelago_transport import Network
+
+    env = make_env()
+    ls = {"node-0": make_learner("node-0", 0), "node-1": make_learner("node-1", 1)}
+    net = Network(links=set())  # partitioned: every link cut
+    nodes = {a: LearnerNode(ls[a], net, peers=[b for b in ls if b != a]) for a in ls}
+    for i in range(6):
+        episode(env, ls, i, eps=0.3)
+        for n in nodes.values():
+            n.broadcast()
+        net.tick()
+    assert all(L.steps > 0 for L in ls.values()) and net.receive("node-0") is None
+    assert net.stats.rejected.get("cut", 0) > 0
+    steps = {a: L.steps for a, L in ls.items()}
+    net.set_links({("node-0", "node-1"), ("node-1", "node-0")})  # heal -> catch-up delivery
+    net.tick()
+    nodes["node-1"].poll(lambda p: 0.0, margin=-1.0)  # force accept so we see an accepted record
+    nodes["node-0"].poll(lambda p: 0.0, margin=1.0)  # force reject
+    recs = [r for n in nodes.values() for r in n.flush(tick=env.world.tick)]
+    assert {r.transfer for r in recs} == {"none", "accepted", "rejected"}
+    acc = next(r for r in recs if r.transfer == "accepted")
+    assert "source=node-0" in acc.reason and acc.new_version == acc.previous_version + 1
+    assert all(ls[a].steps == steps[a] for a in ls)  # healing alone does not train
+    LearningEventRound = type(recs[0]).model_validate_json(recs[0].model_dump_json())
+    assert LearningEventRound == recs[0]
