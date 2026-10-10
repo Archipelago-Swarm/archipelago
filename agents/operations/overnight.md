@@ -2,6 +2,8 @@
 
 This is the required operating design. T02 must implement and validate the external supervisor and ledger helpers before unattended use. Neither this file nor the initialization prompt starts background jobs.
 
+For the first executable version, see [night-runner.md](night-runner.md). It runs one worker per machine from a fixed published plan and pushes review branches and reports. The two-worker-per-machine and dynamic ledger behavior below remain the target design until implemented and tested.
+
 ## Top-down organization
 
 | Role | Computer | Responsibility |
