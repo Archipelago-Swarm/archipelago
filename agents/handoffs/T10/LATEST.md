@@ -252,3 +252,22 @@ Working dir: C:\archipelago\.agent-runtime\worktrees\T10prep.
 - Independent review: {"pass": false, "issues": ["Check 1: no local four-node integration smoke. The node image is a placeholder with no archipelago_node entrypoint, and packages/node is not a uv workspace member. Only static Compose tests exist in tests/infra.", "Check 2: only static evidence that just the proxy publishes ports. There is no runtime evidence that DB and peer ports are closed. The api login cookie is still secure=False (services/api/src/archipelago_api/app.py:113), so authenticated HTTPS is incomplete.", "Check 3: no Vultr URL, commit-tagged images or TigerData connection evidence. The api does not consume TIGERDATA_URL because psycopg is not wired.", "Check 4: no evidence that a container restart preserves checkpoints or that replay stays retrievable.", "Check 5: no verified rollback to the previous image, and no resource or spend inventory.", "Check 6: the blocked-fallback condition requires complete local packaging. The node entrypoint, psycopg wiring and secure cookie are still missing, and the worker's own handoff says so.", "agents/handoffs/T10/LATEST.md has uncommitted changes, so the latest handoff is not pushed. The task card still says 'waiting' with every box unchecked.", "The passing external check covers only static tests, lint and build. It does not cover any of the acceptance items."]}
 - Next issue: Check 1: no local four-node integration smoke. The node image is a placeholder with no archipelago_node entrypoint, and packages/node is not a uv workspace member. Only static Compose tests exist in tests/infra.; Check 2: only static evidence that just the proxy publishes ports. There is no runtime evidence that DB and peer ports are closed. The api login cookie is still secure=False (services/api/src/archipelago_api/app.py:113), so authenticated HTTPS is incomplete.; Check 3: no Vultr URL, commit-tagged images or TigerData connection evidence. The api does not consume TIGERDATA_URL because psycopg is not wired.; Check 4: no evidence that a container restart preserves checkpoints or that replay stays retrievable.; Check 5: no verified rollback to the previous image, and no resource or spend inventory.; Check 6: the blocked-fallback condition requires complete local packaging. The node entrypoint, psycopg wiring and secure cookie are still missing, and the worker's own handoff says so.; agents/handoffs/T10/LATEST.md has uncommitted changes, so the latest handoff is not pushed. The task card still says 'waiting' with every box unchecked.; The passing external check covers only static tests, lint and build. It does not cover any of the acceptance items.
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Update run 20261010T160917Z (machine B, worker round 4)
+
+- Added `tests/infra/test_runtime_ports.py`: brings up proxy, web, api, timescaledb (`-p archi-t10-rt`, `--no-build`, existing `:dev` images), checks 80/443 open and 5432/8000/9000/3000 closed on the host, restarts api and re-checks health, then `down -v`. `py -m pytest tests/infra/test_runtime_ports.py`: 1 passed (15s). Gives runtime evidence for the closed-port half of check 2 and an api container-restart health check only; it does NOT show checkpoint preservation or replay retrieval (check 4).
+- Removed a leftover `t10smoke` compose project that held host ports 80/443 (it was an earlier smoke stack of this task).
+- Unchanged and outside T10 paths: node entrypoint / uv membership, `secure=False` cookie (app.py:113), psycopg wiring. Checks 1, 3, 4 (checkpoints), 5, 6 remain unmet. No Vultr/spend actions.
+
+## Supervisor checkpoint 2026-10-10T16:12:17Z
+
+- Run: 20261010T160917Z
+- Machine: B
+- Task/branch: T10 / agent/B/20261010T160917Z/T10
+- Base: a84d1005b3ea17fc159dd9c38394224a163b00dc
+- Round: 2
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
