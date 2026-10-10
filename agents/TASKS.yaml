@@ -468,13 +468,13 @@ tasks:
   name: Persist run events so replay survives restart
   description: services/api keeps events in memory only, so replay is empty after a restart (T10 acceptance
     check 4). Persist events and serve replay from the store.
-  state: ACTIVE
+  state: REVIEW
   priority: 1
   owner: cloud/w3
   machine: cloud
   branch: agent/T14-persist-run-events-so-replay-sur
   created_at: '2026-10-10T18:30:00Z'
-  updated_at: '2026-10-10T20:47:19Z'
+  updated_at: '2026-10-10T20:49:59Z'
   dependencies:
   - T04
   blocked_by: []
@@ -504,7 +504,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: null
+  last_good_commit: cfb02ed035f12c5f6df18cb0f72d86527970bda4
   artifacts: []
   handoff_file: agents/handoffs/T14/LATEST.md
   notes: 'Source: agents/handoffs/T10/LATEST.md known gaps; agents/issues/docker-runtime-tests-20261010.md.'
@@ -519,6 +519,12 @@ tasks:
     event: start
     from: CLAIMED
     to: ACTIVE
+    by: cloud/w3
+    note: ''
+  - at: '2026-10-10T20:49:59Z'
+    event: to_review
+    from: ACTIVE
+    to: REVIEW
     by: cloud/w3
     note: ''
 - id: T15
