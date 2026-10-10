@@ -1219,10 +1219,13 @@ tasks:
     by: A/independent-reviewer-agent
     note: ''
 - id: T29
-  name: 'Live integration: API, dashboard, persistence and local end-to-end smoke'
-  description: Wire services/api (ARCHIPELAGO_ADAPTER=live) to the coordinator, add Compose services coordinator
-    and node-01..04, live dashboard panels, telemetry ingest to the existing Persister, and tests/e2e/test_live_local.py
-    (coordinator plus four node processes on localhost).
+  name: 'Owner B: Data/API live mode, telemetry persistence and queries'
+  description: 'Persistent owner mission. Mount the T36 telemetry router; implement ARCHIPELAGO_ADAPTER=live
+    (API as client of the coordinator per live-runtime.md section 12 and amendments A7/A9/A11); persist
+    telemetry with request context to TigerData through the Persister; add queryable views/queries for
+    learning curves, peer decisions, partition phases and run comparison; make the dashboard stream carry
+    node events. Invariant: telemetry and learning metrics are persisted and queryable, live mode works
+    end to end against the real coordinator code with fake nodes.'
   state: QUEUED
   priority: 2
   owner: null
@@ -1231,47 +1234,42 @@ tasks:
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T19:30:00Z'
   dependencies:
-  - T04
-  - T06
-  - T08
-  - T27
   - T28
   - T33
+  - T35
   - T36
   blocked_by: []
   owned_paths:
   - services/api/**
   - tests/api/**
+  - packages/storage/**
+  - tests/storage/**
   - apps/web/**
   - tests/web/**
-  - tests/e2e/**
-  - infra/compose/**
-  - infra/docker/**
-  - tests/infra/**
+  - observability/**
+  - tests/observability/**
   contracts:
   - agents/architecture/live-runtime.md
   acceptance:
     commands:
-    - command: uv run pytest tests/e2e/test_live_local.py -q
+    - command: uv run pytest tests/api tests/storage tests/observability -q
       expected_exit_code: 0
       tier: integration
-    - command: uv run pytest tests/api tests/infra -q
+    - command: npm test
       expected_exit_code: 0
-      tier: full
-      needs:
-      - docker
+      tier: integration
     assertions:
-    - description: Live mode never falls back to FixtureAdapter and /readyz fails when the coordinator
-        is unreachable.
-    - description: 'Local e2e: optimizer updates in all four node processes, distinct per-node policy
-        hashes, actions originate from nodes, a cut link carries zero peer traffic while local updates
-        continue, an offer is transmitted and a decision is logged, a restarted node resumes from checkpoint.'
-    - description: Dashboard shows positions/actions, update counts/loss/versions, peer offers with decisions,
-        topology and fault phase, train vs frozen-eval curves, resources, telemetry freshness; disconnected,
-        stale and replay states are labeled.
-    - description: Compose full test brings up coordinator and four nodes on real container networking
-        and passes the same assertions.
-    - description: TigerData outage does not stop nodes or the world; backlog is bounded and catches up.
+    - description: Live mode never falls back to FixtureAdapter; /readyz is false when the coordinator
+        is unreachable and true when it and one node are ready; request-supplied node URLs are impossible
+        (plan from server-side file).
+    - description: POST /v1/telemetry events (with request context) appear in the run event log in sequence
+        order, in the WebSocket stream as canonical records, and reach the Persister sink; outage of the
+        sink does not block ingest or the run.
+    - description: 'Stored telemetry is queryable: learning curves per node and swarm, peer offer decisions
+        with reasons, partition/recovery phase timeline, and a two-run comparison, via SQL views/queries
+        covered by tests (static schema validation always; real Timescale when Docker is present).'
+    - description: A test drives the real coordinator package (in-process) with fake nodes through the
+        API in live mode for a short scenario and checks the above.
   retry_policy:
     test_failure: 5
     build_failure: 3
@@ -1281,7 +1279,8 @@ tasks:
   artifacts: []
   handoff_file: null
   notes: Largest integration slice; keep to one vertical candidate. Cross-host peer URLs are covered in
-    T31.
+    T31. Re-scoped 2026-10-10 evening as persistent owner mission B; dispatched ahead of formal claim
+    (INTEGRATION overlaps on T35/T36 paths).
 - id: T30
   name: Experiment protocol repair, live pilot and evidence
   description: Repair experiments/run.py accounting and protocol mismatches, define the information-sharing
@@ -1949,3 +1948,55 @@ tasks:
   handoff_file: null
   notes: Dispatched ahead of the formal claim because T26 is INTEGRATION; paths disjoint from running
     workers.
+- id: T42
+  name: 'Owner C: Infra/Demo one-command stack and artifacts'
+  description: 'Persistent owner mission. Dockerfiles and Compose for coordinator and four node containers
+    per amendments A12/A16; server-side demo and smoke plans; make demo (compose local profile, run scenario,
+    collect artifacts to artifacts/demo/<run>/); stdlib artifact generator (curves, topology snapshots,
+    node timelines, summary JSON/CSV, SVG charts). Invariant: one command launches the whole stack reproducibly
+    and writes demo artifacts.'
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:50:00Z'
+  updated_at: '2026-10-10T20:50:00Z'
+  dependencies:
+  - T28
+  blocked_by: []
+  owned_paths:
+  - infra/**
+  - tests/infra/**
+  - tests/e2e/**
+  - Makefile
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/infra -q -m "not docker"
+      expected_exit_code: 0
+      tier: integration
+    - command: uv run pytest tests/infra -q
+      expected_exit_code: 0
+      tier: full
+      needs:
+      - docker
+    assertions:
+    - description: docker compose config validates; only the proxy publishes ports; nodes join peers/control/ingest
+        and not core; coordinator joins control and core as needed (tested).
+    - description: make demo builds images, starts the local profile, runs the smoke plan to completion,
+        and writes artifacts/demo/<run_id>/ with summary.json, curves CSV, peer_decisions CSV, topology
+        snapshots and SVG charts (full tier in CI; artifact generator tested offline from recorded events).
+    - description: Node and coordinator images build from pinned inputs with the CPU torch wheel; memory
+        limits are provisional and the measurement procedure is scripted (infra/demo/measure_mem.sh).
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Persistent owner mission C; Makefile edits limited to demo-* targets. Dispatched ahead of formal
+    claim.
