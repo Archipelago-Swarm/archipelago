@@ -210,3 +210,20 @@ The repo `.venv` is Python 3.13 and has no pybullet, so there the flight test sk
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A round 7
+- No code changes. Re-ran `python -m pytest tests/adapters3d -q -rs` (Python 3.14, pybullet + gym-pybullet-drones installed): 7 passed, 0 skipped.
+- Remaining items are all outside T12 paths: `Pose.z` pinned to 0 in the shared contract (needs ADR), takeoff/land are not contract commands, repo `.venv` lacks pybullet so flight tests skip in `scripts/check.sh`, task card still says `pybullet3d/` and `waiting`.
+
+## Supervisor checkpoint 2026-10-10T07:18:12Z
+
+- Run: 20261010T065500Z
+- Machine: A
+- Task/branch: T12 / agent/A/20261010T065500Z/T12
+- Base: b63e8184fb0f13ca5ffc2342cab2b0be19a835a5
+- Round: 7
+- State: blocked
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
