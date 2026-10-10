@@ -1,5 +1,5 @@
 # Archipelago agent entrypoint
 
-Read and follow `agents/CONTRACT.md`. Project intent is in `agents/vision/roadmap.md`; work ownership and dependencies are in `agents/tasks/BOARD.md`. Use `agents/START_HERE.md` for initialization.
+Read `CLAUDE.md`; it is the short contract. Procedure: `agents/PROTOCOL.md`. Durable lessons: `agents/LESSONS.md`. Authority on scope, secrets and cost: `agents/CONTRACT.md`. Work state: `agents/TASKS.yaml` through `python agents/controller.py`. Project intent: `agents/vision/roadmap.md`. Initialization: `agents/START_HERE.md`.
 
-Keep project planning, decisions, task records, and handoffs under `agents/`. Root instruction files are discovery pointers. Never replace existing work based solely on this scaffold: inspect the latest remote branches first.
+Keep project planning, decisions, task records and handoffs under `agents/`. Root instruction files are discovery pointers. Never replace existing work based solely on this scaffold: inspect the task branch and its handoff first.

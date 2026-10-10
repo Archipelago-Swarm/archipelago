@@ -1,5 +1,7 @@
 # Two-computer overnight runbook
 
+> **Legacy status (ADR-0003/0004):** describes the pre-ledger runner. Reliability: CONDITIONALLY_RELIABLE (needs an awake machine and an open terminal). Planning from `BOARD.md`, the `agent-coordination` branch and the mailbox is superseded by `agents/TASKS.yaml`; replacement is task T20. Do not extend it.
+
 This is the required operating design. T02 must implement and validate the external supervisor and ledger helpers before unattended use. Neither this file nor the initialization prompt starts background jobs.
 
 For the first executable version, see [night-runner.md](night-runner.md). It runs one worker per machine from a fixed published plan and pushes review branches and reports. The two-worker-per-machine and dynamic ledger behavior below remain the target design until implemented and tested.

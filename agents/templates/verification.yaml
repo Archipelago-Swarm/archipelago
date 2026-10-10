@@ -1,0 +1,9 @@
+task: TASK-ID
+status: PASS            # or FAIL
+verified_commit: abcdef1
+verifier: B/verifier-1
+checked_at: "2026-01-01T00:00:00Z"
+commands:
+  - {command: "make check-integration", expected_exit_code: 0, actual_exit_code: 0}
+failures: []            # FAIL needs >=1: {type, file, kind, description}
+required_actions: []    # FAIL needs >=1

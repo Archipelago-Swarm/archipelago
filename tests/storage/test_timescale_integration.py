@@ -21,7 +21,10 @@ def _docker_up() -> bool:
 
 
 psycopg = pytest.importorskip("psycopg")
-pytestmark = pytest.mark.skipif(not _docker_up(), reason="Docker daemon not reachable")
+pytestmark = [
+    pytest.mark.docker,
+    pytest.mark.skipif(not _docker_up(), reason="Docker daemon not reachable"),
+]
 
 
 @pytest.fixture(scope="module")

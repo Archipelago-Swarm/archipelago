@@ -1,5 +1,7 @@
 # A/B driver recovery
 
+> **Legacy status (ADR-0003/0004):** describes the pre-ledger runner. Reliability: CONDITIONALLY_RELIABLE (needs an awake machine and an open terminal). Planning from `BOARD.md`, the `agent-coordination` branch and the mailbox is superseded by `agents/TASKS.yaml`; replacement is task T20. Do not extend it.
+
 The `driver.py` processes assign and integrate bounded Claude Code runs. Use
 `watchdog.py` as their outer process on each computer. It restarts a driver
 that exits before the agreed UTC deadline, with 15-second to five-minute
