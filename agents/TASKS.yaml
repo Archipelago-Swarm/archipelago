@@ -1174,13 +1174,13 @@ tasks:
   description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
     fallback, episode and train/validation/test schedules, peer-fault schedule distribution, node health,
     authoritative replay and privileged snapshots. Does not own models.'
-  state: ACTIVE
+  state: QUEUED
   priority: 1
   owner: cloud/w2
   machine: cloud
   branch: agent/T28-simulation-coordinator-service
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:47:16Z'
+  updated_at: '2026-10-10T20:52:01Z'
   dependencies:
   - T03
   blocked_by: []
@@ -1248,6 +1248,12 @@ tasks:
     to: ACTIVE
     by: cloud/w2
     note: ''
+  - at: '2026-10-10T20:52:01Z'
+    event: requeue
+    from: ACTIVE
+    to: QUEUED
+    by: cloud/w2
+    note: janitor mode
 - id: T29
   name: 'Live integration gate: local end-to-end smoke and compose full test'
   description: 'Integration gate after T32-T35: tests/e2e/test_live_local.py (coordinator plus four node
