@@ -54,3 +54,14 @@ def test_headless_flight_and_collision_metric() -> None:
     ad.step({})
     assert ad.collisions > 0
     ad.close()
+
+
+def test_adapter_encoder_matches_learner_and_stays_isolated() -> None:
+    from archipelago_pybullet import adapter
+
+    assert adapter.ENCODER == "drone3d-v0" and adapter.ACTION_SPACE == "act3d-v0"
+    root = Path(__file__).resolve().parents[2]
+    core = [*root.glob("packages/sim*/**/*.py"), *root.glob("packages/learning/**/*.py")]
+    assert not [f for f in core if "pybullet" in f.read_text(encoding="utf-8")]
+    src = (root / "packages/adapters/pybullet/archipelago_pybullet/adapter.py").read_text()
+    assert "p.DIRECT" in src and "p.GUI" not in src  # headless physics only
