@@ -42,6 +42,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: uv sync --frozen
+      - run: scripts/install-torch-cpu.sh
       - run: npm ci
       - run: scripts/check.sh
 
