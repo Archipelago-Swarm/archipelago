@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.1.0",
+  "run_id": "run-fixture-001",
+  "sim_tick": 3,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 1,
+  "kind": "world_snapshot",
+  "event_id": "ev-snap-1",
+  "source_node_id": null,
+  "run_status": "running",
+  "poses": {
+    "node-01": {
+      "x": 1,
+      "y": 2,
+      "z": 0.0,
+      "heading_rad": 0.0
+    },
+    "node-02": {
+      "x": 5,
+      "y": 0,
+      "z": 0.0,
+      "heading_rad": 0.0
+    }
+  },
+  "obstacles": [
+    [
+      3,
+      3
+    ]
+  ],
+  "coverage": 1.5,
+  "topology": {
+    "links": [
+      [
+        "node-01",
+        "node-02"
+      ]
+    ]
+  }
+}

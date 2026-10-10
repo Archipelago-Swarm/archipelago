@@ -1,0 +1,1187 @@
+{
+  "$defs": {
+    "Action": {
+      "additionalProperties": false,
+      "properties": {
+        "action_space_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Action Space Version",
+          "type": "string"
+        },
+        "command": {
+          "enum": [
+            "stay",
+            "north",
+            "east",
+            "south",
+            "west"
+          ],
+          "title": "Command",
+          "type": "string"
+        },
+        "emitted_at_utc": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]00:00)$",
+          "title": "Emitted At Utc",
+          "type": "string"
+        },
+        "event_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "action",
+          "default": "action",
+          "title": "Kind",
+          "type": "string"
+        },
+        "policy_version": {
+          "minimum": 0,
+          "title": "Policy Version",
+          "type": "integer"
+        },
+        "run_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "pattern": "^0\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sim_tick": {
+          "minimum": 0,
+          "title": "Sim Tick",
+          "type": "integer"
+        },
+        "source_node_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Node Id"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "run_id",
+        "source_node_id",
+        "sim_tick",
+        "emitted_at_utc",
+        "sequence",
+        "action_space_version",
+        "command",
+        "policy_version"
+      ],
+      "title": "Action",
+      "type": "object"
+    },
+    "ArtifactManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "pattern": "^[0-9a-f]{7,40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "config_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Config Hash",
+          "type": "string"
+        },
+        "format": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Format",
+          "type": "string"
+        },
+        "format_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Format Version",
+          "type": "string"
+        },
+        "kind": {
+          "const": "artifact_manifest",
+          "default": "artifact_manifest",
+          "title": "Kind",
+          "type": "string"
+        },
+        "node_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Node Id"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "pattern": "^0\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "sim_tick": {
+          "minimum": 0,
+          "title": "Sim Tick",
+          "type": "integer"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_version",
+        "run_id",
+        "node_id",
+        "sim_tick",
+        "path",
+        "sha256",
+        "format",
+        "format_version",
+        "size_bytes",
+        "commit",
+        "config_hash"
+      ],
+      "title": "ArtifactManifest",
+      "type": "object"
+    },
+    "Budgets": {
+      "additionalProperties": false,
+      "properties": {
+        "max_ticks": {
+          "exclusiveMinimum": 0,
+          "title": "Max Ticks",
+          "type": "integer"
+        },
+        "max_wall_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Max Wall Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_ticks",
+        "max_wall_seconds"
+      ],
+      "title": "Budgets",
+      "type": "object"
+    },
+    "FaultWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "cut_links": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Cut Links",
+          "type": "array"
+        },
+        "end_tick": {
+          "minimum": 0,
+          "title": "End Tick",
+          "type": "integer"
+        },
+        "start_tick": {
+          "minimum": 0,
+          "title": "Start Tick",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_tick",
+        "end_tick",
+        "cut_links"
+      ],
+      "title": "FaultWindow",
+      "type": "object"
+    },
+    "LearningEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "candidate_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Score"
+        },
+        "emitted_at_utc": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]00:00)$",
+          "title": "Emitted At Utc",
+          "type": "string"
+        },
+        "event_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "learning_event",
+          "default": "learning_event",
+          "title": "Kind",
+          "type": "string"
+        },
+        "loss": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Loss"
+        },
+        "new_version": {
+          "minimum": 0,
+          "title": "New Version",
+          "type": "integer"
+        },
+        "previous_version": {
+          "minimum": 0,
+          "title": "Previous Version",
+          "type": "integer"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "run_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "pattern": "^0\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sim_tick": {
+          "minimum": 0,
+          "title": "Sim Tick",
+          "type": "integer"
+        },
+        "source_node_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Node Id"
+        },
+        "transfer": {
+          "enum": [
+            "none",
+            "accepted",
+            "rejected"
+          ],
+          "title": "Transfer",
+          "type": "string"
+        },
+        "update_count": {
+          "minimum": 0,
+          "title": "Update Count",
+          "type": "integer"
+        },
+        "wall_seconds": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Wall Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "run_id",
+        "source_node_id",
+        "sim_tick",
+        "emitted_at_utc",
+        "sequence",
+        "update_count",
+        "loss",
+        "previous_version",
+        "new_version",
+        "transfer"
+      ],
+      "title": "LearningEvent",
+      "type": "object"
+    },
+    "MetricSample": {
+      "additionalProperties": false,
+      "properties": {
+        "emitted_at_utc": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]00:00)$",
+          "title": "Emitted At Utc",
+          "type": "string"
+        },
+        "event_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "metric_sample",
+          "default": "metric_sample",
+          "title": "Kind",
+          "type": "string"
+        },
+        "metric": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Metric",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "train",
+            "eval",
+            "partition",
+            "recovery",
+            "other"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "pattern": "^0\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sim_tick": {
+          "minimum": 0,
+          "title": "Sim Tick",
+          "type": "integer"
+        },
+        "source_node_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Node Id"
+        },
+        "unit": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "run_id",
+        "source_node_id",
+        "sim_tick",
+        "emitted_at_utc",
+        "sequence",
+        "metric",
+        "value",
+        "unit",
+        "phase"
+      ],
+      "title": "MetricSample",
+      "type": "object"
+    },
+    "NodeSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Node Id",
+          "type": "string"
+        },
+        "start_pose": {
+          "$ref": "#/$defs/Pose"
+        }
+      },
+      "required": [
+        "node_id",
+        "start_pose"
+      ],
+      "title": "NodeSpec",
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "battery": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Battery",
+          "type": "number"
+        },
+        "crop": {
+          "items": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "title": "Crop",
+          "type": "array"
+        },
+        "emitted_at_utc": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]00:00)$",
+          "title": "Emitted At Utc",
+          "type": "string"
+        },
+        "event_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "observation",
+          "default": "observation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "known_mask": {
+          "items": {
+            "items": {
+              "type": "boolean"
+            },
+            "type": "array"
+          },
+          "title": "Known Mask",
+          "type": "array"
+        },
+        "neighbor_summaries": {
+          "default": [],
+          "items": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          "title": "Neighbor Summaries",
+          "type": "array"
+        },
+        "pose": {
+          "$ref": "#/$defs/Pose"
+        },
+        "run_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "pattern": "^0\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sim_tick": {
+          "minimum": 0,
+          "title": "Sim Tick",
+          "type": "integer"
+        },
+        "source_node_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Node Id"
+        },
+        "visible_markers": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Visible Markers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "run_id",
+        "source_node_id",
+        "sim_tick",
+        "emitted_at_utc",
+        "sequence",
+        "crop",
+        "known_mask",
+        "pose",
+        "battery",
+        "visible_markers"
+      ],
+      "title": "Observation",
+      "type": "object"
+    },
+    "PeerEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "architecture_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Architecture Hash",
+          "type": "string"
+        },
+        "emitted_at_utc": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]00:00)$",
+          "title": "Emitted At Utc",
+          "type": "string"
+        },
+        "encoder_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Encoder Hash",
+          "type": "string"
+        },
+        "event_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "peer_envelope",
+          "default": "peer_envelope",
+          "title": "Kind",
+          "type": "string"
+        },
+        "message_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "model_version": {
+          "minimum": 0,
+          "title": "Model Version",
+          "type": "integer"
+        },
+        "payload_length": {
+          "maximum": 4194304,
+          "minimum": 0,
+          "title": "Payload Length",
+          "type": "integer"
+        },
+        "payload_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Payload Sha256"
+        },
+        "recipient": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Recipient",
+          "type": "string"
+        },
+        "reward_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reward Hash",
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "pattern": "^0\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sender": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Sender",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sim_tick": {
+          "minimum": 0,
+          "title": "Sim Tick",
+          "type": "integer"
+        },
+        "source_node_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Node Id"
+        },
+        "ttl_ticks": {
+          "exclusiveMinimum": 0,
+          "title": "Ttl Ticks",
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "hello",
+            "model_offer",
+            "model_request",
+            "model_payload",
+            "ack"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "run_id",
+        "source_node_id",
+        "sim_tick",
+        "emitted_at_utc",
+        "sequence",
+        "type",
+        "sender",
+        "recipient",
+        "message_id",
+        "model_version",
+        "architecture_hash",
+        "encoder_hash",
+        "reward_hash",
+        "payload_length",
+        "payload_sha256",
+        "ttl_ticks"
+      ],
+      "title": "PeerEnvelope",
+      "type": "object"
+    },
+    "Pose": {
+      "additionalProperties": false,
+      "description": "ENU meters; 2D worlds fix z to 0.",
+      "properties": {
+        "heading_rad": {
+          "default": 0.0,
+          "title": "Heading Rad",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "z": {
+          "default": 0.0,
+          "maximum": 0,
+          "minimum": 0,
+          "title": "Z",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "Pose",
+      "type": "object"
+    },
+    "RunConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "budgets": {
+          "$ref": "#/$defs/Budgets"
+        },
+        "fault_schedule": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FaultWindow"
+          },
+          "title": "Fault Schedule",
+          "type": "array"
+        },
+        "kind": {
+          "const": "run_config",
+          "default": "run_config",
+          "title": "Kind",
+          "type": "string"
+        },
+        "learner": {
+          "enum": [
+            "none",
+            "independent_dqn",
+            "peer_dqn"
+          ],
+          "title": "Learner",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "lockstep",
+            "distributed"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/NodeSpec"
+          },
+          "minItems": 1,
+          "title": "Nodes",
+          "type": "array"
+        },
+        "observation_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "reward_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Reward Id",
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "scenario_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scenario Hash",
+          "type": "string"
+        },
+        "schema_version": {
+          "pattern": "^0\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "seeds": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "env",
+              "topology",
+              "learner",
+              "exploration"
+            ]
+          },
+          "title": "Seeds",
+          "type": "object"
+        },
+        "simulator": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Simulator",
+          "type": "string"
+        },
+        "simulator_version": {
+          "title": "Simulator Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "run_id",
+        "simulator",
+        "simulator_version",
+        "scenario_hash",
+        "seeds",
+        "nodes",
+        "observation_id",
+        "action_id",
+        "reward_id",
+        "mode",
+        "learner",
+        "budgets"
+      ],
+      "title": "RunConfig",
+      "type": "object"
+    },
+    "Topology": {
+      "additionalProperties": false,
+      "properties": {
+        "links": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Links",
+          "type": "array"
+        }
+      },
+      "required": [
+        "links"
+      ],
+      "title": "Topology",
+      "type": "object"
+    },
+    "WorldSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "emitted_at_utc": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]00:00)$",
+          "title": "Emitted At Utc",
+          "type": "string"
+        },
+        "event_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "world_snapshot",
+          "default": "world_snapshot",
+          "title": "Kind",
+          "type": "string"
+        },
+        "obstacles": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Obstacles",
+          "type": "array"
+        },
+        "poses": {
+          "patternProperties": {
+            "^[A-Za-z0-9_.:-]+$": {
+              "$ref": "#/$defs/Pose"
+            }
+          },
+          "propertyNames": {
+            "maxLength": 128,
+            "minLength": 1
+          },
+          "title": "Poses",
+          "type": "object"
+        },
+        "run_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "run_status": {
+          "enum": [
+            "created",
+            "starting",
+            "running",
+            "paused",
+            "stopping",
+            "completed",
+            "failed",
+            "interrupted"
+          ],
+          "title": "Run Status",
+          "type": "string"
+        },
+        "schema_version": {
+          "pattern": "^0\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sim_tick": {
+          "minimum": 0,
+          "title": "Sim Tick",
+          "type": "integer"
+        },
+        "source_node_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Node Id"
+        },
+        "topology": {
+          "$ref": "#/$defs/Topology"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "run_id",
+        "source_node_id",
+        "sim_tick",
+        "emitted_at_utc",
+        "sequence",
+        "run_status",
+        "poses",
+        "obstacles",
+        "coverage",
+        "topology"
+      ],
+      "title": "WorldSnapshot",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "action": "#/$defs/Action",
+      "artifact_manifest": "#/$defs/ArtifactManifest",
+      "learning_event": "#/$defs/LearningEvent",
+      "metric_sample": "#/$defs/MetricSample",
+      "observation": "#/$defs/Observation",
+      "peer_envelope": "#/$defs/PeerEnvelope",
+      "run_config": "#/$defs/RunConfig",
+      "world_snapshot": "#/$defs/WorldSnapshot"
+    },
+    "propertyName": "kind"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/RunConfig"
+    },
+    {
+      "$ref": "#/$defs/Observation"
+    },
+    {
+      "$ref": "#/$defs/Action"
+    },
+    {
+      "$ref": "#/$defs/WorldSnapshot"
+    },
+    {
+      "$ref": "#/$defs/PeerEnvelope"
+    },
+    {
+      "$ref": "#/$defs/LearningEvent"
+    },
+    {
+      "$ref": "#/$defs/MetricSample"
+    },
+    {
+      "$ref": "#/$defs/ArtifactManifest"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1.0",
+  "run_id": "run-fixture-001",
+  "sim_tick": 3,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 1,
+  "kind": "learning_event",
+  "event_id": "ev-learn-1",
+  "source_node_id": "node-02",
+  "update_count": 10,
+  "loss": 0.25,
+  "previous_version": 1,
+  "new_version": 2,
+  "transfer": "rejected",
+  "reason": "score_below_tolerance",
+  "candidate_score": -0.5,
+  "bytes": 1024,
+  "wall_seconds": 0.02
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@archipelago/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "generated/index.ts",
+  "scripts": {
+    "gen": "node scripts/gen-types.mjs",
+    "gen:check": "node scripts/gen-types.mjs --check",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "json-schema-to-typescript": "^15.0.4",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8",
+    "@types/node": "^22.10.0"
+  }
+}

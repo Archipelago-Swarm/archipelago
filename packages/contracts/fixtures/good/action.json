@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1.0",
+  "run_id": "run-fixture-001",
+  "sim_tick": 3,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 1,
+  "kind": "action",
+  "event_id": "ev-act-1",
+  "source_node_id": "node-01",
+  "action_space_version": "act-v0",
+  "command": "north",
+  "policy_version": 0
+}

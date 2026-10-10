@@ -1,0 +1,167 @@
+{
+  "$defs": {
+    "Pose": {
+      "additionalProperties": false,
+      "description": "ENU meters; 2D worlds fix z to 0.",
+      "properties": {
+        "heading_rad": {
+          "default": 0.0,
+          "title": "Heading Rad",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "z": {
+          "default": 0.0,
+          "maximum": 0,
+          "minimum": 0,
+          "title": "Z",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "Pose",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "battery": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Battery",
+      "type": "number"
+    },
+    "crop": {
+      "items": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "title": "Crop",
+      "type": "array"
+    },
+    "emitted_at_utc": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]00:00)$",
+      "title": "Emitted At Utc",
+      "type": "string"
+    },
+    "event_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "observation",
+      "default": "observation",
+      "title": "Kind",
+      "type": "string"
+    },
+    "known_mask": {
+      "items": {
+        "items": {
+          "type": "boolean"
+        },
+        "type": "array"
+      },
+      "title": "Known Mask",
+      "type": "array"
+    },
+    "neighbor_summaries": {
+      "default": [],
+      "items": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "type": "object"
+      },
+      "title": "Neighbor Summaries",
+      "type": "array"
+    },
+    "pose": {
+      "$ref": "#/$defs/Pose"
+    },
+    "run_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "pattern": "^0\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "sim_tick": {
+      "minimum": 0,
+      "title": "Sim Tick",
+      "type": "integer"
+    },
+    "source_node_id": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Source Node Id"
+    },
+    "visible_markers": {
+      "items": {
+        "maxItems": 2,
+        "minItems": 2,
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "type": "array"
+      },
+      "title": "Visible Markers",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "run_id",
+    "source_node_id",
+    "sim_tick",
+    "emitted_at_utc",
+    "sequence",
+    "crop",
+    "known_mask",
+    "pose",
+    "battery",
+    "visible_markers"
+  ],
+  "title": "Observation",
+  "type": "object"
+}
