@@ -25,3 +25,16 @@ export function liveReducer(s: Live, e: LiveEvent): Live {
     return s;
   } catch { return s; }
 }
+
+// Opens the stream and reopens it 2s after any close; returns a stopper. Each close drops state via the reducer.
+export function connectStream(url: string, dispatch: (e: LiveEvent) => void, WS: typeof WebSocket = WebSocket, delayMs = 2000): () => void {
+  let ws: WebSocket | undefined, timer: ReturnType<typeof setTimeout> | undefined, closed = false;
+  const open = () => {
+    ws = new WS(url);
+    ws.onopen = () => dispatch({ t: "open" });
+    ws.onmessage = (e) => dispatch({ t: "message", data: e.data });
+    ws.onclose = () => { dispatch({ t: "close" }); if (!closed) timer = setTimeout(open, delayMs); };
+  };
+  open();
+  return () => { closed = true; clearTimeout(timer); ws?.close(); };
+}

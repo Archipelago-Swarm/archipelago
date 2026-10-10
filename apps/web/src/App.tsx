@@ -3,7 +3,7 @@ import type { WorldSnapshot } from "@archipelago/contracts";
 import runConfig from "../../../packages/contracts/fixtures/good/run_config.json";
 import snapshot from "../../../packages/contracts/fixtures/good/world_snapshot.json";
 import { ApiError, getRun, loadReplay, login, sendCommand, startRun } from "./client";
-import { liveReducer, type Source } from "./status";
+import { connectStream, liveReducer, type Source } from "./status";
 import { View } from "./View";
 
 // JSON imports widen tuples; the fixture is schema-validated by the contracts tests.
@@ -24,16 +24,9 @@ export function App() {
 
   useEffect(() => {
     if (!runId || source !== "live") return;
-    let ws: WebSocket | undefined, timer: number, closed = false;
-    const open = () => {
-      ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/v1/runs/${runId}/stream`);
-      ws.onopen = () => dispatch({ t: "open" });
-      ws.onmessage = (e) => dispatch({ t: "message", data: e.data });
-      ws.onclose = () => { dispatch({ t: "close" }); if (!closed) timer = window.setTimeout(open, 2000); };
-    };
-    open();
+    const stop = connectStream(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/v1/runs/${runId}/stream`, dispatch);
     getRun(runId).catch(fail);
-    return () => { closed = true; clearTimeout(timer); ws?.close(); };
+    return stop;
   }, [runId, source]);
 
   useEffect(() => {
