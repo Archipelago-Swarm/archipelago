@@ -14,7 +14,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
-import harness as H
+import protocol_harness as H
 import numpy as np
 import run
 from archipelago_sim.env import ACTIONS

@@ -22,7 +22,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-import harness as H
+import protocol_harness as H
 import numpy as np
 from archipelago_learning.dqn import Learner
 from archipelago_learning.peer import encode, offer

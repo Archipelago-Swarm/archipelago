@@ -78,7 +78,7 @@ All changes are versioned ids; protocol results stay on `grid-flat-v0` / `rew-v0
 
 | proposal | change | expected effect | owner |
 |---|---|---|---|
-| obs `grid-flat-v1-map` | already opt-in in `experiments/harness.py`: append coarse known-fraction map | makes shared map visible, gives a visited-area signal; may reduce loops | experiments (T32) |
+| obs `grid-flat-v1-map` | already opt-in in `experiments/protocol_harness.py`: append coarse known-fraction map | makes shared map visible, gives a visited-area signal; may reduce loops | experiments (T32) |
 | obs `grid-flat-v2-visits` | add visit counts (or a last-k position memory) of the 4 neighbours | removes the non-Markov new-cell reward, aims to cut the revisit rate from about 0.9 toward the rule explorer 0.13 | sim/contracts owners |
 | reward `rew-v1` | collision -0.5 -> -2.0 or reward scale 1/5 plus Huber loss; do not pay targets sensed at reset | raises collision signal over TD noise; removes idle's free targets | sim + learning (T26) |
 | learner schedule | epsilon 1.0 -> 0.05 linear over the first 50 percent of episodes, lr 1e-3, replay >= 50k, double DQN | fewer random collisions at the end, steadier loss | learning (T26/T30) |

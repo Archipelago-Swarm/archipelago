@@ -6,7 +6,7 @@
 
 ## What changed (experiments/**, tests/experiments/** only)
 
-- `harness.py`: protocol v1 (config/reward/scenario hashes, seed splits, frozen scenarios, `InfoBus`,
+- `protocol_harness.py` (renamed from harness.py: it collided with tests/coordinator/harness.py): protocol v1 (config/reward/scenario hashes, seed splits, frozen scenarios, `InfoBus`,
   telemetry spool, episode loop). `run.py`: `Cell` + CLI (`--mode`, `--backend numpy`, `--obs`, per-seed
   CSV, manifest with commit/seeds/hashes/commands). `report.py`: REPORT.md generated from artifacts.
 - Defects fixed with tests: (a) per-cell `train_env_steps` (fresh `Budget` per cell); (b) node_failure counts
