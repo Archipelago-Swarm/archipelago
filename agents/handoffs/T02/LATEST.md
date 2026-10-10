@@ -22,6 +22,7 @@ Rate-limit waits persist their next eligible UTC time and use a reported reset w
 - T02's first Linux CI bootstrap exposed missing Git identity in the supervisor's temporary coordination clone. The runner now copies the calling repository's configured identity into that clone and checks identity during preflight; bootstrap CI passed.
 - The Docker smoke image also needed the `git` executable because the new supervisor tests exercise real local repositories. The image now installs it; container CI passed.
 - PR #2's foundation, bootstrap, and container-smoke checks passed; merge commit `602124f` is on main.
+- The merged B T04 source branch passed the full local suite after refreshing the generated TypeScript file to LF. A follow-up T02 runner fix now performs that byte-identical refresh automatically when a Windows worktree inherits CRLF from the older T04 branch; its test rejects substantive generated-file drift. Follow-up CI remains pending.
 
 ## Remaining gate / limits
 
@@ -34,6 +35,6 @@ Rate-limit waits persist their next eligible UTC time and use a reported reset w
 
 1. On B install `uv` (and Docker for T08), stop its interactive T04 writer, and push its latest handoff.
 2. Pull current main on both computers and run a short supervised A/B trial with `--hours 0.33 --max-rounds 1`.
-3. Start a fresh eight-hour run only if the trial confirms remote plan publication, branch isolation, checkpoint/restart, and no prompt stalls.
+3. Review and merge useful trial branches, or carry their reviewed heads forward explicitly; then start a fresh eight-hour run only if the trial confirms remote plan publication, branch isolation, checkpoint/restart, and no prompt stalls.
 
 Resume from main at or after merge commit `602124f`, or inspect PR #2 for the implementation diff.
