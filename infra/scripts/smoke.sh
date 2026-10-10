@@ -10,7 +10,7 @@ fail=0
 check() { # name, expected, actual
   if [ "$2" = "$3" ]; then echo "PASS $1"; else echo "FAIL $1 (expected $2, got $3)"; fail=1; fi
 }
-code() { "${CURL[@]}" -o /dev/null -w '%{http_code}' "$@" || echo 000; }
+code() { "${CURL[@]}" -o /dev/null -w '%{http_code}' "$@" || true; }
 
 check "healthz"                   200 "$(code "$BASE_URL/healthz")"
 check "readyz"                    200 "$(code "$BASE_URL/readyz")"

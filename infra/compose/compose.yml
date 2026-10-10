@@ -35,11 +35,12 @@ services:
     ports: ["80:80", "443:443"]
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
-      ACME_EMAIL: ${ACME_EMAIL:-}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.invalid}
     volumes:
       - ../proxy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+    cap_add: [NET_BIND_SERVICE]  # caddy binary carries this file capability; exec fails without it
     networks: [edge, core]
     depends_on: [api, web]
     mem_limit: 128m
