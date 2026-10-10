@@ -468,13 +468,13 @@ tasks:
   name: Persist run events so replay survives restart
   description: services/api keeps events in memory only, so replay is empty after a restart (T10 acceptance
     check 4). Persist events and serve replay from the store.
-  state: QUEUED
+  state: CLAIMED
   priority: 1
-  owner: null
-  machine: null
-  branch: null
+  owner: cloud/w3
+  machine: cloud
+  branch: agent/T14-persist-run-events-so-replay-sur
   created_at: '2026-10-10T18:30:00Z'
-  updated_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T20:44:16Z'
   dependencies:
   - T04
   blocked_by: []
@@ -506,8 +506,15 @@ tasks:
     same_failure_signature: 2
   last_good_commit: null
   artifacts: []
-  handoff_file: null
+  handoff_file: agents/handoffs/T14/LATEST.md
   notes: 'Source: agents/handoffs/T10/LATEST.md known gaps; agents/issues/docker-runtime-tests-20261010.md.'
+  history:
+  - at: '2026-10-10T20:44:16Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: cloud/w3
+    note: ''
 - id: T15
   name: 'Storage: migrate on startup and robust FK handling'
   description: Nothing calls migrate() on API start; if a run row is shed from the spool, later event
