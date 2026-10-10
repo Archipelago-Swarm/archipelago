@@ -35,3 +35,21 @@ pyproject.toml (workspace member, deps, mypy files), scripts/check.sh (ruff path
 1. Wait for T01 CI + merge; merge main into agent/B/T04/run-api; resolve shared-file conflicts with A's versions.
 2. Wire T03 adapter factory; add a real-run test; rerun scripts/check.sh.
 3. Open PR with evidence.
+
+## Run 20261010T061419Z (B worker, no commits)
+- Re-verified in worktree: `uv run pytest tests/api -q` -> 11 passed. No code changes.
+- T03 adapter is not present in this tree (no simulator package), so real-run wiring/final check remain blocked; fixture-only stays partial.
+- Next: once T03 merges, add a factory for the real adapter in `create_app_from_env` and a real-run test.
+
+## Supervisor checkpoint 2026-10-10T06:18:50Z
+
+- Run: 20261010T061419Z
+- Machine: B
+- Task/branch: T04 / agent/B/20261010T061419Z/T04
+- Base: ebf81adfd106fe3bbf8faf752dcf254e49ee6e95
+- Round: 1
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
