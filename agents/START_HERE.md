@@ -10,7 +10,8 @@ Use **Vultr + Docker Compose** for deployment and **TigerData / TimescaleDB -> G
 
 ## Read before editing
 
-1. `CLAUDE.md` and `agents/CONTRACT.md`.
+0. Superseding note: task state and the worker loop are now defined by `agents/PROTOCOL.md` and `agents/TASKS.yaml`; where this file says otherwise (for example about the overnight runner, BOARD.md or the coordination branch) follow PROTOCOL.md.
+1. `CLAUDE.md`, `agents/LESSONS.md`, `agents/PROTOCOL.md` and `agents/CONTRACT.md`.
 2. `agents/vision/roadmap.md` and `agents/architecture/core.md`.
 3. `agents/architecture/interfaces.md` and `agents/architecture/evaluation.md`.
 4. `agents/operations/overnight.md`, run configuration, and `agents/tasks/BOARD.md`.

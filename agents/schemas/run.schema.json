@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "archipelago/agents/run.schema.json",
+  "title": "Run summary",
+  "description": "One per autonomous run, agents/runs/<id>.yaml. Produced by 'controller.py report'; the human/restart/unsupported counters come from logged events.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run", "tasks", "verification", "integration", "ci", "autonomy", "regressions"],
+  "properties": {
+    "run": {"type": "object", "required": ["id", "started_at", "completed_at"],
+      "properties": {"id": {"type": "string"}, "started_at": {"type": ["string", "null"]}, "completed_at": {"type": ["string", "null"]}}},
+    "tasks": {"type": "object", "required": ["completed", "blocked", "failed", "retried"],
+      "properties": {"completed": {"type": "integer"}, "blocked": {"type": "integer"}, "failed": {"type": "integer"}, "retried": {"type": "integer"}}},
+    "verification": {"type": "object", "required": ["passes", "failures"],
+      "properties": {"passes": {"type": "integer"}, "failures": {"type": "integer"}}},
+    "integration": {"type": "object", "required": ["conflicts", "failed_merges"],
+      "properties": {"conflicts": {"type": ["integer", "string"]}, "failed_merges": {"type": ["integer", "string"]}}},
+    "ci": {"type": "object", "required": ["runs", "cancelled", "failures", "approximate_total_minutes"],
+      "properties": {"runs": {"type": ["integer", "string"]}, "cancelled": {"type": ["integer", "string"]}, "failures": {"type": ["integer", "string"]}, "approximate_total_minutes": {"type": ["integer", "string"]}}},
+    "autonomy": {"type": "object", "required": ["human_interventions", "agent_restarts", "unsupported_automation_events"],
+      "properties": {"human_interventions": {"type": "integer"}, "agent_restarts": {"type": "integer"}, "unsupported_automation_events": {"type": "integer"}, "score": {"type": "integer"}}},
+    "regressions": {"type": "object", "required": ["discovered", "repaired"],
+      "properties": {"discovered": {"type": "integer"}, "repaired": {"type": "integer"}}}
+  }
+}

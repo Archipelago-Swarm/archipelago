@@ -10,7 +10,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-pytestmark = pytest.mark.skipif(not shutil.which("docker"), reason="docker not installed")
+pytestmark = [
+    pytest.mark.docker,
+    pytest.mark.skipif(not shutil.which("docker"), reason="docker not installed"),
+]
 ENV = {**os.environ, "ARCHIPELAGO_API_TOKEN": "x" * 32, "GRAFANA_ADMIN_PASSWORD": "x" * 16}
 NODES = ["node-01", "node-02", "node-03", "node-04"]
 BASE = ["docker", "compose", "-p", "archi-t10-nodes", "-f", str(ROOT / "infra/compose/compose.yml")]

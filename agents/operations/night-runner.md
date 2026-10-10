@@ -1,5 +1,7 @@
 # Run the two-computer overnight loop
 
+> **Legacy status (ADR-0003/0004):** describes the pre-ledger runner. Reliability: CONDITIONALLY_RELIABLE (needs an awake machine and an open terminal). Planning from `BOARD.md`, the `agent-coordination` branch and the mailbox is superseded by `agents/TASKS.yaml`; replacement is task T20. Do not extend it.
+
 For the continuing A/B driver with automatic process restart and report retry,
 use [driver recovery](driver-recovery.md). The commands below describe a
 single bounded `night.py` run.

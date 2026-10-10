@@ -1,0 +1,783 @@
+# Canonical task ledger. Edit through agents/controller.py; see agents/PROTOCOL.md.
+# A task is COMPLETE only after verifier PASS and an integrator merge commit.
+version: 1
+events: []
+tasks:
+- id: T01
+  name: Bootstrap workspace and freeze contracts
+  description: Executable workspace, canonical v0 contracts, fixtures and CI.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies: []
+  blocked_by: []
+  owned_paths:
+  - packages/contracts/**
+  - tests/contracts/**
+  contracts:
+  - agents/architecture/interfaces.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/contracts -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T01.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: cdaba4d
+  artifacts: []
+  handoff_file: agents/handoffs/T01/LATEST.md
+  notes: 'Legacy task, merged via PR #1.'
+- id: T02
+  name: Overnight coordination and supervisor
+  description: Bounded two-computer runner (night.py), driver and watchdog.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T01
+  blocked_by: []
+  owned_paths:
+  - tools/agents/**
+  - tests/agents/**
+  - agents/operations/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/agents -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T02.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: 602124f
+  artifacts: []
+  handoff_file: agents/handoffs/T02/LATEST.md
+  notes: Legacy. Superseded in design by this ledger; legacy scripts are retired by T20.
+- id: T03
+  name: Seeded 2D environment and adapter
+  description: Seeded PettingZoo-style 2D world with sim2d adapter.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T01
+  blocked_by: []
+  owned_paths:
+  - packages/sim/**
+  - packages/adapters/sim2d/**
+  - tests/sim/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/sim -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T03.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: fca6210
+  artifacts: []
+  handoff_file: agents/handoffs/T03/LATEST.md
+  notes: Legacy; review-fix merge fca6210.
+- id: T04
+  name: Run lifecycle API and streaming
+  description: FastAPI run lifecycle, WebSocket stream, auth, restart handling.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T01
+  blocked_by: []
+  owned_paths:
+  - services/api/**
+  - tests/api/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/api -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T04.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: 84d2c80
+  artifacts: []
+  handoff_file: agents/handoffs/T04/LATEST.md
+  notes: Legacy. Replay is memory-only; persistence gap tracked in T14.
+- id: T05
+  name: Peer transport and network faults
+  description: Peer transport with seeded fault schedule.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T01
+  blocked_by: []
+  owned_paths:
+  - packages/transport/**
+  - packages/node/peer/**
+  - tests/transport/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/transport -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T05.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: bbd1864
+  artifacts: []
+  handoff_file: agents/handoffs/T05/LATEST.md
+  notes: Legacy; review-fix merge bbd1864.
+- id: T06
+  name: 2D dashboard and replay controls
+  description: React/Canvas dashboard with live and replay modes.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T01
+  blocked_by: []
+  owned_paths:
+  - apps/web/**
+  - tests/web/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: npm test
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T06.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: a81a192
+  artifacts: []
+  handoff_file: agents/handoffs/T06/LATEST.md
+  notes: Legacy. Browser smoke initially failed on a real run (fixed by T13); smoke not yet in CI (T16).
+- id: T07
+  name: Independent learners and peer learning
+  description: Per-node DQN learners with bounded validated peer transfer.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T03
+  - T05
+  blocked_by: []
+  owned_paths:
+  - packages/learning/**
+  - packages/node/learner/**
+  - tests/learning/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/learning -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T07.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: 3ce76f8
+  artifacts: []
+  handoff_file: agents/handoffs/T07/LATEST.md
+  notes: Legacy; review-fix merge 3ce76f8.
+- id: T08
+  name: TigerData persistence and Grafana
+  description: Storage writer, migrations, Grafana provisioning.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T01
+  blocked_by: []
+  owned_paths:
+  - packages/storage/**
+  - observability/**
+  - tests/storage/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/storage -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T08.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: 1fc53ce
+  artifacts: []
+  handoff_file: agents/handoffs/T08/LATEST.md
+  notes: 'Legacy. Real TimescaleDB test passed in CI (PR #5). Grafana render NOT verified (T21); production
+    TigerData NOT run.'
+- id: T09
+  name: Fair baselines and partition experiments
+  description: Experiment harness plus PRELIMINARY n=12 evidence bundle.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T07
+  - T08
+  blocked_by: []
+  owned_paths:
+  - experiments/**
+  - tests/experiments/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/experiments -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T09.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: 7f32388
+  artifacts: []
+  handoff_file: agents/handoffs/T09/LATEST.md
+  notes: 'Legacy, SCOPE-REDUCED: board said done, but information_only is a stub, node loss is a Down
+    stub, CTDE shares one Learner and no compute cap was approved. Harness and honest PRELIMINARY report
+    are what is complete. Remaining acceptance moved to T17. See LAST_RUN_RETROSPECTIVE F6.'
+- id: T10
+  name: Package and deploy stack to Vultr
+  description: Docker packaging, compose, smoke and rollback are integrated; actual Vultr and TigerData
+    deployment is not.
+  state: BLOCKED
+  priority: 2
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T03
+  - T04
+  - T05
+  - T06
+  - T08
+  - T13
+  blocked_by:
+  - human:Vultr instance, DNS/HTTPS plan, TigerData URL and spend cap
+  owned_paths:
+  - infra/**
+  - tests/infra/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/infra -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T10.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: fdee33e
+  artifacts: []
+  handoff_file: agents/handoffs/T10/LATEST.md
+  notes: Local packaging done. Needs operator Vultr instance, DNS, TigerData URL and spend budget.
+- id: T11
+  name: Measured demo narrative and video
+  description: Narrative, script and optional video built from measured evidence.
+  state: QUEUED
+  priority: 6
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T09
+  - T10
+  - T17
+  blocked_by: []
+  owned_paths:
+  - apps/demo-video/**
+  - experiments/presentation/**
+  - agents/demo/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: python3 tools/check_foundation.py
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T11.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: agents/handoffs/T11/LATEST.md
+  notes: Prep docs integrated under agents/demo/; no data yet.
+- id: T12
+  name: Open-source 3D adapter proof
+  description: PyBullet adapter smoke with the shared run/event contracts.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T07
+  blocked_by: []
+  owned_paths:
+  - packages/adapters/pybullet/**
+  - infra/3d/**
+  - tests/adapters3d/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/adapters3d -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T12.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: eb76a6f
+  artifacts: []
+  handoff_file: agents/handoffs/T12/LATEST.md
+  notes: Legacy. Open items (Pose.z, takeoff/land, CI job) tracked in T18.
+- id: T13
+  name: Repair terminal-run streaming
+  description: Final snapshot after run completion so reopened streams stay honest.
+  state: COMPLETE
+  priority: 5
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T00:21:46Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T03
+  - T04
+  - T06
+  blocked_by: []
+  owned_paths:
+  - services/api/**
+  - apps/web/**
+  - tests/web/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/api -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Acceptance checks in agents/tasks/T13.md hold on the integrated commit.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: 78aa05d
+  artifacts: []
+  handoff_file: agents/handoffs/T13/LATEST.md
+  notes: Legacy. API-log diagnosis was never captured live; browser smoke not in the gate (T16).
+- id: T14
+  name: Persist run events so replay survives restart
+  description: services/api keeps events in memory only, so replay is empty after a restart (T10 acceptance
+    check 4). Persist events and serve replay from the store.
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T04
+  blocked_by: []
+  owned_paths:
+  - services/api/**
+  - tests/api/**
+  - tests/infra/test_smoke_and_replay.py
+  contracts:
+  - agents/architecture/interfaces.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/api -q
+      expected_exit_code: 0
+      tier: fast
+    - command: uv run pytest tests/infra/test_smoke_and_replay.py -q
+      expected_exit_code: 0
+      tier: integration
+      needs:
+      - docker
+    assertions:
+    - description: After an API restart the replay of a finished run equals the replay captured before
+        the restart.
+    - description: test_smoke_and_replay asserts replay == before (the current pinned empty-replay behaviour
+        is removed).
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Source: agents/handoffs/T10/LATEST.md known gaps; agents/issues/docker-runtime-tests-20261010.md.'
+- id: T15
+  name: 'Storage: migrate on startup and robust FK handling'
+  description: Nothing calls migrate() on API start; if a run row is shed from the spool, later event
+    rows fail the FK and the all-or-nothing batch stalls. Fix and cover with a real-DB test.
+  state: QUEUED
+  priority: 2
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T14
+  blocked_by: []
+  owned_paths:
+  - packages/storage/**
+  - tests/storage/**
+  - services/api/src/archipelago_api/persistence.py
+  contracts:
+  - agents/architecture/interfaces.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/storage -q
+      expected_exit_code: 0
+      tier: integration
+      needs:
+      - docker
+    - command: uv run mypy
+      expected_exit_code: 0
+      tier: fast
+    assertions:
+    - description: A shed run row cannot permanently stall later batches.
+    - description: A non-local TIGERDATA_URL without sslmode fails loudly at startup, not as recurring
+        flush errors.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Source: T10 handoff known gaps.'
+- id: T16
+  name: Put sim2d browser smoke into CI
+  description: Browser smoke (start/pause/resume/stop/replay/disconnect on a real sim2d run) only runs
+    opt-in. Add a CI job and capture API logs on failure.
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T13
+  blocked_by: []
+  owned_paths:
+  - tests/web/**
+  - .github/workflows/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: ARCHIPELAGO_ADAPTER=sim2d npm run smoke -w @archipelago/web
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: The smoke runs in GitHub Actions on PRs touching apps/web, services/api or packages/adapters/sim2d.
+    - description: On failure the API stderr is uploaded as an artifact.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Source: T13 review residual; T06 issue file. .github/workflows is integrator-owned: the worker
+    proposes the workflow, the integrator merges it.'
+- id: T17
+  name: Real CTDE, node loss and information-only baselines
+  description: 'Replace the stubs behind the PRELIMINARY T09 report: per-node actors with a joint-observation
+    critic, real node removal, information_only with real exchange, n>=30 seeds. Compute cap (decision,
+    reversible): CPU-only, <=45 min per sweep, no cloud spend.'
+  state: QUEUED
+  priority: 3
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T09
+  blocked_by: []
+  owned_paths:
+  - experiments/**
+  - tests/experiments/**
+  - packages/learning/**
+  - tests/learning/**
+  contracts:
+  - agents/architecture/evaluation.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/experiments tests/learning -q
+      expected_exit_code: 0
+      tier: integration
+    - command: PYTHONPATH=packages/learning:packages/sim uv run python experiments/run.py --seeds 30 --episodes
+        150 --out artifacts/t17
+      expected_exit_code: 0
+      tier: full
+    assertions:
+    - description: ctde and central_online use different learner implementations and the CTDE actors run
+        without the link.
+    - description: node_failure removes the drone from the world rather than substituting a stub.
+    - description: information_only transfers data only and the learner never loads foreign parameters
+        (asserted).
+    - description: The report states confidence intervals and drops the PRELIMINARY label only if n>=30.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Source: agents/handoffs/T09/LATEST.md; experiments/REPORT.md Not supported/open.'
+- id: T18
+  name: '3D adapter: z pose, takeoff/land, CI check'
+  description: Pose.z is pinned to 0 (ADR-0002); takeoff/land are not contract commands; infra/3d/check.sh
+    is not in CI.
+  state: QUEUED
+  priority: 4
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T12
+  blocked_by:
+  - human:approve public contract change (Pose.z, takeoff/land) via ADR
+  owned_paths:
+  - packages/adapters/pybullet/**
+  - infra/3d/**
+  - tests/adapters3d/**
+  - packages/contracts/**
+  contracts:
+  - agents/decisions/0002-pose-z-3d.md
+  - packages/contracts/README.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/adapters3d -q
+      expected_exit_code: 0
+      tier: integration
+    - command: bash infra/3d/check.sh
+      expected_exit_code: 0
+      tier: full
+    assertions:
+    - description: z is representable in 3D runs and still rejected in 2D runs (fixture good/bad).
+    - description: A CI job runs infra/3d/check.sh.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Public contract change: needs human approval of the ADR before work starts.'
+- id: T19
+  name: Reconcile task-card acceptance boxes with evidence
+  description: Cards T02-T09 and T12 still have unticked acceptance boxes; tick only where evidence exists,
+    otherwise link the open item.
+  state: QUEUED
+  priority: 5
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T09
+  blocked_by: []
+  owned_paths:
+  - agents/tasks/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: python3 tools/check_foundation.py
+      expected_exit_code: 0
+      tier: fast
+    assertions:
+    - description: Every unticked box in a COMPLETE task names its tracking task id.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Documentation only.
+- id: T20
+  name: Retire legacy runner, driver, watchdog and mailbox
+  description: Replace the driver's BOARD.md regex planning and fixed night-plan.json with TASKS.yaml;
+    move reviewer verdicts to VERIFICATION.yaml files; delete driver.py and watchdog.py; keep cleanup_branches.py.
+    Deleting the remote agent-coordination and agent/B/mail-* branches needs human approval.
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: A
+  branch: null
+  created_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies: []
+  blocked_by: []
+  owned_paths:
+  - tools/agents/**
+  - tests/agents/**
+  - agents/operations/**
+  contracts:
+  - agents/PROTOCOL.md
+  - agents/decisions/0004-no-persistent-watchers.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/agents -q
+      expected_exit_code: 0
+      tier: fast
+    - command: bash -c '! grep -rq agent-coordination tools/agents'
+      expected_exit_code: 0
+      tier: fast
+    assertions:
+    - description: night.py claims work from agents/TASKS.yaml and writes the verdict schema; no code
+        path reads BOARD.md or agent-coordination.
+    - description: agents/operations docs describe only supported mechanisms.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: See LAST_RUN_RETROSPECTIVE inventory. Needs a live claude -p trial on a real machine, so keep
+    the old runner until that trial passes.
+- id: T21
+  name: Verify Grafana provisioning renders
+  description: The Grafana dashboard and datasource provisioning have never been rendered against TimescaleDB.
+    Add a test that loads Grafana, queries the datasource and checks the panels return data.
+  state: QUEUED
+  priority: 3
+  owner: null
+  machine: B
+  branch: null
+  created_at: '2026-10-10T18:30:00Z'
+  updated_at: '2026-10-10T18:30:00Z'
+  dependencies:
+  - T15
+  blocked_by: []
+  owned_paths:
+  - observability/**
+  - tests/observability/**
+  contracts: []
+  acceptance:
+    commands:
+    - command: uv run pytest tests/observability -q
+      expected_exit_code: 0
+      tier: integration
+      needs:
+      - docker
+    assertions:
+    - description: Every dashboard panel query returns without error against seeded data.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: 'Source: BOARD T08 row.'

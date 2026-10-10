@@ -3,14 +3,40 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same ref supersedes the running one (ADR-0005).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  bootstrap:
+  fast:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: make check-fast
+
+  # Same gate as check-full minus the container build. Docker tests run here (runners have a daemon).
+  bootstrap:
+    needs: fast
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -18,8 +44,12 @@ jobs:
       - run: uv sync --frozen
       - run: npm ci
       - run: scripts/check.sh
+
   container-smoke:
+    needs: fast
+    if: github.event_name != 'pull_request' || contains(join(github.event.pull_request.labels.*.name, ','), 'full')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - run: docker build -f infra/docker/ci.Dockerfile -t archipelago-ci .

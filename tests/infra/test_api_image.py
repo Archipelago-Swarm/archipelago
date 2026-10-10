@@ -10,7 +10,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-pytestmark = pytest.mark.skipif(not shutil.which("docker"), reason="docker not installed")
+pytestmark = [
+    pytest.mark.docker,
+    pytest.mark.skipif(not shutil.which("docker"), reason="docker not installed"),
+]
 NAME = "archipelago-api-image-test"
 PORT = 18765
 

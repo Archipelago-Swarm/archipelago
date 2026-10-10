@@ -15,6 +15,10 @@ required = [
     "agents/architecture/evaluation.md", "agents/architecture/sources.md",
     "agents/operations/overnight.md", "agents/tasks/BOARD.md",
     "agents/templates/handoff.md", "agents/templates/run-report.md",
+    "agents/PROTOCOL.md", "agents/LESSONS.md", "agents/TASKS.yaml", "agents/OWNERSHIP.yaml",
+    "agents/controller.py", "agents/schemas/task.schema.json",
+    "agents/schemas/verification.schema.json", "agents/schemas/run.schema.json",
+    "agents/reports/LAST_RUN_RETROSPECTIVE.md", "Makefile",
 ]
 for name in required:
     if not (ROOT / name).is_file():

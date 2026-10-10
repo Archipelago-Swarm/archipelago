@@ -130,6 +130,7 @@ def build_tag(tag):
         )  # fmt: skip
 
 
+@pytest.mark.docker
 @needs_docker
 def test_rollback_to_previous_image_keeps_volumes(tmp_path):
     envfile = tmp_path / "compose.env"
