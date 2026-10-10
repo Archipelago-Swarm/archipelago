@@ -39,3 +39,13 @@ The integrator session itself is the other consumer; keep its own turns short an
 ## Measured after wave 2 (T32/T33/T34)
 
 8 agents, about 757k subagent tokens (about 95k per agent); 201 tool uses; 23 minutes wall. Cumulative subagent tokens this session: about 1.6M plus the still-running T26/T27/T28 chains.
+
+## Measured after wave 1 (T26/T27/T28 + T22/T24 verification) - 2026-10-10 16:10 America/New_York
+
+12 agents, about 1.44M subagent tokens (about 120k per agent; 322 tool uses; 45 min wall). Cumulative subagent tokens: about 549k + 287k + 1,437k + 757k = 3.03M, plus wave 3 in flight. That is past the 60% trigger of the 5.2M plan before T29 integrates, so scope is tightened:
+
+1. One reviewer pass per task; a re-review only when the repair touched behavior, not for lint or doc findings.
+2. T27 repair, T29, T37, T38, T30 each get a single focused worker with a tight reserved-path prompt; no broad-spec reviews again.
+3. T25, T17, T19, T21, T11 and the second Vultr host are deferred unless the critical path finishes early.
+4. Subagent prompts forbid repository surveys; workers get exact files to read.
+Remaining planned subagent spend: about 2.3M (T27 repair 0.3M, T37 0.4M, T38 0.4M, T29 0.5M, T30 0.4M, T31 0.3M). If usage nears the window limit, durable state is already in the ledger/handoffs; stop dispatching, commit, and wait for the reset.
