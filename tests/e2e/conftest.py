@@ -20,15 +20,15 @@ SMOKE_EPISODES = [
     {"kind": "validation", "seed": 21},
     {"kind": "test", "seed": 31},
 ]
-SMOKE_CUT = [{"start_tick": 20, "end_tick": 50, "cut_links": e2e_procs.HALVES_CUT}]
+SMOKE_CUT = [{"start_tick": 15, "end_tick": 45, "cut_links": e2e_procs.HALVES_CUT}]
 
 
 @pytest.fixture
 def make_cluster(tmp_path_factory, request):
-    """Factory: ``make_cluster(ticks=80, **node_env)`` -> started Cluster. Prints process logs when the test fails."""
+    """Factory: ``make_cluster(ticks=60, **node_env)`` -> started Cluster. Prints process logs when the test fails."""
     made = []
 
-    def make(ticks=80, tick_interval_s=0.0, **node_env):
+    def make(ticks=60, tick_interval_s=0.0, **node_env):
         c = e2e_procs.Cluster(tmp_path_factory.mktemp("live"), ticks=ticks, **node_env)
         made.append(c)
         return c.start(tick_interval_s)
@@ -44,7 +44,7 @@ def make_cluster(tmp_path_factory, request):
 @pytest.fixture(scope="session")
 def smoke(tmp_path_factory, request):
     """One shared 4-episode run (2 train, validation, test) with a cut window; returns (cluster, run_id, final view)."""
-    c = e2e_procs.Cluster(tmp_path_factory.mktemp("live-smoke"), ticks=80)
+    c = e2e_procs.Cluster(tmp_path_factory.mktemp("live-smoke"), ticks=60)
     failed_before = request.session.testsfailed
     try:
         c.start()

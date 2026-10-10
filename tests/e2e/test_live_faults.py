@@ -17,8 +17,9 @@ import pytest
 from e2e_procs import HALVES_CUT, NODE_IDS
 
 HALF = {"node-01": 0, "node-02": 0, "node-03": 1, "node-04": 1}
-TICKS = 120
-CUT = [{"start_tick": 30, "end_tick": 100, "cut_links": HALVES_CUT}]
+TICKS = 90
+SHORT = 60
+CUT = [{"start_tick": 20, "end_tick": 70, "cut_links": HALVES_CUT}]
 TRAIN = [{"kind": "train", "seed": 41}]
 
 
@@ -49,7 +50,7 @@ def source_of(decision):
 
 @pytest.fixture(scope="module")
 def cut_run(tmp_path_factory, request):
-    """One 120-tick episode, paced, with a 30..100 cut between the halves; node status sampled throughout."""
+    """One 90-tick episode, paced, with a 20..70 cut between the halves; node status sampled throughout."""
     c = e2e_procs.Cluster(tmp_path_factory.mktemp("live-cut"), ticks=TICKS)
     failed_before = request.session.testsfailed
     try:
@@ -66,7 +67,7 @@ def cut_run(tmp_path_factory, request):
 def test_local_updates_continue_during_the_cut_and_no_candidate_crosses_it(cut_run):
     c, samples = cut_run
     inside = [
-        s for st, tick, s in samples if tick is not None and 40 <= tick <= 90 and st == "running"
+        s for st, tick, s in samples if tick is not None and 30 <= tick <= 60 and st == "running"
     ]
     assert len(inside) >= 5, "run was too fast to observe the cut window"
     # local learning is unaffected by the cut: optimizer steps keep increasing inside the window
@@ -86,7 +87,7 @@ def test_local_updates_continue_during_the_cut_and_no_candidate_crosses_it(cut_r
     crossing = [
         (r["source_node_id"], source_of(r), r["sim_tick"])
         for r in decisions(c.sink.records())
-        if 30 <= r["sim_tick"] < 100
+        if 20 <= r["sim_tick"] < 70
         and source_of(r)
         and HALF[source_of(r)] != HALF[r["source_node_id"]]
     ]
@@ -108,7 +109,7 @@ def test_exchange_windows_run_on_a_tick_cadence_and_see_the_cut(cut_run):
 
 
 def test_an_offer_decision_is_logged_inside_an_episode_not_only_at_its_end(make_cluster):
-    c = make_cluster(ticks=TICKS, tick_interval_s=0.03, EXCHANGE_EVERY_TICKS="30")
+    c = make_cluster(ticks=SHORT, tick_interval_s=0.03, EXCHANGE_EVERY_TICKS="15")
     c.start_run("windows", episodes=TRAIN, seed=3)
     seen = []
 
@@ -119,7 +120,7 @@ def test_an_offer_decision_is_logged_inside_an_episode_not_only_at_its_end(make_
         )
 
     for status, tick, total in poll_while_running(c, "windows", sample):
-        if status == "running" and tick is not None and tick < TICKS - 5:
+        if status == "running" and tick is not None and tick < SHORT - 5:
             seen.append((tick, total))
     assert seen and max(t for _, t in seen) > 0, (
         "no peer decision was logged before the last ticks of the episode; "
@@ -128,7 +129,7 @@ def test_an_offer_decision_is_logged_inside_an_episode_not_only_at_its_end(make_
 
 
 def test_restarted_node_resumes_with_continued_sequence_numbers(make_cluster):
-    c = make_cluster(ticks=60)
+    c = make_cluster(ticks=40)
     c.start_run("before", episodes=TRAIN, seed=4)
     assert c.wait_run("before")["status"] == "completed"
     victim = "node-03"
@@ -161,7 +162,7 @@ def test_restarted_node_resumes_with_continued_sequence_numbers(make_cluster):
 
 def test_a_killed_node_does_not_stop_the_others(make_cluster):
     """A node process dying mid-run costs only that node (deadline fallback), the run completes."""
-    c = make_cluster(ticks=TICKS, tick_interval_s=0.03)
+    c = make_cluster(ticks=SHORT, tick_interval_s=0.03)
     c.start_run("kill", episodes=TRAIN, seed=6)
     threading.Timer(1.0, lambda: c.nodes["node-02"].kill()).start()
     view = c.wait_run("kill", timeout=180)

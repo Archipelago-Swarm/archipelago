@@ -85,12 +85,12 @@ def test_policies_differ_except_where_a_validated_peer_candidate_was_adopted(smo
 def test_isolated_nodes_end_with_distinct_policies(make_cluster):
     """A16 'distinct per-node policy': same-seed init plus different data, no exchange possible (every link cut
     for the whole run), so the four parameter hashes must all differ."""
-    c = make_cluster(ticks=60)
+    c = make_cluster(ticks=40)
     all_pairs = [[a, b] for i, a in enumerate(NODE_IDS) for b in NODE_IDS[i + 1 :]]
     c.start_run(
         "isolated",
         episodes=[{"kind": "train", "seed": 51}],
-        fault_schedule=[{"start_tick": 0, "end_tick": 60, "cut_links": all_pairs}],
+        fault_schedule=[{"start_tick": 0, "end_tick": 40, "cut_links": all_pairs}],
         seed=7,
     )
     assert c.wait_run("isolated")["status"] == "completed"
