@@ -1,4 +1,4 @@
-# Handoff: T08 / 2026-10-10 (fan-out, machine A)
+# Handoff: T08 / 2026-10-10 (verify, machine B; builds on A fan-out b4b09fe)
 
 - State: review
 - Run / machine / worker: A fan-out worker, supervised by integrator
@@ -34,3 +34,24 @@ NOT RUN: migrations against a real TimescaleDB; ingestion/replay against a real 
 1. Integrator: add psycopg dependency; run `docker compose -f observability/docker-compose.yml up -d`, apply migrations via `migrate()`, replay a run, confirm Grafana panels.
 2. Optional disk spool; wire real producers into `Writer.put`.
 3. Grant LOGIN/passwords to roles out of band and record the production role check.
+
+## Machine B verification pass (branch agent/B/T08/verify)
+
+Base: origin/agent/A/T08/fanout b4b09fe merged with origin/main b63e818 (clean merge, no conflicts).
+
+Shared-file edits on this branch only (integrator must serialize):
+- `pyproject.toml`: added `psycopg[binary]>=3.2` to the dev group; added `packages/storage/archipelago_storage` to `[tool.mypy] files`.
+- `uv.lock`: regenerated with `uv lock` (adds psycopg, psycopg-binary, tzdata).
+- `writer.py`: removed the now-unneeded `# type: ignore` on `import psycopg`.
+- New `tests/storage/test_timescale_integration.py`: starts `timescale/timescaledb:2.17.2-pg16`, runs migrate() twice, ingests and replays the same rows (expects 1 event, 1 metric), checks the reader role cannot DELETE. Skipped automatically when no Docker daemon or no psycopg.
+
+Validation (worktree .agent-runtime/worktrees/T08): `uv run ruff check packages tests` pass; `uv run ruff format --check packages tests` pass; `uv run mypy` pass (14 files); `uv run pytest -q tests/storage` -> 5 passed, 1 skipped (integration, Docker down).
+
+## Docker on B: NOT working (blocked)
+
+Docker Desktop 29.8.2 installed; `docker info` returns `500 Internal Server Error` on pipe dockerDesktopLinuxEngine for the whole ~10 min poll (30s interval). `wsl --status` says "The Windows Subsystem for Linux is not installed" (`wsl.exe --install`). Docker Desktop's Linux engine needs WSL2 (or Hyper-V backend). Not installed by the worker. Operator must: run `wsl.exe --install` (or enable Virtual Machine Platform + WSL features) in an elevated shell, reboot, then start Docker Desktop and confirm `docker info` succeeds.
+
+Once up, run exactly: `uv run pytest -q tests/storage` (integration test un-skips), then `docker compose -f observability/docker-compose.yml up -d`, apply `migrate()` via `TIGERDATA_URL=postgresql://archipelago:local-dev-only@127.0.0.1:5432/archipelago`, ingest a replayed run, open http://127.0.0.1:3000 (admin/local-dev-only) and confirm the Archipelago run dashboard panels and units. The grafana-postgresql-datasource role used is the DB owner locally; production should use archipelago_reader.
+
+## Still unverified
+Real-DB migrations/ingestion/replay/duplicate retry, Grafana rendering a real run, production TigerData connectivity/role check (needs credentials), disk spool (memory-only bounded queue remains; drop-oldest with counted drops is the current backpressure policy), wiring real producers.
