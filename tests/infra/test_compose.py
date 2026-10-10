@@ -45,3 +45,11 @@ def test_four_nodes_isolated_volumes_internal_network():
     for s in nodes.values():
         assert set(s["networks"]) == {"peers"}
         assert cfg["networks"]["peers"]["internal"] is True
+
+
+def test_production_profile_has_no_local_db_and_hardened_proxy():
+    cfg = config()
+    assert "timescaledb" not in cfg["services"]
+    assert "TIGERDATA_URL" in cfg["services"]["api"]["environment"]
+    proxy = cfg["services"]["proxy"]
+    assert proxy["cap_drop"] == ["ALL"] and proxy["cap_add"] == ["NET_BIND_SERVICE"]
