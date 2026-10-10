@@ -214,7 +214,8 @@ def test_training_eval_decisions_and_fault_phases_are_observable() -> None:
             elif panel["title"] == "Optimizer updates per node":
                 assert [row[2] for row in rows] == [11, 11, 11, 11]
             elif panel["title"] == "Training loss per node":
-                assert [row[2] for row in rows] == [None, None, None, None]
+                # decisions carry no loss: the panel shows No data, not a series of nulls
+                assert rows == []
             elif panel["title"] == "Policy version per node":
                 assert [row[2] for row in rows] == [4, 4, 4, 4]
             elif panel["type"] == "state-timeline":
