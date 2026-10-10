@@ -7,7 +7,7 @@ This is the initial dependency plan. The remote `agent-coordination` ledger owns
 | [T01](T01.md) | A | none | ready | Bootstrap the executable workspace and freeze shared contracts |
 | [T02](T02.md) | A | T01 | waiting | Implement durable coordination and the bounded overnight supervisor |
 | [T03](T03.md) | A | T01 | waiting | Implement the seeded 2D environment and adapter |
-| [T04](T04.md) | B | T01 | waiting | Build run lifecycle API and live/replay streaming |
+| [T04](T04.md) | B | T01 | provisional after T01 review | Build run lifecycle API and live/replay streaming |
 | [T05](T05.md) | A | T01 | waiting | Implement peer transport and seeded network faults |
 | [T06](T06.md) | B | T01 | waiting | Build the 2D dashboard and replay controls |
 | [T07](T07.md) | A | T03, T05 | waiting | Implement independent learners and validated peer learning |
@@ -19,7 +19,7 @@ This is the initial dependency plan. The remote `agent-coordination` ledger owns
 
 ## Dispatch rules
 
-Only T01 is ready at initialization. When T01 merges, A can run T02 and T03 while B runs T04 and T08, within local slot limits. T05 follows an available A slot; T06 can start on B with fixtures after T01, then waits for real integration evidence. Do not mistake provisional fixtures for completed end-to-end work. T04/T06 final checks require T03/T04 integration even though their implementation can start earlier.
+At initialization T01 is ready for A. B owns T04 and may begin it provisionally once T01 has a pushed, locally validated review commit. B branches from that exact T01 commit, records it, and does not merge T04 until T01 passes CI and merges. This lets B build against the actual contracts while A finishes review. When T01 merges, A can run T02 and T03 while B continues T04 and takes T08 by separate assignment, within local slot limits. T05 follows an available A slot; T06 can start on B with fixtures after T01, then waits for real integration evidence. Do not mistake provisional fixtures for completed end-to-end work. T04/T06 final checks require T03/T04 integration even though their implementation can start earlier.
 
 T07 depends on the environment and transport. T09 needs learning and persistence. T10 needs the real integrated demo; T11 follows usable evidence and deployment. T12 is lower priority than G1-G3. Reserve shared files explicitly; the lane table does not grant blanket ownership of contracts/lockfiles/CI.
 

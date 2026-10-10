@@ -11,7 +11,7 @@ This is the required operating design. T02 must implement and validate the exter
 | Platform/product lead | B (friend's computer) | Receive assignments, manage local slots, checkpoint/recover workers |
 | Platform/product workers | B, up to two slots | T04, T06, T08, T10, T11 as ready |
 
-T01 belongs to A; T02 follows on A. Leads can occupy a worker slot when coding. Review also occupies a slot. Start with one worker per machine if RAM, cooling or available model quota is uncertain. Increase only after a measured trial. No nested spawning. Build computers and deployed Vultr runtime need not be the same machines.
+T01 belongs to A; T02 follows on A. During bootstrap, B may start T04 from A's pushed, locally validated T01 review commit while A completes CI/merge; B must record that SHA and keep its branch unmerged until T01 lands. Leads can occupy a worker slot when coding. Review also occupies a slot. Start with one worker per machine if RAM, cooling or available model quota is uncertain. Increase only after a measured trial. No nested spawning. Build computers and deployed Vultr runtime need not be the same machines.
 
 ## Before the first unattended night
 

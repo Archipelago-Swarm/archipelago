@@ -22,7 +22,7 @@ Inspect repository state and remote branches. Preserve existing implementations.
 
 If `MACHINE_ID=A`, act as the overall coordinator and integrator. Start T01. Establish the package structure, locked dependencies, CI, concrete shared schemas and fixtures, then land that bootstrap before other agents write dependent modules. Keep the first implementation small enough to validate quickly.
 
-If `MACHINE_ID=B`, act as the second machine's lead. Read the contract, verify local tools and access, and prepare your assigned lane. Do not independently redesign shared interfaces or take A's tasks. After T01 lands, work on your ready tasks using isolated worktrees.
+If `MACHINE_ID=B`, act as the second machine's lead. Read the contract, verify local tools and access, and prepare your assigned lane. Do not independently redesign shared interfaces or take A's tasks. B's first implementation task is T04. If T01 has reached review with a pushed, validated commit, start T04 provisionally in a separate worktree based on that exact T01 commit; keep the T04 branch unmerged until T01 passes integration and merges. If T01 is not yet reviewable, prepare the T04 implementation plan and development tools, record a handoff, and check the remote for the review commit rather than treating the waiting instruction as completion. After T01 merges, reconcile T04 with main and continue B's ready tasks.
 
 Both computers must use the same `RUN_ID`, start/end times, task assignment ledger, and agreed budgets. Default to two coding workers per computer; coordinators dispatch and review without becoming an extra simultaneous coding worker. Review consumes an existing slot. Child agents may not fan out further.
 
