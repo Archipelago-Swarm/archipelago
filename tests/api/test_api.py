@@ -225,3 +225,18 @@ def test_real_sim2d_run_streams_and_completes(tmp_path: Path) -> None:
                 run = cmd(c, run, "step", f"s{i}").json()
             assert ws.receive_json()["type"] == "delta"
         assert (run["status"], run["completion_reason"]) == ("completed", "max_ticks")
+
+
+def test_stopped_sim2d_run_still_streams_final_snapshot(tmp_path: Path) -> None:
+    pytest.importorskip("archipelago_sim2d")
+    from archipelago_api.app import sim2d_factory
+    from archipelago_sim2d.smoke import make_config  # type: ignore[import-not-found,unused-ignore]
+
+    s = Settings(api_token=TOKEN, data_dir=tmp_path, tick_interval=None)
+    with TestClient(create_app(s, sim2d_factory()), headers=AUTH) as c:
+        r = c.post("/v1/runs", json=make_config(7, 3).model_dump(mode="json"), headers={"Idempotency-Key": "k"})
+        run = cmd(c, cmd(c, r.json(), "pause", "p").json(), "stop", "x").json()
+        assert run["status"] == "completed"
+        with c.websocket_connect(f"/v1/runs/{run['run_id']}/stream") as ws:
+            m = ws.receive_json()
+        assert m["status"] == "completed" and m["snapshot"]["poses"]

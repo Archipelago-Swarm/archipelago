@@ -53,6 +53,7 @@ class Run:
     subs: set[Subscriber] = field(default_factory=set)
     commands: dict[str, dict[str, Any]] = field(default_factory=dict)
     task: asyncio.Task[None] | None = None
+    final: dict[str, Any] | None = None  # last snapshot, kept because close() clears the adapter world
 
     def view(self) -> dict[str, Any]:
         return {
@@ -140,8 +141,8 @@ class RunManager:
                 sub.queue.put_nowait(ev)  # wake the sender so it emits the resnapshot
 
     def snapshot_event(self, run: Run) -> dict[str, Any]:
-        snap: dict[str, Any] = {}
-        if run.adapter is not None:
+        snap: dict[str, Any] = run.final or {}
+        if run.final is None and run.adapter is not None:
             snap = (
                 run.adapter.snapshot()
                 .model_copy(
@@ -201,6 +202,11 @@ class RunManager:
 
     def _finish(self, run: Run, status: Status, reason: str) -> None:
         if run.adapter is not None:
+            if run.final is None:
+                try:
+                    run.final = self.snapshot_event(run)["snapshot"]
+                except Exception:  # adapter already unusable: the stream reports status only
+                    pass
             run.adapter.close()
         self._set(run, status, reason)
 
