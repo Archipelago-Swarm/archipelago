@@ -161,11 +161,12 @@ def main(argv=None):
     a = p.parse_args(argv)
     seeds = list(range(a.seeds))
     check_seeds(seeds, a.episodes)
-    steps, rows = [0], []
+    steps, rows, walls = [0], [], []
     for sc in a.scenarios:
         for m in a.modes:
             for s in seeds:
                 rows.append(run_cell(m, sc, s, a.episodes, steps))
+                walls.append(rows[-1].pop("wall_s"))  # timing is nondeterministic: manifest only
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "raw.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
@@ -176,13 +177,13 @@ def main(argv=None):
         "test": list(TEST),
         "rerun": "PYTHONPATH=packages/learning:packages/sim python " + " ".join(sys.argv),
         "train_env_steps": steps[0],
-        "wall_s": sum(r["wall_s"] for r in rows),
         "note": f"n={a.seeds} experiment seeds: preliminary; CIs are bootstrap over seeds, "
         "wide for small n; no superiority claims without CI excluding 0.",
     }
     (out / "summary.json").write_text(
         json.dumps({"config": cfg, "paired_vs_independent": summ}, indent=1)
     )
+    cfg["wall_s"] = sum(walls)  # unhashed: keeps reruns byte-identical
     cfg["sha256"] = {
         f: hashlib.sha256((out / f).read_bytes()).hexdigest() for f in ("raw.jsonl", "summary.json")
     }

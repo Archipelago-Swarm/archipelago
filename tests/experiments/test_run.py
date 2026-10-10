@@ -63,7 +63,16 @@ def test_committed_evidence_hashes_match():
     import pathlib
 
     d = pathlib.Path(__file__).resolve().parents[2] / "agents/handoffs/T09/evidence"
-    if not (d / "manifest.json").exists():
-        return
+    assert (d / "manifest.json").exists(), "evidence bundle missing"
     for name, h in json.loads((d / "manifest.json").read_text())["sha256"].items():
         assert hashlib.sha256((d / name).read_bytes()).hexdigest() == h, name
+
+
+def test_rerun_bundle_byte_identical(tmp_path):
+    args = ["--seeds", "2", "--episodes", "4", "--scenarios", "node_failure", "split"]
+    got = []
+    for _ in range(2):
+        run.main([*args, "--out", str(tmp_path)])
+        got.append([(tmp_path / f).read_bytes() for f in ("raw.jsonl", "summary.json")])
+    assert got[0] == got[1]
+    assert "wall_s" in (tmp_path / "manifest.json").read_text()

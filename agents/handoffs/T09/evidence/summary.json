@@ -35,7 +35,6 @@
   ],
   "rerun": "PYTHONPATH=packages/learning:packages/sim python experiments/run.py --seeds 12 --episodes 150 --out agents/handoffs/T09/evidence",
   "train_env_steps": 1591668,
-  "wall_s": 215.2571097999953,
   "note": "n=12 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0."
  },
  "paired_vs_independent": [
