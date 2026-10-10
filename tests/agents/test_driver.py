@@ -9,6 +9,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools" / "agents")
 import driver  # noqa: E402
 
 
+def test_waits_for_new_b_assignment_before_any_task_branch_exists() -> None:
+    assert driver.report_machines({"T13": "B"}) == {"B"}
+
+
 def test_new_b_task_starts_from_current_main() -> None:
     state = {"done": ["T06"], "attempts": {}}
     with (
