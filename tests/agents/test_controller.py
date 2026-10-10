@@ -325,7 +325,10 @@ def write_blocker(repo: Path, tid: str = "T01") -> None:
     blocker.write_text("\n".join(f"## {h}\ntext\n" for h in c.BLOCKER_HEADINGS), encoding="utf-8")
 
 
-def test_retry_budget_blocks_and_blocker_report_is_enforced(repo: Path) -> None:
+def test_retry_budget_blocks_and_blocker_report_is_enforced(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(c, "current_branch", lambda: "agent/T01-task-t01")  # as on the task branch
     to_active(repo)
     for i in range(4):  # distinct signatures, budget is 5
         assert run("record-failure", "T01", "--by", OWNER, "--kind", "test_failure",
@@ -604,3 +607,23 @@ def test_plan_starts_only_conflict_free_tasks_within_slots(repo: Path) -> None:
         make_task("T04", owned_paths=["z/**"]),
     ]
     assert [t["id"] for t in c.plan_batch(ledger, "A", 2)] == ["T01", "T03"]
+
+
+def test_fresh_claim_does_not_require_the_handoff_on_the_ledger_branch(repo: Path) -> None:
+    assert run("claim", "T01", "--owner", "cloud/w1", "--machine", "cloud") == 0
+    assert c.validate_ledger(c.load_ledger(), check_files=True) == []
+    assert (
+        run("start", "T01", "--by", "cloud/w1") == 1
+    )  # still refused until the worker writes the handoff
+
+
+def test_handoff_files_are_only_required_on_the_task_branch(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    to_review(repo)
+    (repo / "agents" / "handoffs" / "T01" / "LATEST.md").unlink()
+    monkeypatch.setattr(c, "current_branch", lambda: "main")
+    assert c.validate_ledger(c.load_ledger(), check_files=True) == []  # ledger branch: not checked
+    branch = c.get_task(c.load_ledger(), "T01")["branch"]
+    monkeypatch.setattr(c, "current_branch", lambda: branch)
+    assert any("does not exist" in e for e in c.validate_ledger(c.load_ledger(), check_files=True))

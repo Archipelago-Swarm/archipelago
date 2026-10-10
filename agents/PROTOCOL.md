@@ -47,7 +47,9 @@ A session that is not the orchestrator does not claim, reap or dispatch. `reap` 
 
 Coding agents are Claude sessions. They are not the simulated drone nodes in the product.
 
-Slots: at most `MAX_WORKERS_PER_MACHINE` (3, the cap for the whole cloud pool; reversible, raise it when quota allows) tasks are `CLAIMED`/`ACTIVE`. Worker slots are `w1`..`w3` (`launch.py tick --slot w1`). A slot tick only resumes the task owned by `<machine>/<slot>` or claims a new one; the slot-less tick does verification and integration. A slot ticking alone is not a worker pool: run every slot that has a claim, or that task starves.
+**Janitor mode (current default, credits are scarce):** one session works the ledger serially: `stalls` -> take the first READY/verification item -> finish it to `REVIEW` -> next. Do not fan out with `create_session`; fan-out below applies only when the operator raises the cap. A task the janitor wrote is verified by a separate cheap session (or the operator), never by the janitor; the janitor may verify tasks it did not own.
+
+Slots: at most `MAX_WORKERS_PER_MACHINE` (1 in janitor mode; reversible, raise it when quota allows) tasks are `CLAIMED`/`ACTIVE`. Worker slots are `w1`..`w3` (`launch.py tick --slot w1`). A slot tick only resumes the task owned by `<machine>/<slot>` or claims a new one; the slot-less tick does verification and integration. A slot ticking alone is not a worker pool: run every slot that has a claim, or that task starves.
 
 | Role | Does | Must not |
 |---|---|---|

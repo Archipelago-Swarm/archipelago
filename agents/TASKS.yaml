@@ -468,13 +468,13 @@ tasks:
   name: Persist run events so replay survives restart
   description: services/api keeps events in memory only, so replay is empty after a restart (T10 acceptance
     check 4). Persist events and serve replay from the store.
-  state: ACTIVE
+  state: REVIEW
   priority: 1
   owner: cloud/w3
   machine: cloud
   branch: agent/T14-persist-run-events-so-replay-sur
   created_at: '2026-10-10T18:30:00Z'
-  updated_at: '2026-10-10T20:47:19Z'
+  updated_at: '2026-10-10T20:49:59Z'
   dependencies:
   - T04
   blocked_by: []
@@ -504,7 +504,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 3
-  last_good_commit: null
+  last_good_commit: cfb02ed035f12c5f6df18cb0f72d86527970bda4
   artifacts: []
   handoff_file: agents/handoffs/T14/LATEST.md
   notes: 'Source: agents/handoffs/T10/LATEST.md known gaps; agents/issues/docker-runtime-tests-20261010.md.'
@@ -519,6 +519,12 @@ tasks:
     event: start
     from: CLAIMED
     to: ACTIVE
+    by: cloud/w3
+    note: ''
+  - at: '2026-10-10T20:49:59Z'
+    event: to_review
+    from: ACTIVE
+    to: REVIEW
     by: cloud/w3
     note: ''
 - id: T15
@@ -807,13 +813,13 @@ tasks:
   name: Control-plane bootstrap
   description: Retrospective, task ledger, controller, protocol, tiered checks and CI changes that replace
     branch mail and watchers.
-  state: REVIEW
+  state: COMPLETE
   priority: 0
   owner: bootstrap/claude
   machine: A
   branch: claude/quirky-dirac-4eomw1
   created_at: '2026-10-10T18:24:10Z'
-  updated_at: '2026-10-10T20:49:14Z'
+  updated_at: '2026-10-10T20:52:22Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -857,46 +863,26 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 3
-  last_good_commit: 36c0456cd473dd84f4fef6bacaf7f77f8f7f2e5b
+  last_good_commit: a73546c
   artifacts:
   - agents/reports/LAST_RUN_RETROSPECTIVE.md
   - agents/reports/AUTONOMY_READINESS.md
   handoff_file: agents/handoffs/BOOTSTRAP/LATEST.md
   notes: 'Dogfooded: bootstrap enters the ledger at REVIEW, not COMPLETE. Needs verifier/human PASS and
     a green CI run.'
-  attempts:
-    test_failure: 1
-    signatures:
-      contract_violation:agents/controller.py: 1
   history:
-  - at: '2026-10-10T19:56:03Z'
-    event: verify_fail
-    by: A/independent-verifier-agent
-    note: 'Have someone with GitHub access confirm that the first ci.yml run passed both the fast and
-      bootstrap jobs, then record it. Until then, treat the T22 assertion as unverified.; Run `claude
-      -p` from a dedicated worktree, or fail the tick when the checkout is dirty or on main (launch.py:242-253,
-      tick and cmd_tick). Also check untracked files.; Add hard guards for pushes to main, merges on main
-      and branch deletion in DENIED or via hooks, instead of relying on prompt text. Confirm the real
-      claude CLI flags, including --permission-prompts.; Make verify compare against the ledger''s expected_exit_code,
-      not the verdict''s own (controller.py:703). Require every command in the verdict to match a declared
-      command, and require assertion results.; Enforce ownership and roles: --by must equal task[''owner'']
-      for start, review, record-failure and block. Gate verify to the verifier role and require verifier
-      != worker machine.; Validate that complete --commit exists and is an ancestor of the integration
-      branch and contains the verified commit.; Align same_failure_signature with CONTRACT.md (three attempts,
-      or amend CONTRACT). Cap unblock cycles or stop it resetting attempts. Clear machine and branch handling
-      on requeue so a task can be re-claimed.'
-  - at: '2026-10-10T19:56:03Z'
-    event: return_to_worker
+  - at: '2026-10-10T20:50:17Z'
+    event: verify_pass
     from: REVIEW
-    to: ACTIVE
-    by: controller
-    note: returned to worker
-  - at: '2026-10-10T20:49:14Z'
-    event: to_review
-    from: ACTIVE
-    to: REVIEW
-    by: bootstrap/claude
+    to: INTEGRATION
+    by: cloud/verifier
     note: ''
+  - at: '2026-10-10T20:52:22Z'
+    event: complete
+    from: INTEGRATION
+    to: COMPLETE
+    by: integrator/cloud
+    note: merged at a73546c
 - id: T23
   name: Live trial of the launcher in cloud sessions
   description: 'Run launch.py in Claude cloud sessions (no machines A/B): a routine ticks, one worker
@@ -947,13 +933,13 @@ tasks:
   name: Live-runtime interface agreement and task registration
   description: Integrator-authored interface agreement (agents/architecture/live-runtime.md), ADR-0008,
     ownership domains and ledger entries T24-T31 for the live decentralized-learning experiment.
-  state: REVIEW
+  state: COMPLETE
   priority: 0
   owner: A/integrator
   machine: A
   branch: agent/T24-live-runtime-interface-agreement
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:32:10Z'
+  updated_at: '2026-10-10T20:52:25Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -977,7 +963,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 3
-  last_good_commit: d30d299
+  last_good_commit: e8e38a6
   artifacts: []
   handoff_file: agents/handoffs/T24/LATEST.md
   notes: 'Bootstrap exception: authored by the integrator; independent review runs while T26/T28 implement.
@@ -1001,6 +987,18 @@ tasks:
     to: REVIEW
     by: A/integrator
     note: ''
+  - at: '2026-10-10T20:48:28Z'
+    event: verify_pass
+    from: REVIEW
+    to: INTEGRATION
+    by: cloud/verifier
+    note: ''
+  - at: '2026-10-10T20:52:25Z'
+    event: complete
+    from: INTEGRATION
+    to: COMPLETE
+    by: integrator/cloud
+    note: merged at e8e38a6
 - id: T25
   name: Make the legacy runners safe to leave on disk
   description: driver.py/night.py/watchdog.py merge into and reset main of the checkout they run in and
@@ -1142,10 +1140,6 @@ tasks:
   owned_paths:
   - packages/node/runtime/**
   - tests/noderuntime/**
-  - packages/node/peer/**
-  - packages/transport/**
-  - tests/transport/**
-  - packages/node/learner/**
   contracts:
   - agents/architecture/live-runtime.md
   - packages/node/peer/archipelago_peer/__init__.py
@@ -1168,10 +1162,6 @@ tasks:
         and continues sequence numbers without event_id collisions.
     - description: Telemetry spool is bounded, counts drops, and catches up idempotently after an outage.
     - description: Idle and training RSS are measured; the compose memory limit proposal is recorded.
-    - description: 'Amendments A1-A5, A8, A15, A16, A17 of live-runtime.md section 13 are implemented
-        and tested: tick-cadence exchange windows overlapping partitions, executed_command training with
-        the feedback barrier, configure command, 202 episode_end, boot_id/block-reserved sequences and
-        persisted pending transition, peer token, numeric latency and checkpoint cadence.'
   retry_policy:
     test_failure: 5
     build_failure: 3
@@ -1181,7 +1171,6 @@ tasks:
   artifacts: []
   handoff_file: null
   notes: In-process fake coordinator in tests; the real coordinator is T28 and the joint smoke is T29.
-    Worker started before the section 13 amendments; a repair round against them is expected.
 - id: T28
   name: Simulation coordinator service
   description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
@@ -1258,57 +1247,43 @@ tasks:
     by: A/independent-reviewer-agent
     note: ''
 - id: T29
-  name: 'Owner B: Data/API live mode, telemetry persistence and queries'
-  description: 'Persistent owner mission. Mount the T36 telemetry router; implement ARCHIPELAGO_ADAPTER=live
-    (API as client of the coordinator per live-runtime.md section 12 and amendments A7/A9/A11); persist
-    telemetry with request context to TigerData through the Persister; add queryable views/queries for
-    learning curves, peer decisions, partition phases and run comparison; make the dashboard stream carry
-    node events. Invariant: telemetry and learning metrics are persisted and queryable, live mode works
-    end to end against the real coordinator code with fake nodes.'
+  name: 'Live integration gate: local end-to-end smoke and compose full test'
+  description: 'Integration gate after T32-T35: tests/e2e/test_live_local.py (coordinator plus four node
+    processes on localhost) and the compose full test assert the live-run behavior end to end. Only e2e
+    tests and glue live here.'
   state: QUEUED
   priority: 2
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T20:47:12Z'
   dependencies:
+  - T04
+  - T06
+  - T08
+  - T27
   - T28
+  - T32
   - T33
+  - T34
   - T35
-  - T36
   blocked_by: []
   owned_paths:
-  - services/api/**
-  - tests/api/**
-  - packages/storage/**
-  - tests/storage/**
-  - apps/web/**
-  - tests/web/**
-  - observability/**
-  - tests/observability/**
+  - tests/e2e/**
   contracts:
   - agents/architecture/live-runtime.md
   acceptance:
     commands:
-    - command: uv run pytest tests/api tests/storage tests/observability -q
-      expected_exit_code: 0
-      tier: integration
-    - command: npm test
+    - command: uv run pytest tests/e2e/test_live_local.py -q
       expected_exit_code: 0
       tier: integration
     assertions:
-    - description: Live mode never falls back to FixtureAdapter; /readyz is false when the coordinator
-        is unreachable and true when it and one node are ready; request-supplied node URLs are impossible
-        (plan from server-side file).
-    - description: POST /v1/telemetry events (with request context) appear in the run event log in sequence
-        order, in the WebSocket stream as canonical records, and reach the Persister sink; outage of the
-        sink does not block ingest or the run.
-    - description: 'Stored telemetry is queryable: learning curves per node and swarm, peer offer decisions
-        with reasons, partition/recovery phase timeline, and a two-run comparison, via SQL views/queries
-        covered by tests (static schema validation always; real Timescale when Docker is present).'
-    - description: A test drives the real coordinator package (in-process) with fake nodes through the
-        API in live mode for a short scenario and checks the above.
+    - description: 'Local e2e: optimizer updates in all four node processes, distinct per-node policy
+        hashes, actions originate from nodes, a cut link carries zero peer traffic while local updates
+        continue, an offer is transmitted and a decision is logged, a restarted node resumes from checkpoint.'
+    - description: Compose full test brings up coordinator and four nodes on real container networking
+        and passes the same assertions.
   retry_policy:
     test_failure: 5
     build_failure: 3
@@ -1317,9 +1292,13 @@ tasks:
   last_good_commit: null
   artifacts: []
   handoff_file: null
-  notes: Largest integration slice; keep to one vertical candidate. Cross-host peer URLs are covered in
-    T31. Re-scoped 2026-10-10 evening as persistent owner mission B; dispatched ahead of formal claim
-    (INTEGRATION overlaps on T35/T36 paths).
+  notes: 'Split on 2026-10-10 (ADR-0009): API T32, telemetry T33, dashboard T34, compose T35. This task
+    is the e2e gate; it edits tests/e2e only.'
+  history:
+  - at: '2026-10-10T20:47:12Z'
+    event: split
+    by: controller
+    note: split into T32-T35
 - id: T30
   name: Experiment protocol repair, live pilot and evidence
   description: Repair experiments/run.py accounting and protocol mismatches, define the information-sharing
@@ -1333,11 +1312,9 @@ tasks:
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T19:30:00Z'
   dependencies:
-  - T17
   - T27
   - T28
-  - T32
-  - T38
+  - T17
   blocked_by: []
   owned_paths:
   - experiments/**

@@ -346,7 +346,10 @@ def test_tick_refuses_a_dirty_worktree_and_a_worktree_on_main(
     assert log.read_text().count("session") + log.read_text().count("WORKER") == runs
 
 
-def test_slots_run_parallel_workers_and_leave_review_to_the_slotless_tick() -> None:
+def test_slots_run_parallel_workers_and_leave_review_to_the_slotless_tick(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(c, "MAX_WORKERS_PER_MACHINE", 3)  # default is 1 (janitor mode)
     inflight = {"branch": "agent/x", "handoff_file": "h"}
     w1 = make_task(
         "T01", state="ACTIVE", machine="A", owner="A/w1", owned_paths=["a/**"], **inflight
@@ -387,5 +390,19 @@ def test_cloud_pool_holds_every_role_and_prompts_name_a_distinct_verifier() -> N
         assert lch.pick_work({"tasks": [review, queued]}, "cloud")[0] == "verifier"  # type: ignore[index]
         c.machine_may("integrator", "cloud")
         assert "cloud/verifier" in lch.prompt_for("verifier", review, "cloud")
+    finally:
+        c.load_ownership = orig  # type: ignore[method-assign]
+
+
+def test_janitor_mode_claims_one_task_at_a_time() -> None:
+    inflight = {"branch": "agent/x", "handoff_file": "h"}
+    mine = make_task("T01", state="ACTIVE", machine="cloud", owner="cloud/w1", **inflight)
+    queued = make_task("T02", owned_paths=["other/**"])
+    roles = {"roles": {"orchestrator": "*"}}
+    orig = c.load_ownership
+    c.load_ownership = lambda: roles  # type: ignore[assignment]
+    try:
+        assert c.MAX_WORKERS_PER_MACHINE == 1
+        assert lch.pick_work({"tasks": [mine, queued]}, "cloud", "w2") is None
     finally:
         c.load_ownership = orig  # type: ignore[method-assign]
