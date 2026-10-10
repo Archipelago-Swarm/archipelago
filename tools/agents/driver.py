@@ -121,6 +121,8 @@ def next_plan(run_hint, last, s):
             continue
         entry = {"id": task, "machine": m, "paths": card_paths(task)}
         prior = (last or {}).get(task)
+        if m == "B" and not prior:  # B's runner owns its own live branch; a fresh copy here would fork it
+            continue
         if prior:  # keep the previous owner; carry over the previous run's branch, never restart from main
             entry["machine"] = prior[0]
             carry = f"agent/{prior[0]}/{task}/carry{s['attempts'].get(task, 0)}"
@@ -177,7 +179,9 @@ def driver_a(a):
                 log(f"waiting on reports for {last_run}")
                 results, t0 = {}, None
                 while True:
-                    reps = {m: report(last_run, m) for m in set(plan.values())}
+                    # a peer that never pushed a branch for this run has nothing to wait for
+                    peers = {m for m in set(plan.values()) if m == "A" or sh("git", "ls-remote", "--heads", "origin", f"agent/{m}/{last_run}/*", check=False).stdout.strip()}
+                    reps = {m: report(last_run, m) for m in peers}
                     if all(reps.values()):
                         break
                     if reps.get("A") and t0 is None:
