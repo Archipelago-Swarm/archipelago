@@ -1,28 +1,22 @@
-# Handoff: T05 / 20261010T054510Z (worker A)
+# Handoff: T05 / 20261010T061419Z (worker A)
 
-- State: in_progress
+- State: in_progress (worker cannot mark done; awaiting integrator review)
 - Reserved paths: packages/transport/, packages/node/peer/, tests/transport/
 
-## Completed
-- `packages/transport/archipelago_transport/__init__.py`: memory `Network` (directed gates, seeded loss, delay, bandwidth, version/hash/size checks, dedupe, bounded inbox, byte stats, latest-only reconnect catch-up), plus `send_reliable` (timeout/retry/give-up in `tick()`), `load_manifest` (static manifest), and separate `Telemetry` channel.
-- `packages/node/peer/archipelago_peer/__init__.py`: stdlib HTTP `PeerServer` (POST /envelope, reuses Network gate/validation; 200 accepted, 422 rejected, 400/404/413) and `post()` with timeout/retry.
-- `packages/transport/README.md`: application-level fault scope and pending real network-fault tests.
-- Tests (`tests/transport/`): 9 pass (`uv run pytest -q tests/transport`); ruff + mypy clean on packages/tests.
+## Current state
+- `packages/transport`: memory `Network` (directed gates, seeded loss, delay, bandwidth, version/hash/size checks, dedupe, bounded inbox, byte stats, latest-only catch-up), `send_reliable` timeout/retry, `load_manifest`, separate `Telemetry` channel.
+- `packages/node/peer`: stdlib HTTP `PeerServer` (same fault schedule; 200 delivered / 202 deferred / 422 rejected-or-lost / 400 / 404 / 413), `post` with timeout/retry, `serve_manifest`, `PeerClient` (`catch_up` resends only the latest).
+- `packages/transport/README.md`: fault scope and pending work (updated this round).
+- Tests: `uv run pytest -q tests/transport` -> 12 passed; `uv run ruff check packages tests` clean this round. Full suite/mypy/npm not re-run by this worker; supervisor external check passed earlier (54 tests).
 
-## Fault scope
-See `packages/transport/README.md`. Application-level only; real network-fault tests pending.
-
-## Round 4 worker update
-- Peer: `PeerServer(**faults)` now takes seed/loss/delay/bandwidth; a message lost/rejected -> 422, deferred by delay/bandwidth -> 202 (no longer reported 200). Added `serve_manifest` (servers bound to manifest URLs) and `PeerClient` (send, `catch_up` resends only the latest update).
-- Removed both `sys.path.insert` hacks from the package and tests; `tests/transport/conftest.py` sets paths (pyproject is shared, so no packaging change).
-- New HTTP tests: 400/404/413, bad hash, bad version, stale, loss/delay status, manifest wiring + reconnect catch-up. Full `uv run pytest -q`: 54 passed; ruff clean. mypy and npm steps of `scripts/check.sh` not run.
-
-## Not done
-- No multi-process test; no real network-fault tests (documented in README).
-- Nothing committed (supervisor owns commits).
+## Known scope limits
+- Catch-up is sender-driven; no receiver-initiated request or reconnect detection. HTTP catch-up test simulates partition by server restart.
+- No multi-process or real network-fault (netem) tests.
 
 ## Next
-Wire manifest to peer clients; real network-fault tests.
+Receiver-initiated catch-up with reconnect detection; real network-fault tests.
+
+## History (earlier supervisor checkpoints; reviews below predate the fixes above)
 
 ## Supervisor checkpoint 2026-10-10T05:54:07Z
 
@@ -79,4 +73,17 @@ Wire manifest to peer clients; real network-fault tests.
 - External check exit: 0
 - Independent review: {"pass": false, "issues": ["The code and tests cover the acceptance checks. I read the code and tests but did not run them. The external check passed, with 54 tests passing. That covers cut and allowed links, duplicate, stale, oversized and bad-hash rejection, latest-only catch-up, delay, bandwidth and byte stats, timeout and retry, a separate telemetry channel, and HTTP 400/404/413/422/202 handling. The blockers are in the records around the code.", "The T05 work is not fully committed. Uncommitted changes remain to agents/handoffs/T05/LATEST.md, packages/node/peer/archipelago_peer/__init__.py, tests/transport/test_peer_http.py and tests/transport/test_transport.py. tests/transport/conftest.py is untracked. The 202 and 422 fault-schedule handling, the PeerClient and serve_manifest code, and the HTTP tests described in the handoff's round 4 update are all in this uncommitted set. The task card requires committing and pushing with the implementation, and a PR cannot be reviewed from this branch as it stands.", "The handoff agents/handoffs/T05/LATEST.md contradicts the code. Its 'Next' section still says 'Wire manifest to peer clients', but serve_manifest and PeerClient exist and are tested. The 'Completed' section says '9 pass' but the full suite is 54 (this task's tests/transport share of that is not stated). It also says 'Nothing committed' and 'mypy and npm steps not run', though the external check ran those steps and exited 0. The earlier failing review entries are stale. The file has no final state or evidence section. The contract requires an accurate handoff, so this must be reconciled.", "packages/transport/README.md says HTTP-level delay and loss schedules are pending. PeerServer now takes seed, loss, delay and bandwidth, and test_http_fault_schedule_is_not_reported_as_accepted tests it. The fault-scope documentation must be updated to say what is application-level and what real network-fault tests are still pending.", "'Reconnection requests a bounded latest update' is implemented as PeerClient.catch_up, a sender-side resend of the newest envelope. Nothing makes the reconnecting receiver request it, and nothing detects the reconnect. The handoff and README should state this scope. The HTTP catch-up test also simulates the reconnect by restarting the server, not by cutting and restoring a link."]}
 - Next issue: The code and tests cover the acceptance checks. I read the code and tests but did not run them. The external check passed, with 54 tests passing. That covers cut and allowed links, duplicate, stale, oversized and bad-hash rejection, latest-only catch-up, delay, bandwidth and byte stats, timeout and retry, a separate telemetry channel, and HTTP 400/404/413/422/202 handling. The blockers are in the records around the code.; The T05 work is not fully committed. Uncommitted changes remain to agents/handoffs/T05/LATEST.md, packages/node/peer/archipelago_peer/__init__.py, tests/transport/test_peer_http.py and tests/transport/test_transport.py. tests/transport/conftest.py is untracked. The 202 and 422 fault-schedule handling, the PeerClient and serve_manifest code, and the HTTP tests described in the handoff's round 4 update are all in this uncommitted set. The task card requires committing and pushing with the implementation, and a PR cannot be reviewed from this branch as it stands.; The handoff agents/handoffs/T05/LATEST.md contradicts the code. Its 'Next' section still says 'Wire manifest to peer clients', but serve_manifest and PeerClient exist and are tested. The 'Completed' section says '9 pass' but the full suite is 54 (this task's tests/transport share of that is not stated). It also says 'Nothing committed' and 'mypy and npm steps not run', though the external check ran those steps and exited 0. The earlier failing review entries are stale. The file has no final state or evidence section. The contract requires an accurate handoff, so this must be reconciled.; packages/transport/README.md says HTTP-level delay and loss schedules are pending. PeerServer now takes seed, loss, delay and bandwidth, and test_http_fault_schedule_is_not_reported_as_accepted tests it. The fault-scope documentation must be updated to say what is application-level and what real network-fault tests are still pending.; 'Reconnection requests a bounded latest update' is implemented as PeerClient.catch_up, a sender-side resend of the newest envelope. Nothing makes the reconnecting receiver request it, and nothing detects the reconnect. The handoff and README should state this scope. The HTTP catch-up test also simulates the reconnect by restarting the server, not by cutting and restoring a link.
+- Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Supervisor checkpoint 2026-10-10T06:17:52Z
+
+- Run: 20261010T061419Z
+- Machine: A
+- Task/branch: T05 / agent/A/20261010T061419Z/T05
+- Base: ebf81adfd106fe3bbf8faf752dcf254e49ee6e95
+- Round: 1
+- State: in_progress
+- External check exit: 0
+- Independent review: {"pass": false, "issues": ["The reconnection acceptance check is only partly met. The check says reconnection requests a bounded latest update. In the code, nothing detects a reconnect and the receiver never requests anything. The caller must call PeerClient.catch_up (or the memory network's reconnect path) by hand. The README and handoff admit this. The HTTP catch-up test restarts a server instead of cutting and restoring a gated link, so no test shows a cut link being restored and then producing a bounded latest-only update.", "The final README and handoff changes are uncommitted. `git status` shows ` M agents/handoffs/T05/LATEST.md` and ` M packages/transport/README.md`. The task card requires committing and pushing with the implementation. The fault-scope documentation check is only satisfied in the working tree, not in the branch.", "The handoff is not ready for review. It says the supervisor external check passed 'earlier' and that the worker did not re-run the full suite, mypy or the npm steps. It has no final evidence section. Its 'Next' section still lists unfinished work (receiver-initiated catch-up, real network-fault tests).", "PeerServer.accept reads the private `net._seen` to tell delivered (200) from deferred (202). Its 422 check compares the sum of `rejected` counts before and after. Both are fragile reach-ins on Network internals. Nothing tests that a bandwidth-deferred message returns 202 and is later delivered, apart from the single fault-schedule test.", "There are no multi-process or real network-fault tests. The task card allows documenting these as pending, and the README does that, so this is not a blocker. It does mean that 'cut link' is verified only at the application level."]}
+- Next issue: The reconnection acceptance check is only partly met. The check says reconnection requests a bounded latest update. In the code, nothing detects a reconnect and the receiver never requests anything. The caller must call PeerClient.catch_up (or the memory network's reconnect path) by hand. The README and handoff admit this. The HTTP catch-up test restarts a server instead of cutting and restoring a gated link, so no test shows a cut link being restored and then producing a bounded latest-only update.; The final README and handoff changes are uncommitted. `git status` shows ` M agents/handoffs/T05/LATEST.md` and ` M packages/transport/README.md`. The task card requires committing and pushing with the implementation. The fault-scope documentation check is only satisfied in the working tree, not in the branch.; The handoff is not ready for review. It says the supervisor external check passed 'earlier' and that the worker did not re-run the full suite, mypy or the npm steps. It has no final evidence section. Its 'Next' section still lists unfinished work (receiver-initiated catch-up, real network-fault tests).; PeerServer.accept reads the private `net._seen` to tell delivered (200) from deferred (202). Its 422 check compares the sum of `rejected` counts before and after. Both are fragile reach-ins on Network internals. Nothing tests that a bandwidth-deferred message returns 202 and is later delivered, apart from the single fault-schedule test.; There are no multi-process or real network-fault tests. The task card allows documenting these as pending, and the README does that, so this is not a blocker. It does mean that 'cut link' is verified only at the application level.
 - Resume: fetch this branch, inspect latest commit and continue the task card.
