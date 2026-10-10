@@ -124,3 +124,22 @@
 - Independent review: not run
 - Next issue: Worker model_error, exit 1; inspect local log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, round 7 (uncommitted; supervisor commits)
+- Inspected the local log for the round-6 "model_error, exit 1": `logs/20261010T064958Z/B/T06-worker-6.log` shows `error_max_turns` (hit the 30-turn limit after ~12 min), not a code failure. Round-6 work (browser-smoke.mjs, vite proxy, View fixes) was already committed in checkpoint 6; tree was clean.
+- Re-verified: `npx tsc --noEmit` and `npx vitest run` in apps/web pass (10 tests). No code changes this round.
+- Cause/mitigation: the browser smoke work was large for one worker. Next round should take one small step only: add a disconnect/reconnect step to `tests/web/browser-smoke.mjs` (kill and restart the API, expect "DISCONNECTED (no live data)" then LIVE again).
+- Still not done: sim2d-backed smoke, `learning_event` emission by the API, task card owner/status (outside reserved paths).
+
+## Supervisor checkpoint 2026-10-10T07:13:23Z
+
+- Run: 20261010T064958Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T064958Z/T06
+- Base: 8a7b9b7b2513cebc87e2aa4a701cbf1e0eb564d0
+- Round: 7
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
