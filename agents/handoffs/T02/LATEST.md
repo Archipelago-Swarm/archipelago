@@ -29,6 +29,7 @@ Rate-limit waits persist their next eligible UTC time and use a reported reset w
 - T01 and T02 merged to main through PRs #1 and #2 with successful GitHub checks.
 - Test the actual A/B startup once on both computers. B's last readiness handoff reported `uv` and Docker missing; install `uv` for any run and Docker before T08. `gh` is optional to the runner.
 - B's published T04 source branch includes earlier shared dependency/check changes in `pyproject.toml`, `uv.lock`, and `scripts/check.sh`. Its merged worktree passed local checks, but A must reconcile those shared files when reviewing a future T04 PR; the night runner does not auto-merge them.
+- During run `20261010T054510Z`, A started in subscription mode. The user confirmed B has Claude Pro, which includes Claude Code subscription access; B should also use `--billing subscription`. The earlier API-only assumption was incorrect. The flag does not change Claude Code authentication.
 - The current runner has a fixed plan, one worker per machine and review branches; dynamic reallocation, concurrent workers within one machine, automatic PR creation and merge, resource caps beyond task count, and a hard OS-kill recovery test are future work.
 - No real eight-hour training/coding session or Vultr deployment has run. The CLI can terminate early when independent tasks are reviewable or blocked.
 
