@@ -89,3 +89,18 @@ Nodes and coordinator write JSONL events to a bounded durable spool on their own
 ## 11. Local development smoke (no Docker)
 
 `tests/e2e/test_live_local.py` starts the coordinator and four node runtime processes on localhost ports with temp directories, runs a short episode set, and asserts: optimizer updates occurred in each node process, distinct per-node policy hashes, actions came from nodes (not the API), a cut link carried zero peer traffic while local updates continued, an offer was transmitted and a decision logged, and a killed-and-restarted node resumes from its checkpoint with continued sequence numbers. The Docker path (`make check-full`) re-runs the same scenario on Compose.
+
+## 12. Coordinator HTTP interface (API -> coordinator, private network)
+
+Stdlib server, JSON, bearer token `COORDINATOR_TOKEN` (>=16 chars). Only the API (and tests) call it; browsers never do. The privileged snapshot route uses a second token `COORDINATOR_ADMIN_TOKEN`.
+
+| Endpoint | Body / response | Notes |
+|---|---|---|
+| `POST /v1/runs` | `{run_config: RunConfig, plan: Plan}` -> `{run_id, status}` | 409 if a run is active (one active run). Rejects unknown reward ids, nodes without a URL, non-distinct starts. |
+| `GET /v1/runs/{id}` | status, episode, tick, phase, per-node health (`ready/unavailable/killed`), deadline-miss counts, config hash, commit | `status` follows the API run states (`created/starting/running/paused/stopping/completed/failed/interrupted`). |
+| `POST /v1/runs/{id}/commands` | `{command_id, command: pause|resume|step|stop, expected_revision}` | Duplicate `command_id` is idempotent; stale revision 409. |
+| `GET /v1/runs/{id}/events?after_sequence=&limit=` | `{events, latest_sequence, oldest_sequence}` | Canonical v0 records only: `WorldSnapshot` (tick snapshots, `topology.links` = peer links currently allowed by the schedule), `MetricSample` (coverage, episode_return, deadline_missed, node_unavailable, fault_phase, node_killed, train/eval phase) with `phase` set. Sequences are unique and continue across a coordinator restart (persisted spool). |
+| `GET /v1/runs/{id}/snapshot` | privileged `WorldSnapshot` | admin token only; the world's hidden state never goes to nodes. |
+| `GET /healthz`, `GET /readyz` | liveness / real-simulator availability and node reachability | `readyz` is false when the sim cannot import or no node is reachable; no fixture fallback exists in this service. |
+
+`Plan` = `{node_urls: {node_id: url}, deadline_ms: 500, episodes: [{kind: train|validation|test, seed: int, count?: 1}], eval_every: int, fault_schedule: [{start_tick, end_tick, cut_links}], kill_node: {node_id, tick} | null, telemetry_outage: {start_tick, end_tick} | null}`. Episode order is explicit and recorded; `test` seeds only ever run in frozen `eval` mode and are excluded from candidate gating. The coordinator distributes `fault_schedule` to nodes at each episode `reset` (section 6) and records its hash in the run manifest.
