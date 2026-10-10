@@ -7,8 +7,7 @@
       "paths": [
         "apps/web/",
         "tests/web/"
-      ],
-      "source_branch": "agent/B/T06/carry1"
+      ]
     },
     {
       "id": "T12",
@@ -17,8 +16,7 @@
         "packages/adapters/pybullet3d/",
         "infra/3d/",
         "tests/adapters3d/"
-      ],
-      "source_branch": "agent/A/T12/carry1"
+      ]
     }
   ]
 }
