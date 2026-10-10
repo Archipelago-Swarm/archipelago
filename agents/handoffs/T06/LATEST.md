@@ -226,3 +226,21 @@
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, run 20261010T130137Z round 3 (uncommitted; supervisor commits)
+- No code change. The "External check exit 1" in rounds 1-2 is environmental, not a T06 failure: `.agent-runtime/logs/20261010T130137Z/B/T06-check-{1,2}.log` contain only `WSL ... execvpe(/bin/bash) failed: No such file or directory`. `scripts/check.sh` was launched through the WSL `bash` shim (no distro installed) instead of Git Bash. See `tools/agents/night.py` near line 357 ("Git Bash is required").
+- Fix is outside my paths: the supervisor must resolve Git Bash (e.g. `C:\Program Files\Git\bin\bash.exe`) before running the check, or install a WSL distro (human action; see MORNING-REPORT-B.md).
+- Local verification in apps/web: `npx tsc --noEmit` clean; `npx vitest run` 21 tests pass. Browser smoke not re-run this round.
+
+## Supervisor checkpoint 2026-10-10T13:17:07Z
+
+- Run: 20261010T130137Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T130137Z/T06
+- Base: 110279e3754d67377172ecbd9619fc3ef364ea61
+- Round: 3
+- State: blocked
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
