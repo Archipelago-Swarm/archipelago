@@ -31,6 +31,7 @@ class PyBullet3DAdapter:
         self.cid: int | None = None
         self.bodies: dict[str, int] = {}
         self.collisions = 0
+        self.target_z = HOVER_Z
         self._tick = self._seq = 0
         self._run_id = ""
 
@@ -48,6 +49,13 @@ class PyBullet3DAdapter:
             "emitted_at_utc": EPOCH + timedelta(seconds=self._tick),
             "sequence": self._seq,
         }
+
+    # Action.command is a fixed 2D literal, so takeoff/land are adapter-level (no new contract command).
+    def takeoff(self) -> None:
+        self.target_z = HOVER_Z
+
+    def land(self) -> None:
+        self.target_z = RADIUS
 
     def poses3d(self) -> dict[str, tuple[float, float, float]]:
         import pybullet as p
@@ -90,6 +98,7 @@ class PyBullet3DAdapter:
             for n in sorted(config.nodes, key=lambda n: n.node_id)
         }
         self._run_id, self._tick, self._seq, self.collisions = config.run_id, 0, 0, 0
+        self.target_z = HOVER_Z
         return {n: self._obs(n) for n in self.bodies}
 
     def step(self, actions: dict[str, Action]) -> StepResult:
@@ -103,7 +112,7 @@ class PyBullet3DAdapter:
             for n, b in self.bodies.items():
                 a = actions.get(n)
                 dx, dy = DIRS[a.command] if a else (0, 0)
-                vz = max(-SPEED, min(SPEED, 5 * (HOVER_Z - z[n])))
+                vz = max(-SPEED, min(SPEED, 5 * (self.target_z - z[n])))
                 p.resetBaseVelocity(b, (dx * SPEED, dy * SPEED, vz), physicsClientId=self.cid)
             p.stepSimulation(physicsClientId=self.cid)
             # drone-drone contacts only; the ground plane is not a collision metric

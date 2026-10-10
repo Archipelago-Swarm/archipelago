@@ -18,6 +18,14 @@ def test_3d_model_rejected_by_2d_learner_and_back() -> None:
         decode(encode(l2), l3)
 
 
+def test_adapter_encoder_models_rejected_by_2d_learner() -> None:
+    from archipelago_pybullet.adapter import ENCODER
+
+    l3 = Learner("a", 8, 5, encoder=ENCODER)
+    with pytest.raises(PeerError, match="incompatible encoder"):
+        decode(encode(l3), Learner("b", 8, 5))
+
+
 def test_headless_flight_and_collision_metric() -> None:
     pytest.importorskip("pybullet")
     from archipelago_pybullet import PyBullet3DAdapter
@@ -39,6 +47,15 @@ def test_headless_flight_and_collision_metric() -> None:
     assert p3["node-01"][0] > start["node-01"].x + 0.5  # actually moved
     assert ad.snapshot().poses.keys() == p3.keys() and len(res.observations) == 2
     assert ad.collisions == 0
+
+    ad.land()
+    for _ in range(20):
+        ad.step({})
+    assert all(z < 0.3 for _, _, z in ad.poses3d().values())
+    ad.takeoff()
+    for _ in range(20):
+        ad.step({})
+    assert all(z > 0.8 for _, _, z in ad.poses3d().values())
 
     # a drone parked on top of another must register a physics contact
     ad.reset(
