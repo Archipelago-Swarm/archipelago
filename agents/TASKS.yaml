@@ -1445,15 +1445,14 @@ tasks:
     and a deploy/rollback driver, all secrets from environment only, tested against fake HTTP and database
     endpoints. Enforces: max five account instances, $200/month projected, $100 cumulative ceiling, no
     create without an explicit approved plan file.'
-  state: QUEUED
+  state: CLAIMED
   priority: 2
-  owner: null
-  machine: null
-  branch: null
+  owner: A/wf-T34
+  machine: A
+  branch: agent/T34-vultr-and-tigerdata-operations-t
   created_at: '2026-10-10T19:40:00Z'
-  updated_at: '2026-10-10T19:40:00Z'
-  dependencies:
-  - T10
+  updated_at: '2026-10-10T19:24:33Z'
+  dependencies: []
   blocked_by: []
   owned_paths:
   - infra/vultr/**
@@ -1486,6 +1485,13 @@ tasks:
     same_failure_signature: 2
   last_good_commit: null
   artifacts: []
-  handoff_file: null
-  notes: No cloud call is made without VULTR_API_KEY. Tooling only; provisioning happens in T31 after
-    local readiness and approval.
+  handoff_file: agents/handoffs/T34/LATEST.md
+  notes: 'No cloud call is made without VULTR_API_KEY. Tooling only; provisioning happens in T31 after
+    local readiness and approval. Does not need T10 complete: it builds tooling, not the deployment.'
+  history:
+  - at: '2026-10-10T19:24:33Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: A/wf-T34
+    note: ''

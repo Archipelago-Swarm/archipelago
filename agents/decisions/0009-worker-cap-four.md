@@ -35,3 +35,7 @@ Restore the sentence in CONTRACT.md and the line in PROTOCOL.md.
 ## Status
 
 ACCEPTED (explicit operator authorization). Usage guard: pause new dispatch and report if a wave's measured model usage threatens the operator's credit budget; never switch to paid API billing automatically.
+
+## Amendment 2026-10-10 15:40 America/New_York
+
+The operator removed the numeric cap ("you may deploy as many workers as needed") on condition that model usage is planned across the roughly five-hour usage window. The cap is now the integrator's pacing decision under `agents/operations/token-budget.md` (plan, measured consumption, stop rules). The structural rules (disjoint owned paths, integrator-only shared files, required checks, no recursive fan-out, no automatic paid API fallback) are unchanged.
