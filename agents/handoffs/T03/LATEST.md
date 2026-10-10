@@ -37,3 +37,20 @@
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update (run 20261010T054510Z, round 2)
+
+- No check log was found locally; ran `ruff check`/`ruff format` on reserved paths: found 6 lint errors (B905 zip strict, E501, I, format). Fixed; ruff now clean, `pytest tests -q` -> 49 passed. Behaviour unchanged. mypy not run (config covers only contracts). Open items above (pettingzoo dep, start_pose, 900-tick scenario) still unresolved.
+
+## Supervisor checkpoint 2026-10-10T05:52:11Z
+
+- Run: 20261010T054510Z
+- Machine: A
+- Task/branch: T03 / agent/A/20261010T054510Z/T03
+- Base: 2d71e98ab484ca79eb22bfa3e23270cd1edb2f7c
+- Round: 2
+- State: in_progress
+- External check exit: 0
+- Independent review: {"pass": false, "issues": ["Acceptance check 1 is not met. PettingZoo parallel API compatibility is only duck-typed. pettingzoo and gymnasium are not installed, and tests/sim/test_sim.py::test_parallel_api_shape does not run PettingZoo's parallel_api_test. The handoff itself says this check is NOT met.", "Acceptance check 5 has weak evidence. The 'four-node 900-tick smoke run' ends early when all targets are found (about 66 ticks for seed 1). The test only caps at 900 and never asserts a run that uses the full 900 ticks. There is no larger scenario, for example more targets, that forces it.", "RunConfig.nodes[].start_pose is silently ignored (seeded random starts), so the adapter does not honor the config contract. The code marks this with a 'shortcut' comment. The reward spec is hard-coded constants and is not tied to the reward_id.", "The reserved paths are not covered by the workspace packaging, mypy or CI config. The tests rely on a conftest sys.path hack, so the external check's 7-file mypy scope and ruff pass do not cover the T03 code. This is a weak guarantee for human review.", "No replay re-execution test compares final_state_hash against a re-run. The Replay requirement is only evidenced by writing a manifest.", "The handoff still lists these open items. It was also not committed or pushed with the round-2 changes: git status shows modified files, and the contract requires the handoff to be pushed. The new handoff section is only a short 'worker update' that does not resolve the earlier open items."]}
+- Next issue: Acceptance check 1 is not met. PettingZoo parallel API compatibility is only duck-typed. pettingzoo and gymnasium are not installed, and tests/sim/test_sim.py::test_parallel_api_shape does not run PettingZoo's parallel_api_test. The handoff itself says this check is NOT met.; Acceptance check 5 has weak evidence. The 'four-node 900-tick smoke run' ends early when all targets are found (about 66 ticks for seed 1). The test only caps at 900 and never asserts a run that uses the full 900 ticks. There is no larger scenario, for example more targets, that forces it.; RunConfig.nodes[].start_pose is silently ignored (seeded random starts), so the adapter does not honor the config contract. The code marks this with a 'shortcut' comment. The reward spec is hard-coded constants and is not tied to the reward_id.; The reserved paths are not covered by the workspace packaging, mypy or CI config. The tests rely on a conftest sys.path hack, so the external check's 7-file mypy scope and ruff pass do not cover the T03 code. This is a weak guarantee for human review.; No replay re-execution test compares final_state_hash against a re-run. The Replay requirement is only evidenced by writing a manifest.; The handoff still lists these open items. It was also not committed or pushed with the round-2 changes: git status shows modified files, and the contract requires the handoff to be pushed. The new handoff section is only a short 'worker update' that does not resolve the earlier open items.
+- Resume: fetch this branch, inspect latest commit and continue the task card.

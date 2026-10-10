@@ -31,11 +31,22 @@ class Drone:
 
 
 class GridWorld:
-    def __init__(self, size: int = 16, n_agents: int = 4, n_targets: int = 3,
-                 obstacle_density: float = 0.12, sense_radius: int = 2, max_ticks: int = 900,
-                 battery_scale: float = 1.0):
+    def __init__(
+        self,
+        size: int = 16,
+        n_agents: int = 4,
+        n_targets: int = 3,
+        obstacle_density: float = 0.12,
+        sense_radius: int = 2,
+        max_ticks: int = 900,
+        battery_scale: float = 1.0,
+    ):
         self.size, self.n_targets, self.radius = size, n_targets, sense_radius
-        self.density, self.max_ticks, self.battery_scale = obstacle_density, max_ticks, battery_scale
+        self.density, self.max_ticks, self.battery_scale = (
+            obstacle_density,
+            max_ticks,
+            battery_scale,
+        )
         self.possible_agents = [f"node-{i}" for i in range(n_agents)]
         self.agents: list[str] = []
         self.action_spaces = {a: len(ACTIONS) for a in self.possible_agents}
@@ -86,11 +97,17 @@ class GridWorld:
     def observe(self, a: str) -> dict:
         """Local view only: crop/mask come from this node's own buffer, never the hidden world."""
         d, r = self.drones[a], self.radius
-        crop = [[d.known.get((d.pos[0] + dx, d.pos[1] + dy), UNKNOWN) for dx in range(-r, r + 1)]
-                for dy in range(-r, r + 1)]
-        return {"crop": crop, "known_mask": [[v != UNKNOWN for v in row] for row in crop],
-                "pose": d.pos, "battery": min(1.0, max(0.0, d.battery)),
-                "visible_markers": sorted(d.found)}
+        crop = [
+            [d.known.get((d.pos[0] + dx, d.pos[1] + dy), UNKNOWN) for dx in range(-r, r + 1)]
+            for dy in range(-r, r + 1)
+        ]
+        return {
+            "crop": crop,
+            "known_mask": [[v != UNKNOWN for v in row] for row in crop],
+            "pose": d.pos,
+            "battery": min(1.0, max(0.0, d.battery)),
+            "visible_markers": sorted(d.found),
+        }
 
     def step(self, actions: dict[str, str | None]):
         if not self.agents:
@@ -103,8 +120,13 @@ class GridWorld:
             c = actions.get(a)
             if c not in ACTIONS:  # invalid or missing (node timeout) -> stay
                 rewards[a] += R_INVALID
-                ev.append({"tick": self.tick, "node": a,
-                           "event": "missing_action" if c is None else "invalid_action"})
+                ev.append(
+                    {
+                        "tick": self.tick,
+                        "node": a,
+                        "event": "missing_action" if c is None else "invalid_action",
+                    }
+                )
                 c = "stay"
             cmds[a] = c
         pos = {a: self.drones[a].pos for a in self.agents}
@@ -119,8 +141,13 @@ class GridWorld:
             blocked = set()
             for a in self.agents:
                 for b in self.agents:
-                    if a < b and want[a] == want[b] or (a != b and want[a] == pos[b]
-                                                         and want[b] == pos[a] and want[a] != pos[a]):
+                    if (
+                        a < b
+                        and want[a] == want[b]
+                        or (
+                            a != b and want[a] == pos[b] and want[b] == pos[a] and want[a] != pos[a]
+                        )
+                    ):
                         blocked |= {a, b}
                     if a != b and want[a] != pos[a] and want[a] == want[b] == pos[b]:
                         blocked.add(a)
@@ -135,7 +162,7 @@ class GridWorld:
         for a in self.agents:
             d = self.drones[a]
             d.pos = want[a]
-            d.battery -= (STAY_COST if cmds[a] == "stay" else MOVE_COST)
+            d.battery -= STAY_COST if cmds[a] == "stay" else MOVE_COST
             rewards[a] += R_NEW_CELL * self._sense(a)
             self.found_targets |= d.found
         for _ in self.found_targets - before:
@@ -147,8 +174,13 @@ class GridWorld:
             if not self.drones[a].alive:
                 ev.append({"tick": self.tick, "node": a, "event": "energy_exhausted"})
         trunc = {a: self.tick >= self.max_ticks and not terms[a] for a in self.agents}
-        out = ({a: self.observe(a) for a in self.agents}, rewards, terms, trunc,
-               {a: {} for a in self.agents})
+        out = (
+            {a: self.observe(a) for a in self.agents},
+            rewards,
+            terms,
+            trunc,
+            {a: {} for a in self.agents},
+        )
         self.agents = [a for a in self.agents if not (terms[a] or trunc[a])]
         return out
 
@@ -159,11 +191,16 @@ class GridWorld:
 
     def world_state(self) -> dict:
         """Privileged snapshot (hidden cells included). Never hand to a node."""
-        return {"tick": self.tick, "size": self.size, "obstacles": sorted(self.obstacles),
-                "targets": self.targets, "found": sorted(self.found_targets),
-                "poses": {a: d.pos for a, d in self.drones.items()},
-                "battery": {a: round(d.battery, 6) for a, d in self.drones.items()},
-                "coverage": self.coverage}
+        return {
+            "tick": self.tick,
+            "size": self.size,
+            "obstacles": sorted(self.obstacles),
+            "targets": self.targets,
+            "found": sorted(self.found_targets),
+            "poses": {a: d.pos for a, d in self.drones.items()},
+            "battery": {a: round(d.battery, 6) for a, d in self.drones.items()},
+            "coverage": self.coverage,
+        }
 
     def trace_hash(self) -> str:
         return hashlib.sha256(json.dumps(self.world_state(), sort_keys=True).encode()).hexdigest()
@@ -174,6 +211,9 @@ def explorer_policy(obs: dict, visits: dict, rng: random.Random) -> str:
     r = len(obs["crop"]) // 2
     px, py = obs["pose"]
     visits[(px, py)] = visits.get((px, py), 0) + 1
-    opts = [(visits.get((px + dx, py + dy), 0), rng.random(), name)
-            for name, (dx, dy) in list(DELTA.items())[1:] if obs["crop"][r + dy][r + dx] == FREE]
+    opts = [
+        (visits.get((px + dx, py + dy), 0), rng.random(), name)
+        for name, (dx, dy) in list(DELTA.items())[1:]
+        if obs["crop"][r + dy][r + dx] == FREE
+    ]
     return min(opts)[2] if opts else "stay"

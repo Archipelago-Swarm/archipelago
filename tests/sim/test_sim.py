@@ -23,7 +23,12 @@ def test_local_observation_hides_world():
     w = GridWorld()
     for o in w.reset(1).values():
         assert set(o) == {"crop", "known_mask", "pose", "battery", "visible_markers"}
-        hidden = [v for row, m in zip(o["crop"], o["known_mask"]) for v, k in zip(row, m) if not k]
+        hidden = [
+            v
+            for r, m in zip(o["crop"], o["known_mask"], strict=True)
+            for v, k in zip(r, m, strict=True)
+            if not k
+        ]
         assert all(v == -1 for v in hidden)
 
 
