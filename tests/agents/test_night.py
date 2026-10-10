@@ -89,7 +89,9 @@ class NightUnitTests(unittest.TestCase):
                 with self.assertRaisesRegex(night.NightError, "already locked"):
                     with night.machine_lock("A"):
                         pass
-            self.assertFalse((Path(temporary) / "A.lock").exists())
+            # The marker file may remain; the OS lock is released after exit.
+            with night.machine_lock("A"):
+                pass
 
     def test_path_audit_rejects_unreserved_edits(self) -> None:
         task = {"id": "T04", "paths": ["services/api/", "tests/api/"]}

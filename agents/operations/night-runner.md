@@ -1,5 +1,9 @@
 # Run the two-computer overnight loop
 
+For the continuing A/B driver with automatic process restart and report retry,
+use [driver recovery](driver-recovery.md). The commands below describe a
+single bounded `night.py` run.
+
 This is the executable T02 runner, built around [Loop Engineering](https://blakecrosley.com/guides/loop-engineering): a fresh coding session per bounded slice; task state in Git; machine checks and a fresh read-only reviewer outside the coding session; a deadline, round cap, and per-machine task ownership. It runs one coding worker at a time **on each computer**, so A and B work in parallel. The task plan is fixed for a run. It never merges branches or deploys to Vultr.
 
 ## Required before launching
@@ -40,5 +44,7 @@ Usage/rate errors cause waits outside the model. The runner uses a reported UTC 
 ## Morning review
 
 Read `.agent-runtime/reports/<run-id>-A.md` and `-B.md` locally, or the same reports on the pushed `agent/A/<run-id>/report` and `agent/B/<run-id>/report` branches. Each task also has a pushed `agent/<machine>/<run-id>/<task-id>` branch with `agents/handoffs/<task-id>/LATEST.md`. The integrator reviews checks and diffs against current main, opens/merges suitable PRs, then updates the task board. Keep blocked branches and local logs for recovery.
+
+After integration, A archives report Markdown on `main` and prunes only redundant generated refs according to [branch-cleanup.md](branch-cleanup.md). The cleanup command defaults to a preview; unfinished work and the active assignment remain available for recovery.
 
 The separate design run configuration (`run-config.example.json`) describes future resource limits; the current executable launcher takes its essential limits through CLI flags and the fixed plan. Do not assume editing that example changes a live run.

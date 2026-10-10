@@ -1,0 +1,345 @@
+{
+ "config": {
+  "args": {
+   "seeds": 12,
+   "episodes": 150,
+   "modes": [
+    "rule",
+    "idle",
+    "independent",
+    "information_only",
+    "p2p",
+    "central_online",
+    "ctde"
+   ],
+   "scenarios": [
+    "connected",
+    "split",
+    "rejoin",
+    "node_failure"
+   ],
+   "out": "agents/handoffs/T09/evidence"
+  },
+  "val": [
+   100000,
+   100001,
+   100002,
+   100003
+  ],
+  "test": [
+   200000,
+   200001,
+   200002,
+   200003,
+   200004,
+   200005
+  ],
+  "rerun": {
+   "env": {
+    "PYTHONPATH": "packages/learning;packages/sim"
+   },
+   "argv": [
+    "C:\\Users\\tient\\.codex\\.chatgpt-projects\\g-p-6ac956ec30c481919651706ebe8ec05b\\archipelago\\.agent-runtime\\worktrees\\20261010T143523Z\\T09\\.venv\\Scripts\\python.exe",
+    "experiments/run.py",
+    "--seeds",
+    "12",
+    "--episodes",
+    "150",
+    "--out",
+    "agents/handoffs/T09/evidence"
+   ]
+  },
+  "train_env_steps": 1724950,
+  "note": "n=12 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0."
+ },
+ "paired_vs_independent": [
+  {
+   "scenario": "connected",
+   "mode": "central_online",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 2.836805555555561,
+   "ci95": [
+    -2.019444444444448,
+    7.996388888888897
+   ],
+   "wins": 7
+  },
+  {
+   "scenario": "connected",
+   "mode": "ctde",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 1.783611111111114,
+   "ci95": [
+    -1.9562500000000025,
+    6.081666666666673
+   ],
+   "wins": 7
+  },
+  {
+   "scenario": "connected",
+   "mode": "idle",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 4.3038888888889,
+   "ci95": [
+    0.8518055555555645,
+    7.850416666666682
+   ],
+   "wins": 10
+  },
+  {
+   "scenario": "connected",
+   "mode": "information_only",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 1.90027777777778,
+   "ci95": [
+    -1.8274999999999988,
+    5.922916666666674
+   ],
+   "wins": 7
+  },
+  {
+   "scenario": "connected",
+   "mode": "p2p",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 5.320416666666672,
+   "ci95": [
+    1.948333333333334,
+    8.89319444444445
+   ],
+   "wins": 10
+  },
+  {
+   "scenario": "connected",
+   "mode": "rule",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 14.312916666666672,
+   "ci95": [
+    10.75444444444445,
+    17.94069444444445
+   ],
+   "wins": 12
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "central_online",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 0.0458333333333385,
+   "ci95": [
+    -1.488749999999997,
+    1.6390972222222275
+   ],
+   "wins": 7
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "ctde",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": -1.8838194444444427,
+   "ci95": [
+    -2.8454166666666687,
+    -0.9724999999999971
+   ],
+   "wins": 1
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "idle",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 0.0458333333333385,
+   "ci95": [
+    -1.488749999999997,
+    1.6390972222222275
+   ],
+   "wins": 7
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "information_only",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": -3.538888888888888,
+   "ci95": [
+    -5.781736111111112,
+    -0.7371527777777769
+   ],
+   "wins": 2
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "p2p",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": -0.19645833333333437,
+   "ci95": [
+    -2.7012500000000013,
+    2.4837500000000006
+   ],
+   "wins": 6
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "rule",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 14.246805555555556,
+   "ci95": [
+    12.48604166666667,
+    16.167708333333337
+   ],
+   "wins": 12
+  },
+  {
+   "scenario": "rejoin",
+   "mode": "central_online",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 0.16166666666666854,
+   "ci95": [
+    -4.1405555555555535,
+    4.762916666666669
+   ],
+   "wins": 5
+  },
+  {
+   "scenario": "rejoin",
+   "mode": "ctde",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 1.783611111111114,
+   "ci95": [
+    -1.9562500000000025,
+    6.081666666666673
+   ],
+   "wins": 7
+  },
+  {
+   "scenario": "rejoin",
+   "mode": "idle",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 4.3038888888889,
+   "ci95": [
+    0.8518055555555645,
+    7.850416666666682
+   ],
+   "wins": 10
+  },
+  {
+   "scenario": "rejoin",
+   "mode": "information_only",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 4.332083333333338,
+   "ci95": [
+    0.3013888888888921,
+    8.917222222222229
+   ],
+   "wins": 7
+  },
+  {
+   "scenario": "rejoin",
+   "mode": "p2p",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 4.458611111111117,
+   "ci95": [
+    0.5973611111111172,
+    8.441666666666672
+   ],
+   "wins": 9
+  },
+  {
+   "scenario": "rejoin",
+   "mode": "rule",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 14.312916666666672,
+   "ci95": [
+    10.75444444444445,
+    17.94069444444445
+   ],
+   "wins": 12
+  },
+  {
+   "scenario": "split",
+   "mode": "central_online",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 4.3038888888889,
+   "ci95": [
+    0.8518055555555645,
+    7.850416666666682
+   ],
+   "wins": 10
+  },
+  {
+   "scenario": "split",
+   "mode": "ctde",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 1.783611111111114,
+   "ci95": [
+    -1.9562500000000025,
+    6.081666666666673
+   ],
+   "wins": 7
+  },
+  {
+   "scenario": "split",
+   "mode": "idle",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 4.3038888888889,
+   "ci95": [
+    0.8518055555555645,
+    7.850416666666682
+   ],
+   "wins": 10
+  },
+  {
+   "scenario": "split",
+   "mode": "information_only",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "wins": 0
+  },
+  {
+   "scenario": "split",
+   "mode": "p2p",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "wins": 0
+  },
+  {
+   "scenario": "split",
+   "mode": "rule",
+   "vs": "independent",
+   "n": 12,
+   "mean_diff": 14.312916666666672,
+   "ci95": [
+    10.75444444444445,
+    17.94069444444445
+   ],
+   "wins": 12
+  }
+ ]
+}
