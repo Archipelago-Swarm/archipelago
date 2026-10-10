@@ -71,7 +71,7 @@ RESERVING = {"CLAIMED", "ACTIVE"}
 LEDGER_ONLY_PATHS = {"agents/TASKS.yaml"}
 CLAIM_TTL_MINUTES = 60
 ACTIVE_TTL_MINUTES = 180
-MAX_WORKERS_PER_MACHINE = 2
+MAX_WORKERS_PER_MACHINE = 3
 OVERSIZED_PATTERNS = 6
 OVERSIZED_ASSERTIONS = 7
 FAILURE_KINDS = ["test_failure", "build_failure", "integration_failure"]
@@ -1080,7 +1080,7 @@ def build_parser() -> argparse.ArgumentParser:
     v0.set_defaults(fn=cmd_validate)
     sub.add_parser("status").set_defaults(fn=cmd_status)
     n = sub.add_parser("next")
-    n.add_argument("--machine", choices=["A", "B"])
+    n.add_argument("--machine", choices=["A", "B", "cloud"])
     n.add_argument("--limit", type=int, default=3)
     n.set_defaults(fn=cmd_next)
     for name, fn in (("reap", cmd_reap), ("stalls", cmd_stalls)):
@@ -1091,7 +1091,7 @@ def build_parser() -> argparse.ArgumentParser:
             sp.add_argument("--dry-run", action="store_true")
         sp.set_defaults(fn=fn)
     pl = sub.add_parser("plan")
-    pl.add_argument("--machine", required=True, choices=["A", "B"])
+    pl.add_argument("--machine", default="cloud", choices=["A", "B", "cloud"])
     pl.add_argument("--slots", type=int, default=MAX_WORKERS_PER_MACHINE)
     pl.set_defaults(fn=cmd_plan)
     d = sub.add_parser("deps")
@@ -1101,7 +1101,7 @@ def build_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("claim")
     c.add_argument("task")
     c.add_argument("--owner", required=True)
-    c.add_argument("--machine", required=True, choices=["A", "B"])
+    c.add_argument("--machine", default="cloud", choices=["A", "B", "cloud"])
     c.add_argument("--branch")
     c.set_defaults(fn=cmd_claim)
 
@@ -1145,7 +1145,7 @@ def build_parser() -> argparse.ArgumentParser:
     i = sub.add_parser("integrate-fail")
     i.add_argument("task")
     i.add_argument("--signature", required=True)
-    i.add_argument("--machine", required=True, choices=["A", "B"])
+    i.add_argument("--machine", default="cloud", choices=["A", "B", "cloud"])
     i.set_defaults(fn=cmd_integrate_fail)
 
     k = sub.add_parser("complete")
@@ -1153,7 +1153,7 @@ def build_parser() -> argparse.ArgumentParser:
     k.add_argument(
         "--commit", required=True, help="integration (merge) commit on the integration branch"
     )
-    k.add_argument("--machine", required=True, choices=["A", "B"])
+    k.add_argument("--machine", default="cloud", choices=["A", "B", "cloud"])
     k.set_defaults(fn=cmd_complete)
 
     e = sub.add_parser("log-event")

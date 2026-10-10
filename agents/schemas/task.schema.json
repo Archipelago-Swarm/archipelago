@@ -14,7 +14,7 @@
     "state": {"enum": ["QUEUED", "CLAIMED", "ACTIVE", "BLOCKED", "REVIEW", "INTEGRATION", "COMPLETE", "FAILED"]},
     "priority": {"type": "integer", "minimum": 0, "maximum": 9, "description": "0 is most urgent"},
     "owner": {"type": ["string", "null"], "description": "agent/worker id, e.g. B/network-worker-1"},
-    "machine": {"enum": ["A", "B", null], "description": "QUEUED: preferred machine (null = any). Otherwise the machine that holds the claim."},
+    "machine": {"enum": ["A", "B", "cloud", null], "description": "QUEUED: preferred machine (null = any). Otherwise the pool that holds the claim. 'cloud' is the single pool of Claude cloud sessions; A and B are legacy labels."},
     "branch": {"type": ["string", "null"], "pattern": "^(agent|claude)/[A-Za-z0-9._/-]+$"},
     "created_at": {"type": "string", "format": "date-time"},
     "updated_at": {"type": "string", "format": "date-time"},

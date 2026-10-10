@@ -97,7 +97,7 @@ def pick_work(
                 return "worker", t
     else:
         for t in mine:
-            if not t["owner"] or not t["owner"].endswith(("/w1", "/w2")):
+            if not t["owner"] or not t["owner"].endswith(("/w1", "/w2", "/w3")):
                 return "worker", t
     if not slot:
         if holds(roles, "integrator", machine):
@@ -130,7 +130,7 @@ def prompt_for(role: str, task: dict[str, Any], machine: str) -> str:
         return (
             f"{COMMON}You are the VERIFIER for {tid}. Do not modify implementation code. Follow PROTOCOL "
             f"section 7 at commit {task['last_good_commit']}: run every acceptance command, write "
-            f"agents/handoffs/{tid}/VERIFICATION.yaml on the task branch, push it, then run "
+            f"agents/handoffs/{tid}/VERIFICATION.yaml on the task branch (verifier: {machine}/verifier), push it, then run "
             f"`controller.py --remote verify {tid}`."
         )
     return (
@@ -525,6 +525,15 @@ def cmd_stop(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prompt(a: argparse.Namespace) -> int:
+    """Print the session prompt for a task. Cloud orchestrators pass it to create_session."""
+    ctl.REMOTE = a.remote
+    ctl.git_out("fetch", "-q", "origin", a.remote)
+    task = ctl.get_task(ctl.load_ledger(), a.task)
+    print(prompt_for(a.role, task, a.machine))
+    return 0
+
+
 def cmd_pick(a: argparse.Namespace) -> int:
     ctl.REMOTE = a.remote
     ctl.git_out("fetch", "-q", "origin", a.remote)
@@ -571,15 +580,22 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     def common(sp: argparse.ArgumentParser) -> None:
-        sp.add_argument("--machine", required=True, choices=["A", "B"])
+        sp.add_argument("--machine", default="cloud", choices=["A", "B", "cloud"])
         sp.add_argument("--remote", default="main", help="ledger branch on origin (default main)")
 
     for name in ("pick", "status", "stop"):
         common(sub.add_parser(name))
+    pr = sub.add_parser("prompt")
+    common(pr)
+    pr.add_argument("role", choices=["worker", "verifier", "integrator"])
+    pr.add_argument("task")
+    pr.set_defaults(fn=cmd_prompt)
     t = sub.add_parser("tick")
     common(t)
     t.add_argument("--slice-minutes", type=int, default=30)
-    t.add_argument("--slot", choices=["w1", "w2"], help="parallel worker slot (worker/claim only)")
+    t.add_argument(
+        "--slot", choices=["w1", "w2", "w3"], help="parallel worker slot (worker/claim only)"
+    )
     t.add_argument("--claude-arg", action="append", default=[])
     t.add_argument("--dry-run", action="store_true")
     s = sub.add_parser("start")
@@ -613,6 +629,7 @@ def main(argv: list[str] | None = None) -> int:
             "stop": cmd_stop,
             "pick": cmd_pick,
             "tick": cmd_tick,
+            "prompt": cmd_prompt,
             "schedule": cmd_schedule,
         }[a.cmd]
         return int(handler(a))

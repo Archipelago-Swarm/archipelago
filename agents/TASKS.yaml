@@ -364,7 +364,7 @@ tasks:
   state: QUEUED
   priority: 6
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T00:21:46Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -471,7 +471,7 @@ tasks:
   state: QUEUED
   priority: 1
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -515,7 +515,7 @@ tasks:
   state: QUEUED
   priority: 2
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -558,7 +558,7 @@ tasks:
   state: QUEUED
   priority: 1
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -595,7 +595,7 @@ tasks:
   state: QUEUED
   priority: 3
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -641,7 +641,7 @@ tasks:
   state: QUEUED
   priority: 4
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -684,7 +684,7 @@ tasks:
   state: QUEUED
   priority: 5
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -718,7 +718,7 @@ tasks:
   state: QUEUED
   priority: 1
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -761,7 +761,7 @@ tasks:
   state: QUEUED
   priority: 3
   owner: null
-  machine: B
+  machine: null
   branch: null
   created_at: '2026-10-10T18:30:00Z'
   updated_at: '2026-10-10T18:30:00Z'
@@ -852,10 +852,10 @@ tasks:
   notes: 'Dogfooded: bootstrap enters the ledger at REVIEW, not COMPLETE. Needs verifier/human PASS and
     a green CI run.'
 - id: T23
-  name: Live trial of the launcher on A and B
-  description: 'Run launch.py on two real machines: one worker task claimed by A and done by B''s loop,
-    verified, integrated; confirm claude flags, ledger push permissions, status/STALLED behavior and count
-    every human touch with log-event.'
+  name: Live trial of the launcher in cloud sessions
+  description: 'Run launch.py in Claude cloud sessions (no machines A/B): a routine ticks, one worker
+    slot claims and finishes a task, a slot-less tick verifies and integrates it; confirm the nested `claude
+    -p` flags, ledger push permission, STOP/limit behavior and count every human touch with log-event.'
   state: QUEUED
   priority: 1
   owner: null
@@ -866,8 +866,8 @@ tasks:
   dependencies:
   - T22
   blocked_by:
-  - human:two machines with authenticated Claude Code and push access, plus a decision on ledger-branch
-    protection
+  - human:decision on ledger-branch protection (allow ledger-only commits to main from the agents, or
+    name a dedicated ledger branch)
   owned_paths:
   - agents/launch.py
   - tests/agents/test_launch.py
@@ -879,13 +879,14 @@ tasks:
     - command: uv run pytest tests/agents -q
       expected_exit_code: 0
       tier: fast
-    - command: python3 agents/launch.py status --machine A
+    - command: python3 agents/launch.py status --machine cloud
       expected_exit_code: 0
       tier: integration
     assertions:
-    - description: One task goes QUEUED to COMPLETE through loops on both machines with at most the human
-        steps listed in the blocker.
-    - description: A killed loop shows DEAD or STALLED in status and the next start resumes it.
+    - description: One task goes QUEUED to COMPLETE through routine-driven ticks in cloud sessions with
+        at most the human steps listed in the blocker.
+    - description: A tick that times out or hits a provider limit leaves the ledger consistent and the
+        next tick resumes from repository state.
   retry_policy:
     test_failure: 5
     build_failure: 3
@@ -962,7 +963,7 @@ tasks:
   state: QUEUED
   priority: 2
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T19:30:00Z'
@@ -1009,7 +1010,7 @@ tasks:
   state: QUEUED
   priority: 1
   owner: null
-  machine: A
+  machine: null
   branch: agent/T26-pytorch-cpu-learner-with-peer-pr
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T20:32:10Z'
@@ -1126,7 +1127,7 @@ tasks:
   state: QUEUED
   priority: 1
   owner: null
-  machine: A
+  machine: null
   branch: agent/T28-simulation-coordinator-service
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T20:32:10Z'
@@ -1193,7 +1194,7 @@ tasks:
   state: QUEUED
   priority: 2
   owner: null
-  machine: A
+  machine: null
   branch: null
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T19:30:00Z'

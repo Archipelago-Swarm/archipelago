@@ -41,6 +41,10 @@ On the current ledger: runnable tasks go from 1 to 4 (T14, T16, T19, T24); T26 a
 
 Revert the commit; ledger files are unchanged in shape (new `claim_expired` history events are ignored by old code).
 
+## Addendum: cloud-only deployment (operator, 2026-10-10)
+
+Machines A and B no longer exist; all agents are Claude cloud sessions. Roles are held by the `cloud` pool (`"*"`), `machine` accepts `cloud`, `--machine` defaults to `cloud`, QUEUED tasks lost their machine preference, worker cap is 3 for the pool, `launch.py prompt` lets an orchestrator session dispatch via `create_session`, and T23 is retargeted to a cloud trial (its two-machine human gate is replaced by the ledger-branch protection decision).
+
 ## Not changed (needs a human)
 
-T10/T31 spend and credentials, T18 public-contract change (Pose.z, takeoff/land), T23 two real machines and ledger-branch protection. Proposed defaults: T18 accept ADR-0002 option "z is optional, default 0, takeoff/land additive commands"; T23 allow ledger-only commits from the agents' identity on `main`.
+T10/T31 spend and credentials, T18 public-contract change (Pose.z, takeoff/land), T23 ledger-branch protection. Proposed defaults: T18 accept ADR-0002 option "z is optional, default 0, takeoff/land additive commands"; T23 allow ledger-only commits from the agents' identity on `main`.
