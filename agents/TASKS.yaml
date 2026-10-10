@@ -1223,10 +1223,11 @@ tasks:
   created_at: '2026-10-10T19:30:00Z'
   updated_at: '2026-10-10T19:30:00Z'
   dependencies:
+  - T17
   - T27
   - T28
-  - T17
   - T32
+  - T38
   blocked_by: []
   owned_paths:
   - experiments/**
@@ -1649,3 +1650,103 @@ tasks:
     to: CLAIMED
     by: codex/T36
     note: ''
+- id: T37
+  name: Pre-registered observation/reward/schedule variant study (offline)
+  description: Implement the versioned variants proposed by experiments/diagnosis/idle_vs_learners.md
+    (obs grid-flat-v2-visits, reward rew-v1, epsilon schedule, lr, replay size, double DQN) in the simulator
+    and the NumPy harness, pre-register the config grid, select ONLY on training and validation seeds,
+    and record the choice with its evidence so the live runtime can adopt it.
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:35:00Z'
+  updated_at: '2026-10-10T20:35:00Z'
+  dependencies:
+  - T32
+  - T28
+  blocked_by: []
+  owned_paths:
+  - packages/sim/**
+  - experiments/**
+  - tests/experiments/**
+  - tests/simvariants/**
+  contracts:
+  - experiments/diagnosis/idle_vs_learners.md
+  - agents/architecture/evaluation.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/experiments tests/simvariants -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: 'New ids are additive: grid-flat-v0 and rew-v0 remain bit-identical (regression tests);
+        new observation and reward versions have unit tests, and idle no longer earns free spawn-time
+        targets under rew-v1.'
+    - description: 'The variant grid and selection rule are written to a pre-registration file with a
+        hash BEFORE any selection run; selection uses train and validation seeds only (asserted: no test
+        seed appears in any selection manifest).'
+    - description: The selected variant helps independent learners first (return and revisit/collision
+        rates versus idle and rule on validation seeds with >= 10 experiment seeds); the result, including
+        variants that did not help, is reported with paired intervals.
+    - description: The selected observation exposes a node-local visit signal computed from the node's
+        own pose history and from shared visited-cell summaries, so information sharing is visible to
+        the policy; a test proves info_only differs from independent under that observation.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Gate for T38. If no variant lifts independent learners above the idle floor, report that honestly
+    and proceed with the best variant labeled as such.
+- id: T38
+  name: Adopt the selected variant in the PyTorch live runtime
+  description: Port the T37-selected observation (node-computed local visit memory plus shared visited-cell
+    summaries as the non-model information message), reward version and learner schedule into encoder.py,
+    TorchLearner and the coordinator plan; versioned ids end to end; regression checks against NumPy results.
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:35:00Z'
+  updated_at: '2026-10-10T20:35:00Z'
+  dependencies:
+  - T27
+  - T37
+  blocked_by: []
+  owned_paths:
+  - packages/node/runtime/**
+  - tests/noderuntime/**
+  - packages/learning/**
+  - tests/learning/**
+  - services/coordinator/**
+  - tests/coordinator/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  - experiments/diagnosis/idle_vs_learners.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/noderuntime tests/learning tests/coordinator -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: The node builds the selected observation from its own history and received summaries
+        only; no privileged world state is read (tested).
+    - description: Encoder id, reward id and schedule are recorded in every model compatibility header
+        and run manifest; mismatched peers reject candidates with a named reason.
+    - description: The info message is the single non-model information channel for modes 4 and 5, carries
+        no parameters, and is bounded and schedule-cut like model offers.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Serialized after T27 and T37 because it edits the same packages.

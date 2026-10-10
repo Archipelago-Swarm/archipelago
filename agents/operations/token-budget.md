@@ -20,9 +20,10 @@ Large implementation tasks (learner, node runtime, coordinator) are heavier than
 | T29 live integration (API, compose, e2e) | up to 4 | 0.6M |
 | T30 pilot and sweep protocol | up to 4 | 0.6M |
 | Bootstrap/agreement verification, T25, ledger housekeeping | up to 4 | 0.3M |
+| T37 variant study, T38 live adoption | up to 6 | 0.7M |
 | Repair and CI-fix reserve | - | 0.6M |
 | Deployment (T31) and evidence | up to 3 | 0.4M |
-| Total planned | | about 4.5M |
+| Total planned | | about 5.2M |
 
 The integrator session itself is the other consumer; keep its own turns short and avoid re-reading large logs.
 
@@ -34,3 +35,7 @@ The integrator session itself is the other consumer; keep its own turns short an
 4. One bounded repair round per task before the integrator decides; a second repair only for a defect that blocks the critical path.
 5. Durable state first: every task has a handoff and a ledger entry, branches are pushed at milestones, so a provider rate limit pauses work and a fresh session resumes from the repository. On a confirmed rate limit stop dispatching, commit state, and wait outside the model for the reported reset; never switch to paid API billing.
 6. If the critical path (T26 -> T27 -> T29 -> T30) is at risk, spend on it first: cut T33 polish, T25, T17 and the second Vultr host before cutting T26-T30 verification.
+
+## Measured after wave 2 (T32/T33/T34)
+
+8 agents, about 757k subagent tokens (about 95k per agent); 201 tool uses; 23 minutes wall. Cumulative subagent tokens this session: about 1.6M plus the still-running T26/T27/T28 chains.
