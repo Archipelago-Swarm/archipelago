@@ -1,0 +1,33 @@
+{
+  "uid": "archipelago-run",
+  "title": "Archipelago run",
+  "schemaVersion": 39,
+  "time": {"from": "now-6h", "to": "now"},
+  "templating": {"list": [{
+    "name": "run", "type": "query", "label": "run",
+    "datasource": {"type": "grafana-postgresql-datasource", "uid": "tigerdata"},
+    "query": "SELECT run_id FROM runs ORDER BY started_at DESC",
+    "refresh": 2
+  }]},
+  "panels": [
+    {"id": 1, "type": "timeseries", "title": "Coverage", "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+     "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+     "datasource": {"type": "grafana-postgresql-datasource", "uid": "tigerdata"},
+     "targets": [{"refId": "A", "format": "time_series", "rawQuery": true, "editorMode": "code",
+       "rawSql": "SELECT ts AS time, node_id AS metric, value FROM metrics WHERE run_id = '$run' AND name = 'coverage_ratio' AND $__timeFilter(ts) ORDER BY ts"}]},
+    {"id": 2, "type": "timeseries", "title": "Transfer", "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+     "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+     "datasource": {"type": "grafana-postgresql-datasource", "uid": "tigerdata"},
+     "targets": [{"refId": "A", "format": "time_series", "rawQuery": true, "editorMode": "code",
+       "rawSql": "SELECT ts AS time, node_id AS metric, value FROM metrics WHERE run_id = '$run' AND name = 'transfer_bytes' AND $__timeFilter(ts) ORDER BY ts"}]},
+    {"id": 3, "type": "timeseries", "title": "Latency", "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+     "fieldConfig": {"defaults": {"unit": "ms"}, "overrides": []},
+     "datasource": {"type": "grafana-postgresql-datasource", "uid": "tigerdata"},
+     "targets": [{"refId": "A", "format": "time_series", "rawQuery": true, "editorMode": "code",
+       "rawSql": "SELECT ts AS time, node_id AS metric, value FROM metrics WHERE run_id = '$run' AND name = 'latency_ms' AND $__timeFilter(ts) ORDER BY ts"}]},
+    {"id": 4, "type": "table", "title": "Failures and dropped rows", "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+     "datasource": {"type": "grafana-postgresql-datasource", "uid": "tigerdata"},
+     "targets": [{"refId": "A", "format": "table", "rawQuery": true, "editorMode": "code",
+       "rawSql": "SELECT ts AS time, node_id, kind, payload FROM events WHERE run_id = '$run' AND kind LIKE '%fail%' AND $__timeFilter(ts) UNION ALL SELECT ts, 'writer', kind, jsonb_build_object('dropped', dropped) FROM dropped_metrics WHERE run_id = '$run' ORDER BY 1 DESC"}]}
+  ]
+}

@@ -1,0 +1,23 @@
+# Local profile: docker compose -f observability/docker-compose.yml up
+# Local-only credentials; production uses TIGERDATA_URL with sslmode=require.
+services:
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: archipelago
+      POSTGRES_PASSWORD: local-dev-only
+      POSTGRES_DB: archipelago
+    ports: ["127.0.0.1:5432:5432"]
+  grafana:
+    image: grafana/grafana:11.2.0
+    depends_on: [timescaledb]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: local-dev-only
+      TIGERDATA_GRAFANA_HOST: timescaledb:5432
+      TIGERDATA_GRAFANA_SSLMODE: disable
+      TIGERDATA_GRAFANA_USER: archipelago
+      TIGERDATA_GRAFANA_PASSWORD: local-dev-only
+    ports: ["127.0.0.1:3000:3000"]
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
