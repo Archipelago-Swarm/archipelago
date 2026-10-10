@@ -2,14 +2,18 @@ export type Source = "fixture" | "live" | "replay";
 export type Conn = "connected" | "disconnected";
 
 // Stale state must never read as live: any non-connected live stream is labelled stale.
-export function sourceLabel(source: Source, conn: Conn): string {
+export const commandsDisabled = (source: Source, conn: Conn, status?: string): boolean => source !== "live" || conn !== "connected" || isTerminal(status);
+export const isTerminal = (status?: string): boolean => !!status && ["completed", "failed", "interrupted"].includes(status);
+
+export function sourceLabel(source: Source, conn: Conn, status?: string): string {
   if (source === "fixture") return "FIXTURE (not a live run)";
   if (source === "replay") return "REPLAY";
+  if (conn === "connected" && isTerminal(status)) return `${status!.toUpperCase()} (not live)`;
   return conn === "connected" ? "LIVE" : "DISCONNECTED (no live data)";
 }
 
 import type { LearningEvent, WorldSnapshot } from "@archipelago/contracts";
-export interface Live { snap: WorldSnapshot | null; conn: Conn; learning?: Record<string, LearningEvent> }
+export interface Live { status?: string; snap: WorldSnapshot | null; conn: Conn; learning?: Record<string, LearningEvent> }
 export type LiveEvent = { t: "open" } | { t: "close" } | { t: "message"; data: string };
 
 // Disconnect drops the snapshot so stale state cannot be mistaken for live; the server re-sends one on reconnect.
@@ -19,6 +23,7 @@ export function liveReducer(s: Live, e: LiveEvent): Live {
   try {
     const m = JSON.parse(e.data);
     const r = m.snapshot ?? m.event ?? m;
+    if (typeof m.status === "string") s = { ...s, status: m.status };
     if (r?.kind === "world_snapshot") return { ...s, snap: r };
     // Latest event per node: its new_version is the node's reported policy version.
     if (r?.kind === "learning_event") return { ...s, learning: { ...s.learning, [r.source_node_id]: r } };

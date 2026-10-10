@@ -28,13 +28,13 @@ function draw(c: HTMLCanvasElement, s: WorldSnapshot) {
   }
 }
 
-export function View({ source, conn, snap, runId, learning = {} }: { source: Source; conn: Conn; snap: WorldSnapshot | null; runId?: string | null; learning?: Record<string, LearningEvent> }) {
+export function View({ source, conn, snap, runId, learning = {}, status }: { status?: string; source: Source; conn: Conn; snap: WorldSnapshot | null; runId?: string | null; learning?: Record<string, LearningEvent> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => { if (canvas.current && snap) draw(canvas.current, snap); }, [snap]);
   const health = snap ? nodeHealth(snap) : {};
   return (
     <>
-      <p role="status" aria-live="polite"><strong>{sourceLabel(source, conn)}</strong></p>
+      <p role="status" aria-live="polite"><strong>{sourceLabel(source, conn, status)}</strong></p>
       {snap ? (
         <>
           <p>Run: {runId ?? snap.run_id} · status: {snap.run_status} · tick: {snap.sim_tick} · coverage: {(snap.coverage * 100).toFixed(1)}% of free cells</p>
