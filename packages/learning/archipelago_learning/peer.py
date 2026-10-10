@@ -1,25 +1,61 @@
-"""Peer candidate exchange: tensor-only payloads, validation, measured accept/reject, rollback."""
+"""Peer candidate exchange: tensor-only payloads, validation, measured accept/reject, rollback.
+
+Works for any learner exposing the duck-typed interface used by both backends:
+params_numpy() / load_params_numpy() (param-map-v1), sync_target(), _reset_optimizer(), plus
+the attributes version, mode, events, previous and the compatibility header fields
+(encoder, encoder_sha256, obs_dim, hidden, n_actions, reward_id, action_space, backend, node_id).
+
+Payload versioning (explicit choice): payloads carry ``format = "archipelago-peer-v2"`` and the
+header fields param_map/backend/reward_id/action_space/encoder_sha256. Payloads produced by the
+pre-T26 encoder have no ``format`` and are REJECTED ("incompatible format"): they cannot prove
+encoder/reward/action-space identity, and no persisted payloads exist. ``backend`` is recorded for
+evidence but is not a compatibility criterion (NumPy <-> Torch exchange is the point).
+"""
 
 from __future__ import annotations
 
 import hashlib
 import io
 import json
+import time
 import zipfile
 
 import numpy as np
 
+from .compat import KEYS, PARAM_MAP, param_shapes
+
 MAX_BYTES = 1 << 20
-KEYS = ("w1", "b1", "w2", "b2")
+FORMAT = "archipelago-peer-v2"
+# Header fields that must equal the receiver's; checked in this order, first mismatch named.
+_MUST_MATCH = (
+    "param_map",
+    "encoder",
+    "encoder_sha256",
+    "obs_dim",
+    "hidden",
+    "n_actions",
+    "reward_id",
+    "action_space",
+)
 
 
 class PeerError(ValueError):
     pass
 
 
+def _expected(learner, field):
+    return PARAM_MAP if field == "param_map" else getattr(learner, field)
+
+
 def encode(learner) -> bytes:
     meta = {
+        "format": FORMAT,
+        "param_map": PARAM_MAP,
+        "backend": learner.backend,
         "encoder": learner.encoder,
+        "encoder_sha256": learner.encoder_sha256,
+        "reward_id": learner.reward_id,
+        "action_space": learner.action_space,
         "obs_dim": learner.obs_dim,
         "hidden": learner.hidden,
         "n_actions": learner.n_actions,
@@ -27,7 +63,9 @@ def encode(learner) -> bytes:
         "version": learner.version,
     }
     buf = io.BytesIO()
-    np.savez(buf, _meta=np.frombuffer(json.dumps(meta).encode(), np.uint8), **learner.params)
+    np.savez(
+        buf, _meta=np.frombuffer(json.dumps(meta).encode(), np.uint8), **learner.params_numpy()
+    )
     return buf.getvalue()
 
 
@@ -40,17 +78,25 @@ def decode(payload: bytes, learner):
         if sum(i.file_size for i in zipfile.ZipFile(io.BytesIO(payload)).infolist()) > MAX_BYTES:
             raise ValueError("payload inflates too large")
         z = np.load(io.BytesIO(payload), allow_pickle=False)
-        meta = json.loads(bytes(z["_meta"]))
+        if set(z.files) != {"_meta", *KEYS}:
+            raise ValueError(f"unexpected members {sorted(z.files)}")
+        raw = z["_meta"]
+        if raw.dtype != np.uint8 or raw.ndim != 1:
+            raise ValueError("meta is not a uint8 vector")
+        meta = json.loads(bytes(raw))
         if not isinstance(meta, dict):
             raise ValueError("meta is not an object")
         tensors = {k: z[k] for k in KEYS}
     except Exception as e:
         raise PeerError(f"malformed payload: {e}") from e
-    for f in ("encoder", "obs_dim", "hidden", "n_actions"):
-        if meta.get(f) != getattr(learner, f):
+    if meta.get("format") != FORMAT:
+        raise PeerError(f"incompatible format: {meta.get('format')!r}")
+    for f in _MUST_MATCH:
+        if meta.get(f) != _expected(learner, f):
             raise PeerError(f"incompatible {f}: {meta.get(f)!r}")
+    shapes = param_shapes(learner.obs_dim, learner.hidden, learner.n_actions)
     for k, t in tensors.items():
-        if t.dtype != np.float32 or t.shape != learner.params[k].shape:
+        if t.dtype != np.float32 or t.shape != shapes[k]:
             raise PeerError(f"bad tensor {k}: {t.dtype} {t.shape}")
         if not np.isfinite(t).all():
             raise PeerError(f"nonfinite tensor {k}")
@@ -60,6 +106,7 @@ def decode(payload: bytes, learner):
 def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None, sender=None):
     """Accept the candidate only if eval_fn(params) beats the current policy by > margin.
 
+    eval_fn receives a param-map-v1 dict of float32 NumPy arrays.
     alpha (mixing mode only, <=0.5) blends instead of replacing; mixing mode requires it.
     sender (transport source), if given, must match the node id the payload claims.
     Returns the logged event.
@@ -68,39 +115,45 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None, sender=None)
         "type": "peer_offer",
         "payload_sha256": hashlib.sha256(payload).hexdigest(),
         "local_version": learner.version,
+        "pre_version": learner.version,
         "bytes": len(payload),
+        "margin_required": margin,
     }
     try:
         if learner.mode == "information_only":
             raise PeerError("information_only mode never loads parameters")
         meta, cand = decode(payload, learner)
-        ev.update(source=meta.get("node"), source_version=meta.get("version"))
+        ev.update(
+            source=meta.get("node"),
+            source_version=meta.get("version"),
+            source_backend=meta.get("backend"),
+        )
         if sender is not None and meta.get("node") != sender:
             raise PeerError(f"claimed node {meta.get('node')!r} != sender {sender!r}")
         if learner.mode == "mixing" and alpha is None:
             raise PeerError("mixing mode needs 0<alpha<=0.5")
+        own = learner.params_numpy()
         if alpha is not None:
             if learner.mode != "mixing" or not 0 < alpha <= 0.5:
                 raise PeerError("mixing needs mode=mixing and 0<alpha<=0.5")
-            cand = {
-                k: ((1 - alpha) * learner.params[k] + alpha * cand[k]).astype(np.float32)
-                for k in KEYS
-            }
-        cur, new = eval_fn(learner.params), eval_fn(cand)
+            cand = {k: ((1 - alpha) * own[k] + alpha * cand[k]).astype(np.float32) for k in KEYS}
+        t0 = time.perf_counter()
+        cur, new = eval_fn(own), eval_fn(cand)
+        ev["validation_seconds"] = time.perf_counter() - t0
         if not (np.isfinite(cur) and np.isfinite(new)):
             raise PeerError("nonfinite eval score")
-        ev.update(current_score=cur, candidate_score=new)
+        ev.update(current_score=cur, candidate_score=new, margin=new - cur)
         if not new > cur + margin:
             raise PeerError("candidate not better than current policy")
     except PeerError as e:
         ev.update(accepted=False, reason=str(e))
     else:
-        learner.previous = {k: v.copy() for k, v in learner.params.items()}
-        learner.params = {k: cand[k].copy() for k in KEYS}
-        learner.target = {k: v.copy() for k, v in learner.params.items()}
+        learner.previous = own
+        learner.load_params_numpy(cand)
+        learner.sync_target()
         learner._reset_optimizer()  # peer optimizer state is never imported; stale moments dropped
         learner.version += 1
-        ev.update(accepted=True, new_version=learner.version)
+        ev.update(accepted=True, new_version=learner.version, post_version=learner.version)
     learner.events.append(ev)
     return ev
 
@@ -108,9 +161,18 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None, sender=None)
 def rollback(learner):
     if learner.previous is None:
         return False
-    learner.params, learner.previous = learner.previous, None
-    learner.target = {k: v.copy() for k, v in learner.params.items()}
+    pre = learner.version
+    prev, learner.previous = learner.previous, None
+    learner.load_params_numpy(prev)
+    learner.sync_target()
     learner._reset_optimizer()
     learner.version += 1
-    learner.events.append({"type": "rollback", "version": learner.version})
+    learner.events.append(
+        {
+            "type": "rollback",
+            "version": learner.version,
+            "pre_version": pre,
+            "post_version": learner.version,
+        }
+    )
     return True
