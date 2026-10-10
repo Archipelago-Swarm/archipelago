@@ -2,14 +2,13 @@
 # integrator-owned). The controller refuses to run, and validate rejects, two in-flight tasks whose
 # owned_paths overlap. Shared files (domain "shared") are changed only by the integrator.
 roles:
-# Single computer: every agent runs on machine A. Roles are separated by agent identity, not machine:
-# the verifier of a task must be a different agent than its owner.
-  orchestrator: A
-  integrator: A
-  verifier: A
-  reviewer: A
-default_allocation:
-  A: [all domains]   # single computer
+  # All coding agents run as Claude cloud sessions; there are no machines A/B any more. Every role
+  # is held by the one "cloud" pool ("*"). Independence is by session: a verifier never owns the
+  # task it verifies (controller.py verify). A/B remain accepted labels for old ledger history.
+  orchestrator: "*"
+  integrator: "*"
+  verifier: "*"
+  reviewer: "*"
 domains:
   contracts:         # public interfaces; change needs an ADR and the integrator
     paths: [packages/contracts/**, tests/contracts/**]

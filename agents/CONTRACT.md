@@ -13,7 +13,7 @@ Bootstrap exception: before T02 creates the remote ledger, A records its T01/T02
 1. Fetch remote state and inspect dirty/unpushed work. Never discard it.
 2. Read your assignment on `agent-coordination`, task card and latest handoff on its recorded branch.
 3. Verify owner, assignment generation, dependencies merged or the narrowly allowed T04 bootstrap review commit, and no overlapping shared-file reservation.
-4. Use your own branch/worktree: `agent/<machine>/<task>/<short-description>`.
+4. Use the task's branch/worktree `agent/<TASK-ID>-<slug>` (PROTOCOL section 9; this overrides older per-machine names).
 5. Create a handoff checkpoint with plan, acceptance checks and next steps before implementation.
 
 All agents run on one computer. One orchestrator/integrator dispatches work and merges; verifiers and reviewers are separate agent contexts (a verifier must differ from the task owner). No fixed numeric worker cap: the integrator paces concurrent model agents (including reviewers) under `agents/operations/token-budget.md` (operator removed the cap on 2026-10-10, ADR-0009 amended; the cap counts every model-invoking agent including reviewers, and the shared-path and single-integrator rules below still serialize contended files), counting any reviewer that invokes a model; no recursive fan-out. Coordinators cannot silently exceed the slot budget by coding in parallel too.
@@ -22,7 +22,7 @@ All agents run on one computer. One orchestrator/integrator dispatches work and 
 
 - Work only inside assigned paths. Shared schemas, lockfiles, CI, root manifests, migrations and deployment changes require explicit serialized ownership.
 - Implement bounded increments. Run meaningful behavioral tests appropriate to the change; do not add tests that merely repeat constants from the implementation.
-- Update Markdown after each meaningful milestone, at least every 15 minutes, and before expensive training/tests, context rollover or stopping. Push a checkpoint at most every 20 minutes while network is available.
+- Within 10 minutes of a claim push the branch with the handoff and run `controller.py start`; an unpushed claim is reaped (PROTOCOL section 2). Update Markdown after each meaningful milestone and before expensive training/tests, context rollover or stopping. Push at milestones, not on a timer.
 - Preserve exact commands, working directory, seed/config, branch, base and checkpoint SHA, artifacts, failures and next executable steps. Do not rely on chat history.
 - Never claim completed based on a model's statement alone. Completion requires acceptance evidence, review and merge. Local completion is `review`, not `done`.
 - Keep secrets, tokens, credentials, raw personal data, local chat logs and large binary artifacts out of Git and handoffs.

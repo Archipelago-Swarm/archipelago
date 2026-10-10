@@ -1,5 +1,7 @@
 # Claude initialization prompt
 
+> Current deployment: Claude cloud sessions only; there are no machines A or B and no `MACHINE_ID`. Ignore the machine-specific paragraphs below (bootstrap history); roles and dispatch are in `agents/PROTOCOL.md` section 3.
+
 You are the lead engineer for **Archipelago**, a simulator and research demo for decentralized drone learning. Initialize and implement this repository in small, tested increments. Use the repository as persistent memory so a different agent or computer can recover every unfinished task.
 
 ## The product
