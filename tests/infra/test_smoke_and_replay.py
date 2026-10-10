@@ -80,6 +80,39 @@ def wait_ready(timeout: float = 90) -> None:
     raise AssertionError("stack did not become ready")
 
 
+def wait_grafana(timeout: float = 120) -> None:
+    """Grafana starts slower than the api; the smoke check needs it reachable through the proxy.
+
+    If it never answers, fail with Grafana's own logs so the real cause is visible.
+    """
+    end = time.time() + timeout
+    while time.time() < end:
+        try:
+            req = urllib.request.Request(BASE + "/grafana/api/health")
+            with urllib.request.urlopen(req, timeout=5, context=CTX) as r:
+                if r.status == 200:
+                    return
+        except OSError:
+            pass
+        time.sleep(3)
+    logs = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-p",
+            "archi-t10-smoke",
+            "logs",
+            "--no-color",
+            "--tail=60",
+            "grafana",
+        ],
+        env=ENV,
+        capture_output=True,
+        text=True,
+    )
+    raise AssertionError("grafana never became reachable via the proxy:\n" + logs.stdout[-5000:])
+
+
 def new_run(run_id: str) -> dict[str, Any]:
     cfg = json.loads((ROOT / "packages/contracts/fixtures/good/run_config.json").read_text())
     cfg["run_id"] = run_id
@@ -101,6 +134,7 @@ def stack():
     try:
         compose("up", "-d", "--build", "proxy", "web", "api", "grafana")
         wait_ready()
+        wait_grafana()
         yield
     except BaseException:
         # Surface the real cause (logs) before teardown, and never let teardown mask it.
