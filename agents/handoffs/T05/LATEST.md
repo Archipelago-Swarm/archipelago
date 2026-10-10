@@ -100,3 +100,11 @@
 - Independent review: {"pass": true, "issues": ["Process: the implementation, tests, README and handoff changes are still uncommitted (git status shows M on all five files). They must be committed and pushed before human PR review, because the contract requires a pushed handoff.", "Weak test: test_seeded_loss_reproducible_and_send_nonblocking only checks that two seeded runs match. Its name claims non-blocking behaviour that it doesn't assert. Non-blocking sends are covered only indirectly, by test_telemetry_separate_and_partition_never_blocks.", "Known limit, documented: PeerServer.accept decides 422 by comparing aggregate rejected counts rather than the verdict for that envelope. A 202 (deferred) envelope is only delivered when a later request ticks the network.", "Known limit, documented: reconnect catch-up only detects links changed through set_links. Real connection loss and netem or multi-process faults are listed as pending in packages/transport/README.md, as the task card allows."]}
 - Next issue: none
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## B-lane fix proposal: flaky `test_http_bad_requests` on Windows (2026-10-10 UTC)
+
+- Symptom: `tests/transport/test_peer_http.py::test_http_bad_requests` failed ~2 of 3 runs on B (Windows) with `ConnectionAbortedError: [WinError 10053]`; it also fails the whole-repo check, which blocked T06 on B.
+- Cause: `PeerServer`'s POST handler replied (404 for unknown paths, 413 for oversized bodies) without reading the request body. Closing a socket with unread bytes makes Windows reset the connection, so the client saw an abort instead of the status.
+- Fix (branch `agent/B/transport-413-drain`, one file, `packages/node/peer/archipelago_peer/__init__.py`): always consume the request body first; bodies over the limit are drained in 64 KiB chunks (capped at 8x MAX_PAYLOAD) and discarded.
+- Evidence: `uv run pytest tests/transport` passed 12/12 runs after the fix; ruff clean. No test change needed.
+- Ownership: this file is in T05's reserved paths (A). B did not touch `main`; A or the integrator should review and merge.
