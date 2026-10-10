@@ -424,3 +424,16 @@ The repo `.venv` is Python 3.13 and has no pybullet, so there the flight test sk
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Supervisor checkpoint 2026-10-10T14:46:09Z
+
+- Run: 20261010T143523Z
+- Machine: A
+- Task/branch: T12 / agent/A/20261010T143523Z/T12
+- Base: e644b28e9d98fcef46d0c87a7c1fb3f220bd0ddd
+- Round: 1
+- State: review
+- External check exit: 0
+- Independent review: {"pass": true, "issues": ["Non-blocking: the external check ran with 4 skipped tests. The .venv has no pybullet, so the flight, collision, reproducibility and DIRECT-client tests did not run there. The only evidence they pass is the saved log packages/adapters/pybullet/evidence/pytest-run.log (7 passed, 2026-10-10T07:04Z, from a user-site install). The reviewer should rerun `pip install -r packages/adapters/pybullet/requirements.txt && python -m pytest tests/adapters3d` once.", "Non-blocking: z is only exposed through poses3d(). Contract Pose.z is pinned to 0, which ADR-0002 accepts, so contract telemetry projects onto the ground plane. A 3D run cannot be replayed in the dashboard until a contract bump.", "Non-blocking: the task card T12.md is stale. It still lists the path pybullet3d/ and an unassigned owner, while the code lives in packages/adapters/pybullet/. Update the card at integration.", "Non-blocking: collision evidence is only that smoke.json records 0 drone-drone collisions and the test stacks two drones to get a nonzero count. No flight with an actual collision is saved, but the metric is exercised."]}
+- Next issue: none
+- Resume: fetch this branch, inspect latest commit and continue the task card.
