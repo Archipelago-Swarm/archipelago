@@ -133,19 +133,27 @@ def publish(tasks):
         json.dumps({"schema_version": 1, "tasks": tasks}, indent=2) + "\n"
     )
     git("add", "-A")
-    git("commit", "-q", "-m", "Driver: next overnight plan\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>")
+    if sh("git", "diff", "--cached", "--quiet", check=False).returncode:  # retry-safe: plan may already be committed
+        git("commit", "-q", "-m", "Driver: next overnight plan\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>")
     git("push", "-q", "origin", "main")
     wt = RT / "coord-expire"
+    for attempt in range(5):  # B also writes this branch (mailbox), so refetch and retry on a lost race
+        sh("git", "worktree", "remove", "--force", str(wt), check=False)
+        git("fetch", "-q", "origin", COORD)
+        git("worktree", "add", "-q", str(wt), "--detach", f"origin/{COORD}")
+        f = wt / "agents/coordination/active.json"
+        d = json.loads(f.read_text())
+        d["stop_at_utc"] = "2026-01-01T00:00:00Z"
+        f.write_text(json.dumps(d, indent=2, sort_keys=True) + "\n")
+        sh("git", "add", "-A", cwd=wt)
+        if sh("git", "diff", "--cached", "--quiet", cwd=wt, check=False).returncode:
+            sh("git", "commit", "-q", "-m", "Driver: expire completed run", cwd=wt)
+        if sh("git", "push", "-q", "origin", f"HEAD:{COORD}", cwd=wt, check=False).returncode == 0:
+            break
+        time.sleep(2)
+    else:
+        raise RuntimeError("could not expire the active run after 5 attempts")
     sh("git", "worktree", "remove", "--force", str(wt), check=False)
-    git("worktree", "add", "-q", str(wt), "--detach", f"origin/{COORD}")
-    f = wt / "agents/coordination/active.json"
-    d = json.loads(f.read_text())
-    d["stop_at_utc"] = "2026-01-01T00:00:00Z"
-    f.write_text(json.dumps(d, indent=2, sort_keys=True) + "\n")
-    sh("git", "add", "-A", cwd=wt)
-    sh("git", "commit", "-q", "-m", "Driver: expire completed run", cwd=wt)
-    sh("git", "push", "-q", "origin", f"HEAD:{COORD}", cwd=wt)
-    git("worktree", "remove", "--force", str(wt))
     (RT / "active-plan.json").unlink(missing_ok=True)
 
 
