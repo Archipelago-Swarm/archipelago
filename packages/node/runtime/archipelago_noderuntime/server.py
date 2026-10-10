@@ -111,7 +111,8 @@ class ControlServer:
                     if body is None:
                         return
                     try:
-                        code, obj = 200, fn(body)
+                        res = fn(body)
+                        code, obj = res if isinstance(res, tuple) else (200, res)
                     except ValidationError as e:
                         code, obj = _problem(e)
                     except ApiError as e:
@@ -151,23 +152,27 @@ class ControlServer:
     def feedback(self, body: bytes) -> dict:
         return self.node.feedback(FeedbackRequest.model_validate_json(body))
 
-    def control(self, body: bytes) -> dict:
+    def control(self, body: bytes) -> dict | tuple[int, dict]:
         c = CONTROL.validate_json(body)
         n = self.node
         match c.command:
+            case "configure":
+                return n.control_configure(c)
             case "reset":
                 return n.control_reset(c)
             case "pause":
-                return n.control_pause(True)
+                return n.control_pause(c.run_id, True)
             case "resume":
-                return n.control_pause(False)
+                return n.control_pause(c.run_id, False)
             case "set_schedule":
                 return n.control_set_schedule(c)
             case "checkpoint":
-                return {**n.checkpoint(), "status": n.status()}
+                n._check_command_run(c.run_id)
+                return {"ok": True, "generation": n.checkpoint()["generation"]}
             case "episode_end":
-                return n.request_episode_end(c.tick, c.wait)
+                return n.request_episode_end(c)
             case "stop":
+                n._check_command_run(c.run_id)
                 n.stop_event.set()
                 return {"ok": True, "stopping": True}
         raise ApiError(400, "unknown_command")

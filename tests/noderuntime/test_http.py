@@ -215,11 +215,21 @@ def test_config_requires_strong_token_and_rejects_test_seed_overlap(tmp_path):
         "NODE_ID": "node-01",
         "NODE_IDS": "node-01,node-02",
         "NODE_CHECKPOINT_DIR": str(tmp_path),
+        "PEER_TOKEN": "peer-token-0123456789",
     }
     with pytest.raises(ConfigError, match="at least 16"):
         Config.from_env({**env, "NODE_CONTROL_TOKEN": "short"})
     with pytest.raises(ConfigError, match="required"):
         Config.from_env(env)
+    no_peer_token = {k: v for k, v in env.items() if k != "PEER_TOKEN"}
+    with pytest.raises(ConfigError, match="PEER_TOKEN is required"):
+        Config.from_env({**no_peer_token, "NODE_CONTROL_TOKEN": TOKEN})
+    with pytest.raises(ConfigError, match="PEER_TOKEN must be at least 16"):
+        Config.from_env({**env, "NODE_CONTROL_TOKEN": TOKEN, "PEER_TOKEN": "short"})
+    with pytest.raises(ConfigError, match="PEER_URLS"):
+        Config.from_env({**env, "NODE_CONTROL_TOKEN": TOKEN, "PEER_URLS": "node-02=nope"})
+    with pytest.raises(ConfigError, match="PEER_URLS"):
+        Config.from_env({**env, "NODE_CONTROL_TOKEN": TOKEN, "PEER_URLS": "node-09=http://x:9"})
     with pytest.raises(ConfigError, match="test seeds"):
         Config.from_env(
             {**env, "NODE_CONTROL_TOKEN": TOKEN, "VALIDATION_SEEDS": "1,2", "TEST_SEEDS": "2,3"}
@@ -235,6 +245,8 @@ def test_config_requires_strong_token_and_rejects_test_seed_overlap(tmp_path):
     )
     assert cfg.peer_urls["node-02"] == "http://node-02:9000" and cfg.torch_threads == 2
     assert cfg.lr == 0.005 and cfg.obs_dim == 28
+    assert cfg.control_port == 8080 and cfg.peer_port == 9000  # A8 defaults
+    assert cfg.exchange_every_ticks == 50 and cfg.encoder_id == "grid-flat-v1-s16-r2"
 
 
 def test_unauthenticated_healthz_exposes_nothing_else(rt):

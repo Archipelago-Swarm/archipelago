@@ -1,21 +1,17 @@
-"""Observation encoder grid-flat-v1 (live-runtime.md section 3).
+"""Thin adapter over ``archipelago_learning.encoders`` (live-runtime.md A6).
 
-Contract Observation -> float32[(2r+1)^2 + 3]: crop row-major (values as emitted: -1 unknown,
-0 free, 1 wall), then floor(pose.x)/size, floor(pose.y)/size, battery. For radius 2 that is 28.
-This equals the NumPy baseline's grid-flat-v0 vector after its ``_norm``.
+The encoder itself (ids that carry geometry, the canonical definition and its sha256, the
+contract-Observation and raw-GridWorld entry points) lives in ``archipelago_learning``. This module
+only maps its ``ValueError`` to the runtime's ``EncodeError`` and fixes the action vocabulary.
 """
 
 from __future__ import annotations
 
-import math
-from collections.abc import Sequence
-
 import numpy as np
 from archipelago_contracts.models import Observation
-from archipelago_learning.compat import encoder_sha256
+from archipelago_learning import encoders
+from archipelago_learning.encoders import GridFlatV1
 
-ENCODER_ID = "grid-flat-v1"
-ENCODER_SHA256 = encoder_sha256(ENCODER_ID)
 ACTION_SPACE_VERSION = "act-v0"
 ACTIONS = ("stay", "north", "east", "south", "west")
 
@@ -24,24 +20,19 @@ class EncodeError(ValueError):
     pass
 
 
-def obs_dim(radius: int) -> int:
-    return (2 * radius + 1) ** 2 + 3
+def for_world(size: int, radius: int) -> GridFlatV1:
+    return encoders.get(encoders.encoder_id(size, radius))
 
 
-def encode_fields(
-    crop: Sequence[Sequence[int]], x: float, y: float, battery: float, size: int, radius: int
-) -> np.ndarray:
-    side = 2 * radius + 1
-    if len(crop) != side or any(len(row) != side for row in crop):
-        raise EncodeError(f"crop must be {side}x{side} for sense radius {radius}")
-    n = side * side
-    out = np.empty(n + 3, np.float32)
-    out[:n] = [v for row in crop for v in row]
-    out[n] = math.floor(x) / size
-    out[n + 1] = math.floor(y) / size
-    out[n + 2] = battery
-    return out
+def encode_observation(enc: GridFlatV1, obs: Observation) -> np.ndarray:
+    try:
+        return enc.encode_observation(obs)
+    except ValueError as e:
+        raise EncodeError(str(e)) from e
 
 
-def encode_observation(obs: Observation, size: int, radius: int) -> np.ndarray:
-    return encode_fields(obs.crop, obs.pose.x, obs.pose.y, obs.battery, size, radius)
+def encode_raw(enc: GridFlatV1, obs: dict) -> np.ndarray:
+    try:
+        return enc.encode_raw(obs)
+    except (ValueError, KeyError, TypeError) as e:
+        raise EncodeError(str(e)) from e

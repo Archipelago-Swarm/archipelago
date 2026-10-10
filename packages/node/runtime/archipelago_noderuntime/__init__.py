@@ -1,6 +1,6 @@
 """Per-container node runtime: act/feedback/control HTTP, in-process training, peer exchange."""
 
 from .config import Config, ConfigError
-from .encoder import ENCODER_ID, ENCODER_SHA256, encode_observation
+from .encoder import encode_observation, for_world
 
-__all__ = ["ENCODER_ID", "ENCODER_SHA256", "Config", "ConfigError", "encode_observation"]
+__all__ = ["Config", "ConfigError", "encode_observation", "for_world"]

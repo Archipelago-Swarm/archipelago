@@ -25,10 +25,11 @@ class Config:
     node_ids: tuple[str, ...]
     control_token: str
     checkpoint_dir: Path
+    peer_token: str = ""
     peer_urls: dict[str, str] = field(default_factory=dict)
     bind_host: str = "127.0.0.1"
     peer_port: int = 9000
-    control_port: int = 8000
+    control_port: int = 8080
     telemetry_url: str | None = None
     telemetry_token: str | None = None
     torch_threads: int = 1
@@ -50,7 +51,8 @@ class Config:
     peer_margin: float = 0.0
     peer_timeout: float = 1.0
     peer_retries: int = 1
-    exchange_wait_max: float = 30.0
+    exchange_every_ticks: int = 50  # A1: windows on the node's own tick cadence (0 = off)
+    window_cancel_wait: float = 5.0  # A4: reset waits this long for a running window, then cancels
     # private validation world (same world config as the live world, one drone)
     world_size: int = 16
     world_n_targets: int = 3
@@ -59,6 +61,7 @@ class Config:
     world_max_ticks: int = 900
     world_battery_scale: float = 1.0
     reward_id: str = "rew-v0"
+    n_validation_agents: int = 1
     validation_seeds: tuple[int, ...] = (9001, 9002, 9003)
     test_seeds: tuple[int, ...] = ()  # only used to refuse overlap with validation seeds
     validation_max_ticks: int | None = None  # default: world_max_ticks
@@ -86,6 +89,15 @@ class Config:
             raise ConfigError("NODE_IDS has duplicates")
         if len(self.control_token) < MIN_TOKEN:
             raise ConfigError(f"NODE_CONTROL_TOKEN must be at least {MIN_TOKEN} characters")
+        if len(self.peer_token) < MIN_TOKEN:
+            raise ConfigError(f"PEER_TOKEN must be at least {MIN_TOKEN} characters")
+        for k, u in self.peer_urls.items():
+            if k not in self.node_ids or not u.startswith(("http://", "https://")):
+                raise ConfigError(f"bad PEER_URLS entry {k}={u!r}: node-01=http://host:9000")
+        if self.exchange_every_ticks < 0 or self.window_cancel_wait < 0:
+            raise ConfigError("exchange_every_ticks and window_cancel_wait must be >= 0")
+        if not 1 <= self.n_validation_agents <= 16:
+            raise ConfigError("n_validation_agents must be in 1..16")
         if self.mode not in ("independent", "information_only", "mixing"):
             raise ConfigError(f"bad LEARNER_MODE {self.mode!r}")
         if self.mode == "mixing" and not (self.mix_alpha and 0 < self.mix_alpha <= 0.5):
@@ -107,6 +119,11 @@ class Config:
         return (2 * self.world_sense_radius + 1) ** 2 + 3
 
     @property
+    def encoder_id(self) -> str:
+        """A6: geometry is part of the id (grid-flat-v1-s{size}-r{radius})."""
+        return f"grid-flat-v1-s{self.world_size}-r{self.world_sense_radius}"
+
+    @property
     def learner_seed(self) -> int:
         """Distinct per node (index in the sorted manifest), so nodes never share an init."""
         return self.seed * 1000 + sorted(self.node_ids).index(self.node_id)
@@ -118,12 +135,38 @@ class Config:
     @property
     def config_hash(self) -> str:
         d = asdict(self)
-        for k in ("control_token", "telemetry_token", "checkpoint_dir", "host", "node_id"):
+        for k in (
+            "control_token",
+            "peer_token",
+            "telemetry_token",
+            "checkpoint_dir",
+            "host",
+            "node_id",
+        ):
             d.pop(k, None)  # secrets and per-node/host values are not part of the run config
         return hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()
 
     def with_(self, **kw) -> Config:
         return replace(self, **kw)
+
+    def with_run(self, c) -> Config:
+        """Apply a ``configure`` command (section 14). Raises ConfigError on inconsistent input."""
+        h, e, w = c.hyperparameters, c.epsilon_schedule, c.world_config
+        want = f"grid-flat-v1-s{w.size}-r{w.sense_radius}"
+        if c.encoder_id != want:
+            raise ConfigError(f"encoder_id {c.encoder_id!r} does not match the world ({want})")
+        if w.reward_id != self.reward_id:
+            raise ConfigError(f"unknown reward_id {w.reward_id!r}")
+        return self.with_(
+            hidden=h.hidden, lr=h.lr, gamma=h.gamma, capacity=h.capacity, batch=h.batch,
+            target_every=h.target_every, train_steps_per_feedback=h.train_steps_per_feedback,
+            eps_start=e.start, eps_end=e.end, eps_decay_acts=e.decay_episodes * w.max_ticks,
+            peer_margin=c.margin, world_size=w.size, world_n_targets=w.n_targets,
+            world_obstacle_density=w.obstacle_density, world_sense_radius=w.sense_radius,
+            world_max_ticks=w.max_ticks, world_battery_scale=w.battery_scale,
+            validation_seeds=tuple(c.gate_seeds), n_validation_agents=c.n_validation_agents,
+            exchange_every_ticks=c.exchange_every_ticks, seed=c.seed,
+        )  # fmt: skip
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Config:
@@ -165,6 +208,9 @@ class Config:
         token = get("NODE_CONTROL_TOKEN")
         if token is None:
             raise ConfigError("NODE_CONTROL_TOKEN is required")
+        peer_token = get("PEER_TOKEN")
+        if peer_token is None:
+            raise ConfigError("PEER_TOKEN is required")
         ckpt = get("NODE_CHECKPOINT_DIR")
         if ckpt is None:
             raise ConfigError("NODE_CHECKPOINT_DIR is required")
@@ -175,10 +221,11 @@ class Config:
             node_ids=ids,
             control_token=token,
             checkpoint_dir=Path(ckpt),
+            peer_token=peer_token,
             peer_urls=urls,
             bind_host=get("BIND_HOST", "127.0.0.1"),
             peer_port=num("PEER_PORT", 9000, int),
-            control_port=num("CONTROL_PORT", 8000, int),
+            control_port=num("CONTROL_PORT", 8080, int),
             telemetry_url=get("TELEMETRY_URL"),
             telemetry_token=get("TELEMETRY_TOKEN"),
             torch_threads=num("TORCH_THREADS", 1, int),
@@ -195,6 +242,9 @@ class Config:
             eps_decay_acts=num("EPS_DECAY_ACTS", 5000, int),
             mode=get("LEARNER_MODE", "independent"),
             mix_alpha=float(mix) if mix else None,
+            exchange_every_ticks=num("EXCHANGE_EVERY_TICKS", 50, int),
+            window_cancel_wait=num("WINDOW_CANCEL_WAIT", 5.0, float),
+            n_validation_agents=num("N_VALIDATION_AGENTS", 1, int),
             peer_margin=num("PEER_MARGIN", 0.0, float),
             peer_timeout=num("PEER_TIMEOUT", 1.0, float),
             peer_retries=num("PEER_RETRIES", 1, int),

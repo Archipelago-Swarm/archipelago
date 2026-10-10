@@ -174,24 +174,42 @@ class Spool:
             self._write_state()
 
 
+MAX_EVENTS = 500  # section 8.1: per request
+MAX_REQUEST_BYTES = 200 * 1024  # below the 256 KiB ingest limit, leaving room for the envelope
+
+
 class Shipper(threading.Thread):
-    """Background batch POSTer. Failures back off; nothing here is awaited by act/feedback."""
+    """Background batch POSTer. Failures back off; nothing here is awaited by act/feedback.
+
+    Request body (section 8.1 + A7): ``{"source", "boot_id", "events": [canonical v0 records],
+    "context": {commit, config_hash, seed, host, boot_id, episode?}}``. ``context`` is read from
+    ``context_fn`` at send time; the spool wrapper (event_id/phase) is not sent, only the record.
+    """
 
     # 4xx verdicts that mean "this batch will never be accepted" (everything else is retried)
     POISON = frozenset({400, 413, 422})
 
     def __init__(
-        self, spool: Spool, url: str, meta: dict, token=None, batch=200, interval=0.5, timeout=2.0
-    ):
+        self, spool: Spool, url: str, source: str, boot_id: str, context_fn=None, token=None,
+        batch=200, interval=0.5, timeout=2.0,
+    ):  # fmt: skip
         super().__init__(name="telemetry-shipper", daemon=True)
-        self.spool, self.url, self.meta, self.token = spool, url, meta, token
-        self.batch, self.interval, self.timeout = batch, interval, timeout
+        self.spool, self.url, self.token = spool, url, token
+        self.source, self.boot_id, self.context_fn = source, boot_id, context_fn
+        self.batch, self.interval, self.timeout = min(batch, MAX_EVENTS), interval, timeout
         self._stop_evt = threading.Event()
         self.stats = {"batches_ok": 0, "batches_failed": 0, "records_shipped": 0, "poison": 0}
         self.last_error: str | None = None
 
     def post(self, records: list[dict]) -> int:
-        body = json.dumps({**self.meta, "records": records}).encode()
+        body = json.dumps(
+            {
+                "source": self.source,
+                "boot_id": self.boot_id,
+                "events": [r["record"] for r in records],
+                "context": self.context_fn() if self.context_fn else {},
+            }
+        ).encode()
         headers = {"Content-Type": "application/json"}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
@@ -209,6 +227,14 @@ class Shipper(threading.Thread):
         recs, upto = self.spool.peek(self.batch)
         if not recs:
             return False
+        size, keep = 0, 0
+        for r in recs:  # stay under the request size limit; always send at least one record
+            size += len(json.dumps(r["record"], separators=(",", ":"))) + 1
+            if keep and size > MAX_REQUEST_BYTES:
+                break
+            keep += 1
+        upto -= len(recs) - keep
+        recs = recs[:keep]
         status = self.post(recs)
         if 200 <= status < 300:
             self.spool.commit(upto)

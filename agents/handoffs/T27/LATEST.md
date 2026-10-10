@@ -1,76 +1,41 @@
-# Handoff: T27 node runtime process (act / feedback / control / peer / telemetry)
+# Handoff: T27 node runtime amendments (owner A2)
 
-- State: implemented; all T27 acceptance assertions covered by passing tests; awaiting integrator review. Not pushed (worker rule).
-- Base: d30d299 plus merge of T26's reviewed commit 252232429cab1a7e7d6bc6452b80b71cc928facd (TorchLearner, generation checkpoints, peer compat).
-- Interface: agents/architecture/live-runtime.md sections 3, 5, 7, 8; ADR 0008. Package README: packages/node/runtime/README.md.
+- State: amendments A1-A8, A16, A17 implemented and validated locally; awaiting integrator review. Not pushed (owner rule).
+- Base: 36c0456 (the worktree started 49 commits behind it; fast-forwarded, no divergence).
+- Interface: `agents/architecture/live-runtime.md` sections 3, 5, 7, 8, 13 (A1-A17 win), 14 (field names used exactly). Package README: `packages/node/runtime/README.md`.
+- Owned paths touched: `packages/node/runtime/**`, `tests/noderuntime/**`, `packages/node/peer/**`, `packages/node/learner/**`, `tests/transport/**`. `packages/transport/**` and `packages/learning/**` unchanged.
 
-## Plan / what was done
+## Completion invariant: demonstrated
 
-`packages/node/runtime/archipelago_noderuntime/` (`python -m archipelago_noderuntime`):
+"Three real node runtimes (HTTP on localhost, one process) learn independently, run tick-cadence exchange windows that a scheduled partition actually cuts, resume from a mid-write kill with continued ids, and honour sections 13-14" is validated by `tests/noderuntime/test_invariant.py` (+ the per-amendment tests below):
+independent learning (distinct policy hashes and replay buffers before any exchange); windows at ticks 10/20/30/40 + final 45 with a cut [15,35) on one link: windows 20 and 30 sent nothing on the cut link (other links unaffected) while `train_steps` kept rising; node-02 killed with the checkpoint writer dying before its 3rd filesystem primitive, restarted on the same volume: last complete generation restored, sequence ceiling above everything the dead boot issued, its post-restart offers accepted by peers (no stale drop), no event_id collision, all new ids carry the new boot id.
 
-- `config.py` env-only configuration (token >= 16 chars enforced, validation/test seed overlap refused, config hash excludes secrets).
-- `protocol.py` Pydantic internal protocol (act, feedback, control discriminated union); embedded Observation/Action are the canonical contract records.
-- `encoder.py` grid-flat-v1 (float32[28]); equality with `GridParallelEnv._flat` + `_norm` is tested for sizes 8/10/16 over a rollout, and against `archipelago_learning.rollout._norm` itself for size 8.
-- `node.py` the core: owns a `TorchLearner`, trains inline in `feedback`, idempotency per step key, 409 on stale, eval mode freeze, pause/resume, exchange worker thread, checkpoint/restore, telemetry emission, status.
-- `peering.py` immutable `Schedule` (half-open windows on the node's own tick, pairs cut in both directions) and `GatedPeerServer` (subclass of `archipelago_peer.PeerServer`, refuses cut senders with 403 on receive).
-- `validation.py` `ValidationWorld`: private single-drone `GridWorld`, node's own world config, configured validation seeds only, greedy, no optimizer; yields the GIL each step.
-- `telemetry.py` segmented durable JSONL `Spool` (bounded, drop-oldest with persisted dropped counter, cursor in `state.json`, torn-tail recovery) and background `Shipper` (batch POST, backoff, poison-batch skip).
-- `server.py` stdlib `ThreadingHTTPServer` front (bearer auth with constant-time compare, 256 KiB cap, 413 drains a bounded amount so the client sees the status), `runtime.py` assembly, `__main__.py`.
+## What changed, by amendment
 
-## Decisions (and why)
+- A1: windows on the node's own tick (`exchange_every_ticks`, default 50, in `act` -> queued to ONE background worker, never run inline) plus a final window at `episode_end`; fault decisions use the window's tick; candidates judged in arrival order through `archipelago_learning.OfferWindow` (<=1 accept, rest `window_limit`, zero validation cost). Catch-up resend on reopen is naturally the next window's offer (`last_sent` only advances on success). Eval mode: no cadence windows.
+- A2: `FeedbackRequest` has `executed_command`, `action_index`, `deadline_missed` (index/command mismatch 422); replay stores the executed action; fallback stay trains as stay; a deadline-missed feedback with no recorded act is acknowledged `accepted:false`. Snapshot is published inside `train_step`, i.e. before the response. Barrier: `act` waits (<= `deadline_ms`, cap 1 s, counted on timeout) only while the feedback of an EARLIER tick is mid-processing; a compliant coordinator never hits it. Response adds `policy_version`.
+- A3: `boot_id` 8 hex; `event_id={node}-{boot}-{seq}`; sequences from `SequenceAllocator` (`sequence.json`, blocks of 1000); peer envelope `seq` from a second allocator (`peer_seq.json`, replaces "policy version as seq"); pending (obs, action) (<=64), `tick`, `fed_tick` persisted in the checkpoint; stale rule lexicographic on (episode, tick). `PeerClient` (packages/node/peer) takes an optional persisted `seq_source`.
+- A4: `episode_end {run_id, episode, tick}` -> `202 {window_id}` (idempotent per episode; wrong episode/run 409); `wait` removed. `reset` waits `WINDOW_CANCEL_WAIT` (5 s) for running work then cancels (cooperative, between world steps and while joining sends); `windows_cancelled` counter, `window_cancelled` MetricSample, result `cancelled:true`; a cancelled window never applies a candidate.
+- A5: `configure` (section 14 shape, pydantic `extra=forbid`): hash = sha256 of the canonical body without command/run_id; same run+hash idempotent, same run+other hash 409, bad encoder/reward 422; applied `Config.with_run`, learner/validator rebuilt, body persisted in `run_config.json` (a restart rebuilds the configured learner BEFORE restoring the checkpoint); a new run id starts fresh and moves old generations to `ckpt-before-<run>-<boot>`. `gate_seeds` feed the node-private validation world, which has `n_validation_agents` drones and never sees live state. All control commands now carry `run_id`.
+- A6: `encoder.py` is a thin adapter over `archipelago_learning.encoders` (duplicate logic removed); ids `grid-flat-v1-s{size}-r{radius}`.
+- A7: shipper body `{source, boot_id, events:[records], context:{commit, config_hash, seed, host, boot_id, episode?}}`, <=500 events and ~200 KiB per request; `sim_tick = episode*max_ticks+tick` on every record incl. Action; validation seconds/evaluations/margin as extra MetricSamples (`peer_validation_seconds` s, `peer_validation_evaluations` count, `peer_candidate_margin` score); source and sha256 stay in `LearningEvent.reason`.
+- A8: `PEER_TOKEN` bearer on `/envelope` and `/catchup` (401), `src` bound to the declared id list (403); defaults control 8080 / peer 9000; `PEER_URLS` validated.
+- A16: node-side act handler latency ring (`status.act_latency_ms` p50/p99/max). Test: with validation of 12 seeds x 2 policies burning CPU on the same single pinned core, act p99 = 0.39 ms over 769 acts (bound 50 ms). The old flaky process test is replaced (its race: it polled `exchange_running` before the async window had started; the new `window` state covers queued -> running). A lock-structure test parks validation mid-evaluation and holds `fbl`+`mu`+`ckl`: act still answers (no timing). `measure_node.py` full-size run: client-side act p99 6.5 ms during a 0.85 s validation; node-reported p99 0.47 ms.
+- A17: `ckpt.py` writes the fixed names `policy.npz target.npz optimizer.npz replay.npz rng.json counters.json MANIFEST.json` via `write_generation`; generation every 200 feedback steps (worker thread) and at each `episode_end`; replay file deflated and asserted `<= replay_max_bytes(capacity, obs_dim)` on a wrapped full buffer. `TorchLearner.save_generation` (T40) still uses pre-A17 names and is NOT used by the node (uses learner underscore helpers `_optimizer_arrays/_restore_optimizer/_import/_identity`; if T40 renames them this module must follow).
+- Peak RSS: `status.rss_peak_bytes` + `rss_peak_bytes` metric; measured idle 665 MiB, after training 3000 steps 684 MiB peak (VmHWM) on the PyPI/CUDA torch 2.14.1 wheel (RssFile 317 MiB is shared mapped libraries). Proposal per A16 (1.5x peak, 64 MiB steps) = 1088 MiB with THIS wheel; the CPU wheel (download.pytorch.org is blocked here) is expected to be much smaller but was NOT measured, so the 512 MB limit remains unproven.
+- `LearnerNode.poll` (packages/node/learner) now runs one `OfferWindow` per poll (in-memory path honours A1).
 
-- **Training is inline in `feedback`, not a worker thread.** Bounded (`TRAIN_STEPS_PER_FEEDBACK`, default 1, about 1 ms); keeps "N feedbacks -> N steps" exact and reproducible; acting is isolated because `act` takes only the tiny `amu` lock and reads the immutable published snapshot with its own exploration RNG. Lock order fbl -> mu -> amu; `act`/`reset` only take amu. Tested with a stalled peer, a stalled sink and a long validation.
-- **Exchange runs on one worker thread, `episode_end` is async** (`wait:true` optional, bounded). Concurrent requests coalesce (latest wins). While candidates are being validated optimizer steps are deferred (counter `train_deferred`) so the judged parameters are the parameters replaced; transitions are still stored. A pre-computed score cache feeds `peer.offer` so the real validation cost is recorded (`validation_seconds`, `evaluations`) and `offer` is a short critical section.
-- **Window rule**: candidates tried best-first (ties by node id, so sorted order never changes the outcome); at most one accepted per window, others logged `window limit`; latest candidate per sender only; dedupe on `(sender, version, sha256)` persisted in the checkpoint.
-- **`LearnerNode` is not used** (agreement said "adapt"). Its `poll` lacks per-window limit/ordering/lock discipline and its event ids lack the boot id. The runtime composes the same pieces directly (`PeerServer`, `post`, `Envelope`, `encode/decode/offer`). Flagging for the integrator.
-- Envelope `seq` = policy version (monotone across restarts via the checkpoint). Unchanged policies are not re-offered (`offers_unchanged`); no backlog is ever replayed.
-- A higher episode of the same run advances the node implicitly (counted) so a restarted container recovers without a `reset`; a different run_id is 409 `wrong_run` until `reset`.
-- Sequence on restore = `max(checkpoint, highest spooled sequence) + 1`; `event_id = node-boot-seq`. Action records also consume the node sequence (so telemetry sequences have gaps by design; they are unique and monotonic).
-- Fault pairs are treated as undirected. The exchange happens only at `episode_end`, so a window must cover the tick at which `episode_end` is issued (documented in the README; T30 run config must account for it: with the 900-tick episode and a 300-600 window, `episode_end` at tick ~899 will see an OPEN link and exchange normally).
-- Telemetry wire format (T29 ingest must match): `POST` JSON `{node_id, host, commit, config_hash, seed, records:[{event_id, phase, record:<canonical LearningEvent|MetricSample>}]}`, optional bearer; 2xx acks; sink must dedupe on `event_id`; 400/413/422 skip the batch.
-- Added unauthenticated `GET /healthz` (`{"ok": true}`) for container health checks; not in the agreement.
-- No new third-party runtime dependencies (stdlib + numpy/torch/pydantic already required by the learner and contracts).
+## Needs the integrator / other owners
 
-## Evidence (this worktree, torch 2.14.1+cu130 PyPI wheel, Python 3.13 venv)
-
-- `uv run pytest tests/noderuntime -q` -> 52 passed (about 73 s)
-- `uv run pytest -q -m "not docker" --ignore=tests/e2e` -> 383 passed, 5 skipped (pre-existing), 10 deselected (run before the last two small tests were added; the later `tests/noderuntime` run covers them)
-- `uv run ruff check packages services tests` -> clean; `uv run ruff format --check packages services tests` -> clean; `uv run mypy` -> Success, no issues (mypy's configured file list does not include the new package, as before)
-- Acceptance mapping:
-  - idempotent act/feedback, stale 409, auth, oversize: `tests/noderuntime/test_http.py`
-  - in-process training counts, eval freeze, pause: `test_http.py` (`replay_size == n`, `train_steps == n - batch + 1`, eval leaves steps/replay/version/policy hash/loss unchanged, epsilon 0, feedback 409)
-  - stalled peer / stalled sink / long validation: `test_nonblocking.py` (p95 < 100 ms and max < 500 ms per call while a genuinely stuck peer connection / stuck sink request / 80-evaluation validation is in progress; the tests assert the stall was really in effect)
-  - schedule cuts, zero offers while cut, accepted + rejected decisions with reasons, receive-side and send-side enforcement, incompatible reason, one-accept-per-window, mixing, information_only: `test_peers.py` (two or three real runtimes over localhost HTTP; donor `mover_policy` scores 20.8 vs `stay_policy` 4.6 in the validation world, asserted before use)
-  - kill during every checkpoint write step then restart: `test_checkpoint.py::test_kill_at_every_checkpoint_write_step_restores_last_complete_generation` (injects a kill before each filesystem primitive of generation 2; restores gen 1 or complete gen 2, exploration schedule/steps/policy hash restored, sequence strictly greater than anything spooled, no event_id collision), plus a real `SIGKILL` of `python -m archipelago_noderuntime`, restart, continued sequences and graceful SIGTERM final checkpoint
-  - spool bounded + counted drops + idempotent catch-up: `test_telemetry.py`
-- **Measurements** (`PYTHONPATH=... uv run python tests/noderuntime/measure_node.py`, one real node process, 28-32-5 MLP, replay 5000, batch 32, 1 thread, 16x16 world, 900-tick validation with 3 seeds, 4-core box, PyPI **cu130** wheel):
-
-| quantity | value |
-|---|---|
-| idle RSS (VmRSS) | 665.5 MiB (anonymous 360.0, file-backed 305.5) |
-| RSS after 3000 feedbacks / 2969 optimizer steps | 680.0 MiB (anonymous 363.1, file-backed 316.9) |
-| RSS after a full-size validation + checkpoint | 686.1 MiB (peak VmHWM 686.1) |
-| act latency while training (HTTP loopback, n=2800) | p50 1.49 ms, p95 2.12 ms, p99 2.80 ms |
-| feedback latency incl. one optimizer step | p50 3.49 ms, p95 4.97 ms, p99 6.29 ms |
-| act latency during validation (n=115, 0.73 s window) | p50 1.85 ms, p95 2.36 ms, p99 2.80 ms |
-| checkpoint write (`checkpoint` control) | 35 ms |
-
-  These latencies include the measuring client's own urllib/connection overhead.
-- **Compose memory limit proposal**: `mem_limit: 768m` per node (`mem_reservation: 512m`) as the value the current evidence supports on the PyPI wheel (peak 686 MiB, 12 percent headroom); **512 MB is not supported by measurement on this wheel**. About 317 MiB of the RSS is file-backed (shared-library pages, reclaimable under cgroup pressure) and 369 MiB is anonymous. The deployed image uses the CPU wheel, which I could NOT measure (download.pytorch.org is blocked), and which is expected to be much smaller, but that is an unverified expectation. Integrator action: run `tests/noderuntime/measure_node.py` inside the CPU-wheel image; if peak VmHWM is at most about 400 MiB, 512m is justified, otherwise keep 768m. Four nodes at the measured size need about 2.7 GiB on this wheel.
+- Owner B (`services/api` ingest): `/v1/telemetry` currently accepts only `{source, boot_id, events}`; nodes now also send `context` (A7) and will be rejected until ingest allows it.
+- Owner C / T28 (coordinator and infra): feedback must send `executed_command/action_index/deadline_missed`; every control command needs `run_id`; `episode_end` takes `episode` and `tick` and answers 202; nodes need `PEER_TOKEN` (>=16 chars) and `PEER_URLS`; `configure` once per run before the first reset; container env defaults changed (control port 8080).
+- Shared files I did not touch: `pyproject.toml`, `uv.lock`, `Makefile`, `.github`, `scripts`, `agents/TASKS.yaml`, `agents/STATUS.yaml`. `tests/transport/conftest.py` gained `packages/learning` on sys.path (transport tests now import `SequenceAllocator`).
+- Cross-node tick skew is real: a sender whose window fires at tick T can be refused 403 by a receiver still at T-1 whose cut ends at T (seen in a debug run). The offer is retried in the next window (not lost, `last_sent` not advanced). Schedules in tests avoid cadence-aligned boundaries for determinism.
+- "Distinct per-node policy" (A16): nodes use distinct init seeds (`SEED*1000 + index`); the test asserts distinct hashes after independent training, not an identical-seed init.
+- Computer A/B artifacts: none exist in the owned paths (grepped); nothing to remove here.
 
 ## Not run / limits
 
-- CPU-wheel RSS (blocked), Docker/Compose, the 4-node localhost smoke and the 900-tick demonstration (T29/T30 own those). Multi-process peer exchange is covered by the in-process two/three-runtime tests plus a real subprocess receiving a candidate (`test_nonblocking.py`), not by four separate processes.
-- Telemetry shipping was tested against a fake in-test sink only; the real API ingest does not exist yet.
-- The exchange only runs at `episode_end` (per agreement); no periodic or reconnect-triggered exchange, and `PeerServer`'s `/catchup` endpoint is intentionally not wired (no backlog replay).
-- `time.sleep(0)` GIL yield and `sys.setswitchinterval(0.001)` (set in `__main__` only) are what keep acting responsive during a pure-Python validation next to torch training; without the yield, feedback latency rose to hundreds of ms in my first attempt.
-- Event sequences: Action records consume sequence numbers that are never spooled, so spooled sequences have gaps; after a kill, sequence numbers handed to Actions after the last checkpoint are not recoverable, but uniqueness of `event_id` is guaranteed by the boot id.
-
-## Files modified
-
-packages/node/runtime/README.md; packages/node/runtime/archipelago_noderuntime/{__init__,__main__,config,encoder,node,peering,protocol,runtime,server,telemetry,validation}.py; tests/noderuntime/{conftest,support,procs,measure_node,test_encoder,test_http,test_peers,test_nonblocking,test_checkpoint,test_telemetry}.py; this handoff. No shared files were edited. Shared-file requests: none required. (Integrator note: `pyproject.toml` mypy `files` and any Docker image PYTHONPATH need to learn about `packages/node/runtime`; I did not touch them.)
-
-## Next steps
-
-- T28/T29: coordinator must send `reset` with `fault_schedule`, issue `episode_end` with the right tick, and the API ingest must accept the telemetry batch format above and dedupe on `event_id`.
-- Integrator: decide on the `LearnerNode` deviation; measure CPU-wheel RSS and fix the memory limit; T30 must check that `episode_end` ticks fall inside the cut windows if a cut exchange is to be demonstrated.
+- No Docker; no CPU-wheel measurement; no coordinator-driven run (T28/T29). `0.5 CPU` is approximated by pinning the test process to one core, not a cgroup quota.
+- `act` can hit one `fsync` per 1000 issued sequence numbers (block reservation); not measurable in p99.
+- mypy list does not include the runtime packages (per instructions); linted and tested only.
