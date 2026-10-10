@@ -69,3 +69,21 @@
 - Independent review: not run
 - Next issue: Worker permission, exit 0; inspect local log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update (run 20261010T063026Z, round 1)
+- `model.ts`: disconnected replay now reads "REPLAY - DISCONNECTED, STALE" (was plain REPLAY); test updated.
+- No real API/stream exists yet (only specified in agents/architecture/interfaces.md: `WS /v1/runs/{id}/stream`, `POST .../commands`), so I did not write a WebSocket transport against an unverified server.
+- Still open: real Transport, Playwright browser smoke, contracts typing of obstacles (cast in App.tsx), real node health.
+
+## Supervisor checkpoint 2026-10-10T06:30:09Z
+
+- Run: 20261010T063026Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T063026Z/T06
+- Base: a5076ce701a3a7a99a7c3d147779d98c36270f28
+- Round: 1
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.

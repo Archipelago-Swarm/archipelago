@@ -3,7 +3,8 @@ import { statusLabel } from "./model";
 
 describe("statusLabel", () => {
   it("labels replay and live", () => {
-    expect(statusLabel("replay", false)).toBe("REPLAY");
+    expect(statusLabel("replay", true)).toBe("REPLAY");
+    expect(statusLabel("replay", false)).toMatch(/STALE/);
     expect(statusLabel("live", true)).toBe("LIVE");
   });
   it("never shows disconnected live data as live", () => {
