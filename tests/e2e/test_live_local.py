@@ -60,8 +60,7 @@ def policy_digest(ckpt_dir):
     cur = json.loads((root / "CURRENT").read_text())
     gen = root / f"gen-{cur['generation']}"
     assert gen.is_dir(), cur
-    # A17 names the file policy.npz; the learner writes model.npz today
-    with np.load(gen / "model.npz", allow_pickle=False) as z:
+    with np.load(gen / "policy.npz", allow_pickle=False) as z:
         h = hashlib.sha256()
         for k in sorted(z.files):
             h.update(k.encode() + np.ascontiguousarray(z[k]).tobytes())
@@ -77,7 +76,7 @@ def test_policies_differ_except_where_a_validated_peer_candidate_was_adopted(smo
     assert len(set(status_hashes.values())) >= 4 - accepted, (accepted, status_hashes)
     # same conclusion from the checkpointed arrays on each node's own volume
     for n in NODE_IDS:
-        code, _ = c.node_control(n, command="checkpoint")
+        code, _ = c.checkpoint(n, "e2e-smoke")
         assert code == 200
     digests = {n: policy_digest(c.ckpt_dir(n)) for n in NODE_IDS}
     assert len(set(digests.values())) >= 4 - accepted, (accepted, digests)
@@ -103,7 +102,7 @@ def test_isolated_nodes_end_with_distinct_policies(make_cluster):
     assert len(set(hashes.values())) == 4, hashes
     assert all(c.node_status(n)["train_steps"] > 0 for n in NODE_IDS)
     for n in NODE_IDS:
-        assert c.node_control(n, command="checkpoint")[0] == 200
+        assert c.checkpoint(n, "isolated")[0] == 200
     assert len({policy_digest(c.ckpt_dir(n)) for n in NODE_IDS}) == 4
 
 

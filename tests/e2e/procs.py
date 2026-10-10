@@ -189,11 +189,13 @@ class Cluster:
         self.tmp, self.ticks = Path(tmp), ticks
         self.logs = self.tmp / "logs"
         self.logs.mkdir(parents=True, exist_ok=True)
+        self.sink = (
+            TelemetrySink()
+        )  # bound first so its ephemeral port cannot collide with a freed one
         ports = free_ports(2 * len(NODE_IDS) + 1)
         self.control_port = dict(zip(NODE_IDS, ports[:4], strict=True))
         self.peer_port = dict(zip(NODE_IDS, ports[4:8], strict=True))
         self.coord_port = ports[8]
-        self.sink = TelemetrySink()
         self.node_env = node_env
         self.nodes: dict[str, Proc] = {}
         self.coord: Proc | None = None
@@ -314,6 +316,10 @@ class Cluster:
         code, body = http("GET", self.node_url(n) + "/v1/status", CONTROL_TOKEN)
         assert code == 200, (n, code, body)
         return body
+
+    def checkpoint(self, n: str, run_id: str) -> tuple[int, Any]:
+        """Ask node ``n`` to write a checkpoint generation now (the node requires the run id)."""
+        return self.node_control(n, command="checkpoint", run_id=run_id)
 
     def node_control(self, n: str, **body: Any) -> tuple[int, Any]:
         return http("POST", self.node_url(n) + "/v1/control", CONTROL_TOKEN, body)

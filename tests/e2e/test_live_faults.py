@@ -132,7 +132,7 @@ def test_restarted_node_resumes_with_continued_sequence_numbers(make_cluster):
     c.start_run("before", episodes=TRAIN, seed=4)
     assert c.wait_run("before")["status"] == "completed"
     victim = "node-03"
-    code, _ = c.node_control(victim, command="checkpoint")
+    code, _ = c.checkpoint(victim, "before")
     assert code == 200
     time.sleep(0.8)  # let the shipper deliver
     old = c.sink.records(victim)

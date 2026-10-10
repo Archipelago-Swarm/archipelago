@@ -34,7 +34,11 @@ def test_node_telemetry_batches_are_accepted_by_the_api_ingest(smoke, tmp_path):
 
     c, run_id, _ = smoke
     assert c.sink.batches, "no node shipped a batch"
-    batch = c.sink.batches[0]
+    # the first batch may predate the run (boot-time records); pick one for this run
+    batch = next(
+        (b for b in c.sink.batches if any(e.get("run_id") == run_id for e in b["events"])), None
+    )
+    assert batch is not None, [{e.get("run_id") for e in b["events"]} for b in c.sink.batches[:3]]
     token = "telemetry-test-only-credential"
     login = "login-test-only-credential"
     app = create_app(
