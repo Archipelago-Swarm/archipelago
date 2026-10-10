@@ -283,9 +283,12 @@ def check_paths(path: Path, task: dict[str, Any]) -> None:
 def run_process(args: list[str], cwd: Path, timeout: float, log: Path) -> tuple[int, str, bool]:
     log.parent.mkdir(parents=True, exist_ok=True)
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+    executable = shutil.which(args[0])
+    if executable is None:
+        raise NightError(f"Child executable unavailable: {args[0]}")
     with log.open("w", encoding="utf-8") as output:
         child = subprocess.Popen(
-            args,
+            [executable, *args[1:]],
             cwd=cwd,
             stdin=subprocess.DEVNULL,
             stdout=output,
