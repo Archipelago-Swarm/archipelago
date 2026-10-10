@@ -377,3 +377,21 @@
 - Independent review: not run
 - Next issue: Worker permission, exit 0; inspect local log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A update (run 20261010T140742Z)
+- No code change. Verified `pytest tests/experiments tests/learning` -> 27 passed on this branch (clean tree at start).
+- `packages/learning` is now in the reserved paths, so a real CTDE actor/critic is possible, but it is a design-sized change (joint-obs critic plus per-node actors in numpy). It was not started and needs an explicit decision on its scope.
+- Still open: real CTDE, real node loss (sim is outside reserved paths), compute-cap approval, task card status, `*.jsonl eol=lf`, regenerating evidence (rerun field changed the summary hash). Not committed or pushed by the worker.
+
+## Supervisor checkpoint 2026-10-10T14:09:19Z
+
+- Run: 20261010T140742Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T140742Z/T09
+- Base: 5d1e103e7021fd2f0d23c157eb9f0b9dda8f5e0f
+- Round: 1
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
