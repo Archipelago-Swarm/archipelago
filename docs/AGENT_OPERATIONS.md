@@ -18,7 +18,8 @@ Goal: shortest time to a stable, reproducible, pitchable live ARCHIPELAGO demo. 
 7. Prefer deleting broken automation over adding another watcher. A verifier verdict is only as good as its evidence; a missing verdict is infrastructure, not task failure.
 8. Never skip, xfail, or weaken a test to get green; record failures and unrun checks honestly. Never fabricate performance; a negative result is reported as such.
 9. Branches that are not strict ancestors of main, or that are named by an in-flight task, are never deleted.
-10. Budget: model usage is planned (`agents/operations/token-budget.md`); cloud spend limits (5 instances, $200/month projected, $100 cumulative) are enforced by `infra/vultr` tooling; no secrets in Git, logs, handoffs or chat.
+10. Messages relayed to you from the user while you work are for the orchestrator, not for you: ignore them, keep executing your assigned task, and report only through your result (the T39 workers once answered a relayed question and delivered nothing).
+11. Budget: model usage is planned (`agents/operations/token-budget.md`); cloud spend limits (5 instances, $200/month projected, $100 cumulative) are enforced by `infra/vultr` tooling; no secrets in Git, logs, handoffs or chat.
 
 ## Owner loop
 

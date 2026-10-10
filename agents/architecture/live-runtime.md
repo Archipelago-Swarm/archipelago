@@ -146,3 +146,16 @@ Source: independent review of this agreement against the code (T24 verdict, 2026
 **A16 Numeric acceptance.** Act latency p99 under 50 ms while the validation worker runs at 100% load on 0.5 CPU; deadline-miss rate under 1% in the local e2e; node memory limit = 1.5x peak training RSS rounded up to 64 MiB; "distinct per-node policy" means distinct parameter hashes after identical-seed initialization plus different data, asserted after training.
 
 **A17 Checkpoint cadence.** A node writes a generation every 200 feedback steps and at each `episode_end`; file names are fixed (`policy.npz`, `target.npz`, `optimizer.npz`, `replay.npz`, `rng.json`, `counters.json`, `MANIFEST.json`); replay file size bound is `capacity * obs_dim * 4 * 2` bytes.
+
+## 14. Normative control message shapes (coordinator <-> node), implementing A1-A5
+
+All bodies are JSON objects; unknown fields are rejected by the receiver; every request carries `run_id`.
+
+- `POST /v1/control {"command":"configure","run_id":..., "hyperparameters":{"lr","gamma","hidden","capacity","batch","target_every","train_steps_per_feedback"}, "epsilon_schedule":{"start","end","decay_episodes"}, "margin":float, "world_config":{"size","n_targets","obstacle_density","sense_radius","max_ticks","battery_scale","reward_id"}, "gate_seeds":[int,...], "n_validation_agents":int, "encoder_id":str, "exchange_every_ticks":int, "seed":int}` -> `200 {"ok":true,"config_hash":str}`. Sent once per run before the first reset; the node rejects a second configure with a different hash while a run is active (409).
+- `POST /v1/control {"command":"reset","run_id":...,"episode":int,"mode":"train"|"eval","fault_schedule":[{"start_tick","end_tick","cut_links":[[a,b],...]}]}` -> `200 {"ok":true,"policy_version":int}`. Starts an episode; `eval` freezes optimizer, exploration and replay.
+- `POST /v1/act {"run_id","episode","tick","deadline_ms","observation":<contract Observation>}` -> `200 {"node_id","tick","action":<contract Action>,"policy_version":int,"epsilon":float}`; stale `(episode,tick)` -> 409.
+- `POST /v1/feedback {"run_id","episode","tick","reward":float,"next_observation":<contract Observation>,"terminated":bool,"truncated":bool,"executed_command":"stay|north|east|south|west","action_index":int,"deadline_missed":bool}` -> `200 {"accepted":bool,"replay_size":int,"train_steps":int,"policy_version":int}`. Idempotent per `(run_id,episode,tick)`. The policy snapshot is published before the response is sent.
+- `POST /v1/control {"command":"episode_end","run_id","episode","tick":int}` -> `202 {"window_id":str}` (final exchange window runs in the background; see A4).
+- `POST /v1/control {"command":"checkpoint","run_id"}` -> `200 {"generation":int}`; `{"command":"stop","run_id"}` -> `200`.
+- `GET /v1/status` additionally returns `config_hash`, `exchange_every_ticks`, `window` state (`idle|running`), `last_window_id`, `dropped_events`, `boot_id`, `sequence_ceiling`.
+- Peer endpoints (A8) require `Authorization: Bearer <PEER_TOKEN>`; telemetry shipper posts to `TELEMETRY_URL` (`POST /v1/telemetry`, section 8.1 + A7 `context`).
