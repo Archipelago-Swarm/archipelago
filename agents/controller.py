@@ -207,7 +207,13 @@ def validate_ledger(data: dict[str, Any], *, check_files: bool = True) -> list[s
                 errors.append(f"{tid}: in flight while a dependency is not COMPLETE")
         if check_files and state == "BLOCKED" and task.get("handoff_file"):
             errors.extend(blocker_report_errors(task))
-        if check_files and state in IN_FLIGHT | {"BLOCKED"} and task.get("handoff_file"):
+        # A fresh claim names the handoff but the worker creates it on its own branch, so main is
+        # legitimately without it until the task is ACTIVE; requiring it would turn main red on every claim.
+        if (
+            check_files
+            and state in IN_FLIGHT - {"CLAIMED"} | {"BLOCKED"}
+            and task.get("handoff_file")
+        ):
             if not (ROOT / task["handoff_file"]).is_file():
                 errors.append(f"{tid}: handoff_file {task['handoff_file']} does not exist")
     errors.extend(cycle_errors(data))

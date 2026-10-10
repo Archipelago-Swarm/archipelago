@@ -348,3 +348,9 @@ def test_verifier_cannot_be_the_worker_but_may_share_a_machine(repo: Path) -> No
     assert run("verify", "T01") == 1 and state("T01") == "REVIEW"
     verdict(repo, "T01", "PASS", verifier="B/verifier")
     assert run("verify", "T01") == 0 and state("T01") == "INTEGRATION"
+
+
+def test_fresh_claim_does_not_require_the_handoff_on_the_ledger_branch(repo: Path) -> None:
+    assert run("claim", "T01", "--owner", "cloud/w1", "--machine", "cloud") == 0
+    assert c.validate_ledger(c.load_ledger(), check_files=True) == []
+    assert run("start", "T01") == 1  # still refused until the worker writes the handoff
