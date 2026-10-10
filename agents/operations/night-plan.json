@@ -2,23 +2,12 @@
   "schema_version": 1,
   "tasks": [
     {
-      "id": "T06",
-      "machine": "B",
-      "paths": [
-        "apps/web/",
-        "tests/web/"
-      ]
-    },
-    {
-      "id": "T12",
+      "id": "T09",
       "machine": "A",
       "paths": [
-        "packages/adapters/pybullet3d/",
-        "packages/adapters/pybullet/",
-        "infra/3d/",
-        "tests/adapters3d/"
-      ],
-      "source_branch": "agent/A/T12/carry2"
+        "experiments/",
+        "tests/experiments/"
+      ]
     }
   ]
 }
