@@ -358,3 +358,22 @@
 - Independent review: {"pass": false, "issues": ["information_only is still a stub that equals independent (the learner rejects all offers), so the information-only comparison in slice 1 has no real implementation.", "CTDE is not a real CTDE algorithm. ctde and central_online share one DQN Learner with no actor/critic split. The check 'CTDE does not falsely lose inference' holds only by construction, so slice 2 has no real central-online vs CTDE evidence. REPORT.md says as much.", "node_failure uses a `Down` stub. The drone stays in the sim world and stands still, so the node-failure sweep is weak evidence for slice 3.", "No local compute cap is on record, and the only sweep is 12 seeds with 150 episodes. The new CPU and bytes assertion in run.py is not exercised by committed evidence, because the evidence bundle was not regenerated.", "Latest work is uncommitted and unpushed. experiments/run.py and agents/handoffs/T09/LATEST.md are modified in the working tree (git status), and the handoff says 'Not committed/pushed'. The contract requires a pushed handoff.", "The manifest `rerun` command still hardcodes POSIX shell syntax (`PYTHONPATH=... python`) even though it now uses os.pathsep, so it will not run in PowerShell or cmd. The code comment admits this.", "The task card agents/tasks/T09.md is stale: status 'waiting', no assignment recorded, acceptance boxes unchecked. The handoff states the task is blocked and needs integrator decisions (real CTDE, real node loss, compute-cap approval, eol=lf for jsonl). The evidence is mostly negative or inconclusive, so the task outcome (a learning vs resilience comparison) is not delivered and it is not ready for human PR review."]}
 - Next issue: information_only is still a stub that equals independent (the learner rejects all offers), so the information-only comparison in slice 1 has no real implementation.; CTDE is not a real CTDE algorithm. ctde and central_online share one DQN Learner with no actor/critic split. The check 'CTDE does not falsely lose inference' holds only by construction, so slice 2 has no real central-online vs CTDE evidence. REPORT.md says as much.; node_failure uses a `Down` stub. The drone stays in the sim world and stands still, so the node-failure sweep is weak evidence for slice 3.; No local compute cap is on record, and the only sweep is 12 seeds with 150 episodes. The new CPU and bytes assertion in run.py is not exercised by committed evidence, because the evidence bundle was not regenerated.; Latest work is uncommitted and unpushed. experiments/run.py and agents/handoffs/T09/LATEST.md are modified in the working tree (git status), and the handoff says 'Not committed/pushed'. The contract requires a pushed handoff.; The manifest `rerun` command still hardcodes POSIX shell syntax (`PYTHONPATH=... python`) even though it now uses os.pathsep, so it will not run in PowerShell or cmd. The code comment admits this.; The task card agents/tasks/T09.md is stale: status 'waiting', no assignment recorded, acceptance boxes unchecked. The handoff states the task is blocked and needs integrator decisions (real CTDE, real node loss, compute-cap approval, eol=lf for jsonl). The evidence is mostly negative or inconclusive, so the task outcome (a learning vs resilience comparison) is not delivered and it is not ready for human PR review.
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A update (run 20261010T140025Z)
+
+- Changed `experiments/run.py`: manifest/summary `rerun` is now `{env, argv}` instead of a POSIX shell string, so it is shell-neutral. `pytest tests/experiments` -> 12 passed.
+- Correction to review: `information_only` is not a stub in the current tree. `share_obs` copies raw transitions between nodes and counts bytes. It is separate from `independent`.
+- Not done (needs integrator decisions / out of reserved paths): real CTDE actor/critic (needs `packages/learning`), real node loss in the sim, compute-cap approval, task card status update, regenerating the evidence bundle (the `rerun` field changes the summary hash). Not committed or pushed by the worker.
+
+## Supervisor checkpoint 2026-10-10T14:05:03Z
+
+- Run: 20261010T140025Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T140025Z/T09
+- Base: 0ad50f5c5e6d368bcc1ffe4dc7ee324d973af05c
+- Round: 3
+- State: blocked
+- External check exit: not run
+- Independent review: not run
+- Next issue: Worker permission, exit 0; inspect local log
+- Resume: fetch this branch, inspect latest commit and continue the task card.

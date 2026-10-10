@@ -209,8 +209,11 @@ def main(argv=None):
         "args": vars(a),
         "val": list(VAL),
         "test": list(TEST),
-        "rerun": f"PYTHONPATH=packages/learning{os.pathsep}packages/sim {sys.executable} "
-        + " ".join(sys.argv),  # POSIX shell syntax
+        # shell-neutral: set env, then run argv from the repo root (sh, PowerShell, cmd)
+        "rerun": {
+            "env": {"PYTHONPATH": os.pathsep.join(["packages/learning", "packages/sim"])},
+            "argv": [sys.executable, *sys.argv],
+        },
         "train_env_steps": steps[0],
         "note": f"n={a.seeds} experiment seeds: preliminary; CIs are bootstrap over seeds, "
         "wide for small n; no superiority claims without CI excluding 0.",
