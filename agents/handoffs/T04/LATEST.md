@@ -88,3 +88,21 @@ pyproject.toml (workspace member, deps, mypy files), scripts/check.sh (ruff path
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Run 20261010T063026Z round 2 (A worker, no commits)
+- Cause of exit 1: `uv run mypy` failed with 2 import-not-found errors for optional `archipelago_sim2d` (app.py sim2d_factory, tests/api/test_api.py real-run test). Fixed with `# type: ignore[import-not-found,unused-ignore]` on those two imports.
+- Verified: ruff check/format --check clean, mypy clean, `uv run pytest tests/api -q` -> 11 passed, 1 skipped (real sim2d test skips: sim2d not a workspace member).
+- Still needs A (pyproject.toml): add packages/adapters/sim2d and packages/sim as deps/members so the real test runs and the ignores can go. Not run: scripts/check.sh (gen:check CRLF issue on Windows).
+
+## Supervisor checkpoint 2026-10-10T06:42:20Z
+
+- Run: 20261010T063026Z
+- Machine: A
+- Task/branch: T04 / agent/A/20261010T063026Z/T04
+- Base: a5076ce701a3a7a99a7c3d147779d98c36270f28
+- Round: 2
+- State: review
+- External check exit: 0
+- Independent review: {"pass": true, "issues": ["Real-run test (test_real_sim2d_run_streams_and_completes) uses pytest.importorskip. The handoff says it skips under plain `pytest tests/api` because sim2d is not a workspace member. The full-suite log shows no skips, so it probably runs only because tests/sim/conftest.py adds sim2d to sys.path. I could not run the suite to confirm this. The handoff should record that the real T03 run passed in the full check, and A should add sim2d and sim to pyproject.toml so the test no longer depends on that side effect.", "The `# type: ignore[import-not-found,unused-ignore]` comments on the sim2d imports in app.py and the test are a workaround for the missing workspace membership. Remove them once pyproject.toml is fixed.", "Slow-client coverage sets `lagged` directly because TestClient cannot stall a socket. Real socket-stall and send_timeout behaviour is untested, as the handoff admits. The queue-overflow path is covered, so this is a known limit.", "T01 CI has not run and T01 is not merged. Reconcile with main and re-run the real-simulator check after T01 merges, before the integrator marks T04 done."]}
+- Next issue: none
+- Resume: fetch this branch, inspect latest commit and continue the task card.

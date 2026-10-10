@@ -186,7 +186,7 @@ def create_app(settings: Settings, factory: AdapterFactory) -> FastAPI:
 
 
 def sim2d_factory(_: Path | None = None) -> AdapterFactory:
-    from archipelago_sim2d.adapter import Sim2DAdapter  # optional: only when T03 is installed
+    from archipelago_sim2d.adapter import Sim2DAdapter  # type: ignore[import-not-found,unused-ignore]  # optional: only when T03 is installed
 
     return lambda _cfg: Sim2DAdapter()
 

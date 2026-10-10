@@ -211,7 +211,7 @@ def test_clean_shutdown_marks_interrupted(tmp_path: Path) -> None:
 def test_real_sim2d_run_streams_and_completes(tmp_path: Path) -> None:
     pytest.importorskip("archipelago_sim2d")
     from archipelago_api.app import sim2d_factory
-    from archipelago_sim2d.smoke import make_config
+    from archipelago_sim2d.smoke import make_config  # type: ignore[import-not-found,unused-ignore]
 
     s = Settings(api_token=TOKEN, data_dir=tmp_path, tick_interval=None)
     with TestClient(create_app(s, sim2d_factory()), headers=AUTH) as c:
