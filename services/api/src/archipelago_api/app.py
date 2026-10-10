@@ -109,8 +109,10 @@ def create_app(settings: Settings, factory: AdapterFactory) -> FastAPI:
     async def login(body: LoginBody, response: Response) -> dict[str, str]:
         if not token_ok(body.token):
             raise HTTPException(401, "bad token")
-        # shortcut: secure=False for local http; set True behind TLS (T10)
-        response.set_cookie(COOKIE, body.token, httponly=True, samesite="strict", secure=False)
+        # Secure by default (TLS via Caddy); ARCHIPELAGO_COOKIE_SECURE=false for plain-HTTP dev
+        response.set_cookie(
+            COOKIE, body.token, httponly=True, samesite="strict", secure=settings.cookie_secure
+        )
         return {"status": "ok"}
 
     @app.post("/v1/runs", dependencies=[Depends(auth)])
