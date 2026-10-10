@@ -91,3 +91,23 @@ Run `scripts/check.sh` and `ARCHIPELAGO_ADAPTER=sim2d npm run smoke -w @archipel
 - Independent review: not run
 - Next issue: Worker permission, exit 0; inspect local log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Update (run 20261010T153519Z): re-verification, no code changes
+- Tree already contains the fix (runs.py cached `final`, status.ts `isTerminal`/labels, disabled terminal buttons, tests).
+- `PYTHONPATH="packages/adapters/sim2d;packages/sim;packages/contracts/src" uv run pytest tests/api -q` -> 14 passed.
+- `bash scripts/check.sh` -> completed through web build (output tail ok; exit status piped through tail, so re-confirm via supervisor check).
+- Same PYTHONPATH + `ARCHIPELAGO_ADAPTER=sim2d npm run smoke -w @archipelago/web` -> `ok: browser smoke start/pause/resume/stop/replay/disconnect/reconnect`.
+- Still open: live-API-stderr capture (adapter-level traceback recorded in round 4); no component test for disabled buttons; sim2d tests/smoke outside check.sh.
+
+## Supervisor checkpoint 2026-10-10T15:38:31Z
+
+- Run: 20261010T153519Z
+- Machine: B
+- Task/branch: T13 / agent/B/20261010T153519Z/T13
+- Base: e4f95c37d568c8cbc288b5a77eb4dfaf3826296a
+- Round: 1
+- State: in_progress
+- External check exit: 0
+- Independent review: {"pass": false, "issues": ["Acceptance 1 is only partly met. The failure was reproduced at the adapter level (`snapshot()` after `close()` raises AttributeError), and this was done after the fix was written. No diagnostics came from the live API process, and the handoff admits this. The task card asks for API diagnostics before the behavior change.", "The key regression tests (`test_stopped_sim2d_run_still_streams_final_snapshot` and `test_real_sim2d_run_streams_and_completes`) are skipped under the standard gate (133 passed, 3 skipped). They only run with a manual PYTHONPATH. The sim2d browser smoke is also outside scripts/check.sh. The gate therefore never exercises the fix. The handoff lists 14 passed, but there is no captured output or log and I could not rerun it (Bash was denied for me).", "The handoff says check.sh and the smoke were not rerun in round 4. The final handoff has no single run of the exact commands against the final tree.", "The disabled command buttons for terminal runs have no component-level test, only the `isTerminal` helper. The recovered-run UI is covered only by a reducer and label test.", "Browser-smoke coverage of terminal-run navigation is thin, with one reopen of ?run=ID. The handoff does not show that the interrupted-after-restart path is verified end to end by the smoke. I did not re-verify the smoke myself.", "The handoff file is still uncommitted in the working tree (`M agents/handoffs/T13/LATEST.md`). Its older supervisor checkpoints are stale, with 'External check exit: 1' and 'Independent review: not run'. They conflict with the later updates and need a clean final state before a human PR review."]}
+- Next issue: Acceptance 1 is only partly met. The failure was reproduced at the adapter level (`snapshot()` after `close()` raises AttributeError), and this was done after the fix was written. No diagnostics came from the live API process, and the handoff admits this. The task card asks for API diagnostics before the behavior change.; The key regression tests (`test_stopped_sim2d_run_still_streams_final_snapshot` and `test_real_sim2d_run_streams_and_completes`) are skipped under the standard gate (133 passed, 3 skipped). They only run with a manual PYTHONPATH. The sim2d browser smoke is also outside scripts/check.sh. The gate therefore never exercises the fix. The handoff lists 14 passed, but there is no captured output or log and I could not rerun it (Bash was denied for me).; The handoff says check.sh and the smoke were not rerun in round 4. The final handoff has no single run of the exact commands against the final tree.; The disabled command buttons for terminal runs have no component-level test, only the `isTerminal` helper. The recovered-run UI is covered only by a reducer and label test.; Browser-smoke coverage of terminal-run navigation is thin, with one reopen of ?run=ID. The handoff does not show that the interrupted-after-restart path is verified end to end by the smoke. I did not re-verify the smoke myself.; The handoff file is still uncommitted in the working tree (`M agents/handoffs/T13/LATEST.md`). Its older supervisor checkpoints are stale, with 'External check exit: 1' and 'Independent review: not run'. They conflict with the later updates and need a clean final state before a human PR review.
+- Resume: fetch this branch, inspect latest commit and continue the task card.
