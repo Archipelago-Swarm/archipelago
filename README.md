@@ -26,7 +26,7 @@ See [architecture](agents/architecture/core.md) for boundaries, [contracts](agen
 
 ## First operator actions
 
-Both developers clone this repository and authenticate their own Claude/GitHub accounts. Assign your computer `A` and your friend's `B`. Fill out [the run configuration](agents/operations/run-config.example.json) together, agree on cloud and model budgets, then have computer A perform bootstrap task T01. Computer B can read and prepare but waits for T01's interface gate before implementation fan-out.
+Both developers clone this repository and authenticate their own Claude/GitHub accounts. Assign your computer `A` and your friend's `B`. Fill out [the run configuration](agents/operations/run-config.example.json) together, agree on cloud and model budgets, then have computer A perform bootstrap task T01. Once A has pushed a validated T01 review commit, B can start T04 provisionally against that commit while A completes CI and merges it.
 
 No credentials belong in Git. No cloud resources or paid agent runs have been created by this initialization. License choice remains an owner decision before a public open-source release.
 
