@@ -25,3 +25,21 @@
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker note (run 20261010T132342Z, round 2)
+- Check failure is environmental, not code: `.agent-runtime/logs/20261010T132342Z/B/T06-check-1.log` contains only `WSL ... execvpe(/bin/bash) failed: No such file or directory` (no WSL distro on B). Outside T06 paths; supervisor/human must fix.
+- Re-verified in apps/web: `tsc --noEmit` clean, `vitest run` 2 passed, `vite build` OK.
+- No code changed this round.
+
+## Supervisor checkpoint 2026-10-10T13:24:48Z
+
+- Run: 20261010T132342Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T132342Z/T06
+- Base: 2368137d1885098c5b1012ed08e2a31484b4f8aa
+- Round: 2
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
