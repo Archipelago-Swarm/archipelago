@@ -281,3 +281,20 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, run 20261010T140742Z (uncommitted; supervisor commits)
+- No code change; slice already complete. On B: `tsc --noEmit` clean, vitest 21/21, and `node tests/web/browser-smoke.mjs` passes with both the default fixture adapter and `ARCHIPELAGO_ADAPTER=sim2d` (real sim2d run: start/pause/resume/stop/replay/disconnect/reconnect).
+- Not done: full `scripts/check.sh` not run by me; smoke is opt-in (`npm run smoke`), not in `npm test`; `learning_event` wire shape still assumed; task card status untouched (outside my paths).
+
+## Supervisor checkpoint 2026-10-10T14:10:25Z
+
+- Run: 20261010T140742Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T140742Z/T06
+- Base: 5d1e103e7021fd2f0d23c157eb9f0b9dda8f5e0f
+- Round: 1
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
