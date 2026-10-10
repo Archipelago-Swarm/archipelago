@@ -366,3 +366,19 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, run 20261010T142246Z round 2 (uncommitted)
+- No code change. Re-verified: tsc clean, vitest 21/21. Browser smoke not re-run. Blocker is the missing independent review, not code.
+
+## Supervisor checkpoint 2026-10-10T14:24:17Z
+
+- Run: 20261010T142246Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T142246Z/T06
+- Base: b0d30ac3acb68efbaf6243d332cd60566f11fe62
+- Round: 2
+- State: blocked
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
