@@ -34,3 +34,7 @@ Pydantic is canonical (Python-first project); cross-field rules (e.g. z=0) expre
 ## Risks
 
 Version-range deps resolved by lockfiles only; npm audit reports not triaged. No ADR written for schema pipeline choice.
+
+## Integrator update — 2026-10-10
+
+PR #1 passed GitHub foundation, bootstrap and container-smoke checks and merged to main as `cdaba4d`. T01 is done; the earlier CI-pending and next-step text above records the historical worker handoff.

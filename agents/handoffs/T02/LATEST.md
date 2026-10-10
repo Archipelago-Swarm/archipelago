@@ -1,6 +1,6 @@
 # Handoff: T02 / initial executable night runner
 
-- State: review candidate; real two-computer trial and T02 remote CI still pending
+- State: initial runner integrated through green PR #2; real two-computer trial pending
 - Run / machine / worker: bootstrap / A / architecture agent
 - Branch: `agent/A/T02/overnight-loop`
 - Base: T01 review branch at `844d2e0`, merged with main correction `0d8691a`
@@ -19,21 +19,21 @@ Rate-limit waits persist their next eligible UTC time and use a reported reset w
 - `uv run ruff check tools/agents tests/agents` and `uv run ruff format --check tools/agents tests/agents` passed.
 - A single `claude -p` one-turn smoke with the runner's output/permission/turn flags returned `OK`, exit 0, on Claude Code 2.1.296. This was a CLI/auth smoke, not an overnight task run.
 - The first Windows full check caught CRLF conversion of generated TypeScript. `.gitattributes` now pins TS/JS to LF; generator check and subsequent full suite pass.
-- T02's first Linux CI bootstrap exposed missing Git identity in the supervisor's temporary coordination clone. The runner now copies the calling repository's configured identity into that clone and checks identity during preflight; the local two-clone test passes. CI rerun remains the gate.
-- The Docker smoke image also needed the `git` executable because the new supervisor tests exercise real local repositories. The image now installs it; container CI rerun remains the gate.
+- T02's first Linux CI bootstrap exposed missing Git identity in the supervisor's temporary coordination clone. The runner now copies the calling repository's configured identity into that clone and checks identity during preflight; bootstrap CI passed.
+- The Docker smoke image also needed the `git` executable because the new supervisor tests exercise real local repositories. The image now installs it; container CI passed.
+- PR #2's foundation, bootstrap, and container-smoke checks passed; merge commit `602124f` is on main.
 
 ## Remaining gate / limits
 
-- T01 merged to main through PR #1 with successful GitHub checks; this branch must still land on main with CI evidence before the documented launcher is used from clean main.
+- T01 and T02 merged to main through PRs #1 and #2 with successful GitHub checks.
 - Test the actual A/B startup once on both computers. B's last readiness handoff reported `uv` and Docker missing; install `uv` for any run and Docker before T08. `gh` is optional to the runner.
 - The current runner has a fixed plan, one worker per machine and review branches; dynamic reallocation, concurrent workers within one machine, automatic PR creation and merge, resource caps beyond task count, and a hard OS-kill recovery test are future work.
 - No real eight-hour training/coding session or Vultr deployment has run. The CLI can terminate early when independent tasks are reviewable or blocked.
 
 ## Exact next actions
 
-1. Review this branch's PR and GitHub checks. The full local suite passes after merging current main into T02.
-2. Merge T02 after its checks pass, preserving the B T04 source branch.
-3. On B install `uv` (and Docker for T08), stop its interactive T04 writer, and push its latest handoff.
-4. Run a short supervised A/B trial with `--hours 0.33 --max-rounds 1`, then start a fresh eight-hour run only if the trial confirms remote plan publication, branch isolation, checkpoint/restart, and no prompt stalls.
+1. On B install `uv` (and Docker for T08), stop its interactive T04 writer, and push its latest handoff.
+2. Pull current main on both computers and run a short supervised A/B trial with `--hours 0.33 --max-rounds 1`.
+3. Start a fresh eight-hour run only if the trial confirms remote plan publication, branch isolation, checkpoint/restart, and no prompt stalls.
 
-The exact commit SHA for this handoff is the pushed head of `agent/A/T02/overnight-loop`; look it up after publication. Do not resume from the T01 branch alone.
+Resume from main at or after merge commit `602124f`, or inspect PR #2 for the implementation diff.

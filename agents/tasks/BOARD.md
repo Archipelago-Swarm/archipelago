@@ -1,11 +1,11 @@
 # Task board
 
-This is the initial dependency plan. The remote `agent-coordination` ledger owns live assignments; task branches own detailed progress/handoffs. Only the integrator updates this summary on main after integration. Do not have every worker edit this file.
+This is the dependency plan. T01 is complete and the initial T02 runner is integrated; a live A/B trial remains before the first eight-hour run. The remote `agent-coordination` plan owns live assignments; task branches own detailed progress/handoffs. Only the integrator updates this summary on main after integration. Do not have every worker edit this file.
 
 | Task | Planned computer | Depends on | Initial state | Scope |
 |---|---|---|---|---|
-| [T01](T01.md) | A | none | ready | Bootstrap the executable workspace and freeze shared contracts |
-| [T02](T02.md) | A | T01 | waiting | Implement durable coordination and the bounded overnight supervisor |
+| [T01](T01.md) | A | none | done (PR #1) | Bootstrap the executable workspace and freeze shared contracts |
+| [T02](T02.md) | A | T01 | initial runner merged (PR #2); trial pending | Implement durable coordination and the bounded overnight supervisor |
 | [T03](T03.md) | A | T01 | waiting | Implement the seeded 2D environment and adapter |
 | [T04](T04.md) | B | T01 | provisional after T01 review | Build run lifecycle API and live/replay streaming |
 | [T05](T05.md) | A | T01 | waiting | Implement peer transport and seeded network faults |
