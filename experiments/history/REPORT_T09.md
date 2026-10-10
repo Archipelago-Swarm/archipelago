@@ -1,3 +1,11 @@
+> **HISTORICAL (T09, pre-repair).** This report and bundle predate the T32 experiment-protocol
+> repair and describe code that differs from the current harness: shared cumulative
+> `train_env_steps`, node-failure accounting by `ticks * n_agents`, a `central_online` mode that
+> skipped training, an `information_only` mode that copied replay rows, an 8x8 / 2-target / 60-tick
+> world whose episodes usually ended before any fault tick, and a rule baseline that kept visit
+> memory across episodes. Its numbers are kept for provenance only and must not be cited as
+> evidence about the current system.
+
 # T09 experiment report (PRELIMINARY)
 
 Rerun the committed bundle (~3.5 min local CPU, no cloud spend):
