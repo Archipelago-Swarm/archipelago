@@ -431,3 +431,21 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A update (run 20261010T141700Z, round 2)
+- No code change. `pytest tests/experiments tests/learning` -> 27 passed, tree clean. Evidence bundle unchanged (PRELIMINARY n=12; no superiority claim).
+- Not started: real CTDE actor/critic (joint-obs critic + per-node actors in numpy). It is design-sized and nobody has set its scope; this is the fourth run blocked on that decision.
+- Still open: real node loss (sim outside reserved paths), compute-cap approval, task card status, `*.jsonl eol=lf`. Not committed or pushed by the worker.
+
+## Supervisor checkpoint 2026-10-10T14:20:04Z
+
+- Run: 20261010T141700Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T141700Z/T09
+- Base: fadac6f612890eb24d1100dda15bded8a08231a6
+- Round: 2
+- State: blocked
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
