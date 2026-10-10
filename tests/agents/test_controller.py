@@ -203,7 +203,10 @@ def test_fail_verdict_returns_to_worker_then_same_signature_blocks(repo: Path) -
     assert run("review", "T01") == 1
 
 
-def test_retry_budget_blocks_and_blocker_report_is_enforced(repo: Path) -> None:
+def test_retry_budget_blocks_and_blocker_report_is_enforced(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(c, "current_branch", lambda: "agent/T01-task-t01")  # as on the task branch
     assert run("claim", "T01", "--owner", "B/w1", "--machine", "B") == 0
     handoff(repo, "T01")
     assert run("start", "T01") == 0
@@ -354,3 +357,15 @@ def test_fresh_claim_does_not_require_the_handoff_on_the_ledger_branch(repo: Pat
     assert run("claim", "T01", "--owner", "cloud/w1", "--machine", "cloud") == 0
     assert c.validate_ledger(c.load_ledger(), check_files=True) == []
     assert run("start", "T01") == 1  # still refused until the worker writes the handoff
+
+
+def test_handoff_files_are_only_required_on_the_task_branch(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    to_review(repo)
+    (repo / "agents" / "handoffs" / "T01" / "LATEST.md").unlink()
+    monkeypatch.setattr(c, "current_branch", lambda: "main")
+    assert c.validate_ledger(c.load_ledger(), check_files=True) == []  # ledger branch: not checked
+    branch = c.get_task(c.load_ledger(), "T01")["branch"]
+    monkeypatch.setattr(c, "current_branch", lambda: branch)
+    assert any("does not exist" in e for e in c.validate_ledger(c.load_ledger(), check_files=True))
