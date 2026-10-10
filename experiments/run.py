@@ -22,8 +22,8 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-import protocol_harness as H
 import numpy as np
+import protocol_harness as H
 from archipelago_learning.dqn import Learner
 from archipelago_learning.peer import encode, offer
 from archipelago_sim.env import ACTIONS, explorer_policy

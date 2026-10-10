@@ -4,8 +4,8 @@ import json
 import sys
 from pathlib import Path
 
-import protocol_harness as H
 import numpy as np
+import protocol_harness as H
 import pytest
 import run
 
