@@ -8,18 +8,7 @@
         "apps/web/",
         "tests/web/"
       ],
-      "source_branch": "agent/B/T06/carry-20261010T140742Z-4"
-    },
-    {
-      "id": "T09",
-      "machine": "A",
-      "paths": [
-        "experiments/",
-        "tests/experiments/",
-        "packages/learning/",
-        "tests/learning/"
-      ],
-      "source_branch": "agent/A/T09/carry-20261010T140742Z-5"
+      "source_branch": "agent/B/T06/carry-20261010T141700Z-5"
     },
     {
       "id": "T12",
@@ -30,7 +19,7 @@
         "infra/3d/",
         "tests/adapters3d/"
       ],
-      "source_branch": "agent/A/T12/carry-20261010T140742Z-4"
+      "source_branch": "agent/A/T12/carry-20261010T141700Z-5"
     }
   ]
 }
