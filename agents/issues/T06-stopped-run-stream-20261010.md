@@ -1,0 +1,8 @@
+# T06 follow-up: stopped sim2d run cannot reopen its live stream
+
+- Observed 2026-10-10 14:43 and 14:46 UTC on machine A after T06 passed independent review and merged as `a81a192`.
+- Reproduction from a clean merged checkout: `uv sync --frozen`, `npm ci`, then in PowerShell `$env:ARCHIPELAGO_ADAPTER='sim2d'; npm run smoke -w @archipelago/web`.
+- Both attempts failed at `tests/web/browser-smoke.mjs` line 74, `live view of stopped run`. The page remained `DISCONNECTED (no live data)` after stop, replay, and navigating back to `?run=<id>`. The ordinary `scripts/check.sh` gate passed (109 Python tests, 21 web tests, build); it does not include this browser smoke.
+- Likely cause from code inspection: `RunManager._finish` closes the sim2d adapter, and `Sim2DAdapter.close` sets `world = None`. A later WebSocket subscription calls `snapshot_event`, which calls `adapter.snapshot()` and tries to read that cleared world. Confirm with captured API logs before changing behavior.
+- The existing smoke also expects `LIVE` after restarting the API, although recovery retains only metadata and marks active runs `interrupted`; this assertion should be revised to verify an honest interrupted/disconnected state or backed by persisted snapshot recovery. Do not weaken disconnect/reconnect coverage.
+- Next: reproduce with API stderr captured; decide and document the desired completed/interrupted-run behavior; implement a final snapshot or explicit terminal status as appropriate; add a focused regression test; rerun the full gate and real sim2d browser smoke before clearing this issue. T10 deployment should wait for this result.
