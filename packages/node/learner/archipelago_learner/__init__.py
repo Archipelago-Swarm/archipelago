@@ -25,7 +25,7 @@ class LearnerNode:
     def poll(self, eval_fn, margin=0.0, alpha=None):
         """Offer every delivered candidate to the learner (accept/reject is measured)."""
         while (env := self.net.receive(self.learner.node_id)) is not None:
-            offer(self.learner, env.payload, eval_fn, margin, alpha)
+            offer(self.learner, env.payload, eval_fn, margin, alpha, sender=env.src)
 
     def flush(self, tick=0):
         """Convert new learner events to contract LearningEvent records."""
