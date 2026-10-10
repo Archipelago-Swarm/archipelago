@@ -89,11 +89,14 @@ def save(s):
 
 
 def gate():
-    bash = shutil.which("bash")
-    if not bash and shutil.which("git"):
-        candidate = Path(shutil.which("git")).resolve().parents[1] / "bin" / "bash.exe"
-        if candidate.is_file():
-            bash = str(candidate)
+    bash = None
+    if sys.platform == "win32":
+        git_exe = shutil.which("git")
+        candidates = [Path(git_exe).resolve().parents[1] / "bin" / "bash.exe"] if git_exe else []
+        candidates += [Path("C:/Program Files/Git/bin/bash.exe"), Path("C:/msys64/usr/bin/bash.exe")]
+        bash = next((str(candidate) for candidate in candidates if candidate.is_file()), None)
+    else:
+        bash = shutil.which("bash")
     if not bash:
         raise RuntimeError("Git Bash is required for scripts/check.sh")
     return sh(bash, "scripts/check.sh", check=False, timeout=1800).returncode == 0
