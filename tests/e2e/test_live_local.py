@@ -54,27 +54,57 @@ def test_actions_come_from_the_node_processes(smoke):
     assert moved == set(NODE_IDS), "a node's drone never moved: its actions were not applied"
 
 
-def test_each_node_has_a_distinct_policy_after_training(smoke):
+def policy_digest(ckpt_dir):
+    """sha256 over the model arrays of the newest checkpoint generation on a node's own volume."""
+    root = ckpt_dir / "ckpt"
+    cur = json.loads((root / "CURRENT").read_text())
+    gen = root / f"gen-{cur['generation']}"
+    assert gen.is_dir(), cur
+    # A17 names the file policy.npz; the learner writes model.npz today
+    with np.load(gen / "model.npz", allow_pickle=False) as z:
+        h = hashlib.sha256()
+        for k in sorted(z.files):
+            h.update(k.encode() + np.ascontiguousarray(z[k]).tobytes())
+    return h.hexdigest()
+
+
+def test_policies_differ_except_where_a_validated_peer_candidate_was_adopted(smoke):
+    """Each node trains its own network. After exchange windows a node that accepted a candidate holds the
+    sender's weights, so every acceptance can merge at most one node into another."""
     c, run_id, view = smoke
+    accepted = sum(c.node_status(n)["counters"]["decisions_accepted"] for n in NODE_IDS)
     status_hashes = {n: c.node_status(n)["policy_sha256"] for n in NODE_IDS}
-    assert len(set(status_hashes.values())) == 4, status_hashes
+    assert len(set(status_hashes.values())) >= 4 - accepted, (accepted, status_hashes)
     # same conclusion from the checkpointed arrays on each node's own volume
     for n in NODE_IDS:
         code, _ = c.node_control(n, command="checkpoint")
         assert code == 200
-    digests = {}
+    digests = {n: policy_digest(c.ckpt_dir(n)) for n in NODE_IDS}
+    assert len(set(digests.values())) >= 4 - accepted, (accepted, digests)
+
+
+def test_isolated_nodes_end_with_distinct_policies(make_cluster):
+    """A16 'distinct per-node policy': same-seed init plus different data, no exchange possible (every link cut
+    for the whole run), so the four parameter hashes must all differ."""
+    c = make_cluster(ticks=60)
+    all_pairs = [[a, b] for i, a in enumerate(NODE_IDS) for b in NODE_IDS[i + 1 :]]
+    c.start_run(
+        "isolated",
+        episodes=[{"kind": "train", "seed": 51}],
+        fault_schedule=[{"start_tick": 0, "end_tick": 10_000, "cut_links": all_pairs}],
+        seed=7,
+    )
+    assert c.wait_run("isolated")["status"] == "completed"
+    counters = {n: c.node_status(n)["counters"] for n in NODE_IDS}
+    assert all(k["offers_sent"] == 0 and k["decisions_accepted"] == 0 for k in counters.values()), (
+        counters
+    )
+    hashes = {n: c.node_status(n)["policy_sha256"] for n in NODE_IDS}
+    assert len(set(hashes.values())) == 4, hashes
+    assert all(c.node_status(n)["train_steps"] > 0 for n in NODE_IDS)
     for n in NODE_IDS:
-        root = c.ckpt_dir(n) / "ckpt"
-        cur = json.loads((root / "CURRENT").read_text())
-        gen = root / f"gen-{cur['generation']}"
-        assert gen.is_dir(), (n, cur)
-        # A17 names the file policy.npz; the learner writes model.npz today
-        with np.load(gen / "model.npz", allow_pickle=False) as z:
-            h = hashlib.sha256()
-            for k in sorted(z.files):
-                h.update(k.encode() + np.ascontiguousarray(z[k]).tobytes())
-        digests[n] = h.hexdigest()
-    assert len(set(digests.values())) == 4, digests
+        assert c.node_control(n, command="checkpoint")[0] == 200
+    assert len({policy_digest(c.ckpt_dir(n)) for n in NODE_IDS}) == 4
 
 
 def test_telemetry_spool_is_written_and_shipped(smoke):
