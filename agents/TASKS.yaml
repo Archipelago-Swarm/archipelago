@@ -933,13 +933,13 @@ tasks:
   name: Live-runtime interface agreement and task registration
   description: Integrator-authored interface agreement (agents/architecture/live-runtime.md), ADR-0008,
     ownership domains and ledger entries T24-T31 for the live decentralized-learning experiment.
-  state: INTEGRATION
+  state: COMPLETE
   priority: 0
   owner: A/integrator
   machine: A
   branch: agent/T24-live-runtime-interface-agreement
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:48:28Z'
+  updated_at: '2026-10-10T20:52:25Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -963,7 +963,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: d30d299
+  last_good_commit: e8e38a6
   artifacts: []
   handoff_file: agents/handoffs/T24/LATEST.md
   notes: 'Bootstrap exception: authored by the integrator; independent review runs while T26/T28 implement.
@@ -993,6 +993,12 @@ tasks:
     to: INTEGRATION
     by: cloud/verifier
     note: ''
+  - at: '2026-10-10T20:52:25Z'
+    event: complete
+    from: INTEGRATION
+    to: COMPLETE
+    by: integrator/cloud
+    note: merged at e8e38a6
 - id: T25
   name: Make the legacy runners safe to leave on disk
   description: driver.py/night.py/watchdog.py merge into and reset main of the checkout they run in and
