@@ -21,11 +21,16 @@ describe("panelsReducer over the recorded partition run", () => {
   });
   it("records offers newest last in state with accepted and rejected decisions", () => {
     const p = run();
-    expect(p.offers.map((o) => [o.node, o.transfer, o.reason, o.score, o.bytes, o.version])).toEqual([
-      ["node-01", "accepted", "score_improved", 0.8, 2048, 2],
-      ["node-02", "rejected", "score_below_tolerance", -0.5, 1024, 1],
-      ["node-02", "accepted", "score_improved", 1.5, 4096, 3],
+    expect(p.offers.map((o) => [o.sender, o.node, o.transfer, o.reason, o.score, o.bytes, o.version])).toEqual([
+      ["node-02", "node-01", "accepted", "score_improved", 0.8, 2048, 2],
+      ["node-01", "node-02", "rejected", "score_below_tolerance", -0.5, 1024, 1],
+      ["node-01", "node-02", "accepted", "score_improved", 1.5, 4096, 3],
     ]);
+  });
+  it("reports sender as not reported when no matching envelope exists", () => {
+    const lone = events.filter((e) => e.kind !== "peer_envelope");
+    const p2 = lone.reduce((s, e) => panelsReducer(s, { t: "record", record: e, at: T0 }), emptyPanels());
+    expect(p2.offers.map((o) => o.sender)).toEqual([null, null, null]);
   });
   it("builds node cards from learning events and metrics", () => {
     const p = run();
@@ -95,10 +100,10 @@ describe("rendered panels", () => {
     expect(html).toContain("Policy version");
     expect(html).toContain("110.0"); // node-02 rss 115343360 B in MiB
     expect(html).toContain("fresh (2 s ago)");
-    const rows = html.split("<tr>").filter((r) => r.includes("sender not reported"));
+    const rows = html.split("<tr>").filter((r) => r.includes("<td>") && r.includes("→"));
     expect(rows).toHaveLength(3);
-    for (const t of ["node-02", "accepted", "4096"]) expect(rows[0]).toContain(t);
-    for (const t of ["rejected", "score_below_tolerance", "-0.50"]) expect(rows[1]).toContain(t);
+    for (const t of ["node-01 → node-02", "accepted", "4096"]) expect(rows[0]).toContain(t);
+    for (const t of ["node-01 → node-02", "rejected", "score_below_tolerance", "-0.50"]) expect(rows[1]).toContain(t);
     expect(html).toContain('data-series="train"');
     expect(html).toContain('data-series="eval"');
     expect(html).toContain("sim tick");

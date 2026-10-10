@@ -17,14 +17,16 @@ export interface NodeCard {
   replaySize?: number; rssBytes?: number; backlog?: number; dropped?: number;
   lastEventAt?: number; lastAction?: string;
 }
-// LearningEvent carries only the deciding node (source_node_id); the contract has no sender field.
+// LearningEvent names only the deciding node (source_node_id). The sender comes from the PeerEnvelope
+// (record kind peer_envelope) for the same recipient and model version, when one was seen.
+export interface Envelope { sequence: number; sender: string; recipient: string; version: number }
 export interface Offer {
-  sequence: number; at: number; tick: number; node: string; version: number;
+  sequence: number; at: number; tick: number; node: string; sender: string | null; version: number;
   transfer: "accepted" | "rejected"; reason: string | null; score: number | null; bytes: number | null;
 }
 export interface Panels {
   runId: string | null; lastSequence: number; lastEventAt: number | null;
-  nodes: Record<string, NodeCard>; offers: Offer[]; links: [string, string][];
+  nodes: Record<string, NodeCard>; offers: Offer[]; envelopes: Envelope[]; links: [string, string][];
   positions: Record<string, { x: number; y: number }>;
   runStatus: string | null; coverage: number | null; tick: number | null;
   faultPhase: FaultPhase | null;
@@ -34,7 +36,7 @@ export interface Panels {
 export type PanelAction = { t: "record"; record: unknown; at: number } | { t: "reset" };
 
 export const emptyPanels = (): Panels => ({
-  runId: null, lastSequence: 0, lastEventAt: null, nodes: {}, offers: [], links: [], positions: {},
+  runId: null, lastSequence: 0, lastEventAt: null, nodes: {}, offers: [], envelopes: [], links: [], positions: {},
   runStatus: null, coverage: null, tick: null, faultPhase: null,
   train: { unit: "", points: [] }, eval: { unit: "", points: [] },
   counters: { deadlineMissed: null, nodeUnavailable: null },
@@ -84,11 +86,19 @@ function applyMetric(s: Panels, r: MetricSample, at: number): Panels {
   }
 }
 
+function applyEnvelope(s: Panels, r: Record<string, unknown>): Panels {
+  if (typeof r.sender !== "string" || typeof r.recipient !== "string" || typeof r.model_version !== "number") return s;
+  const e: Envelope = { sequence: r.sequence as number, sender: r.sender, recipient: r.recipient, version: r.model_version };
+  return { ...s, envelopes: bounded([...s.envelopes, e], MAX_OFFERS * 4) };
+}
+
 function applyLearning(s: Panels, r: LearningEvent, at: number): Panels {
   if (!r.source_node_id) return s;
   const next = touch(s, r.source_node_id, at, { policyVersion: r.new_version, updateCount: r.update_count, loss: r.loss ?? undefined });
   if (r.transfer === "none") return next;
-  const offer: Offer = { sequence: r.sequence, at, tick: r.sim_tick, node: r.source_node_id, version: r.new_version, transfer: r.transfer, reason: r.reason ?? null, score: r.candidate_score ?? null, bytes: r.bytes ?? null };
+  // Newest earlier envelope addressed to the deciding node for this model version.
+  const env = [...next.envelopes].reverse().find((e) => e.recipient === r.source_node_id && e.version === r.new_version && e.sequence < r.sequence);
+  const offer: Offer = { sequence: r.sequence, at, tick: r.sim_tick, node: r.source_node_id, sender: env?.sender ?? null, version: r.new_version, transfer: r.transfer, reason: r.reason ?? null, score: r.candidate_score ?? null, bytes: r.bytes ?? null };
   return { ...next, offers: bounded([...next.offers, offer], MAX_OFFERS) };
 }
 
@@ -103,6 +113,7 @@ export function panelsReducer(s: Panels, a: PanelAction): Panels {
   if (r.kind === "world_snapshot") next = applySnapshot(s, r as unknown as WorldSnapshot);
   else if (r.kind === "metric_sample") next = applyMetric(s, r as unknown as MetricSample, a.at);
   else if (r.kind === "learning_event") next = applyLearning(s, r as unknown as LearningEvent, a.at);
+  else if (r.kind === "peer_envelope") next = applyEnvelope(s, r);
   else return s;
   return { ...next, runId: r.run_id, lastSequence: r.sequence, lastEventAt: a.at };
 }

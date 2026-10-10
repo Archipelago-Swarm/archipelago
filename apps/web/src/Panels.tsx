@@ -67,7 +67,7 @@ export function LivePanels({ p, now, recorded }: { p: Panels; now: number; recor
         <tbody>
           {offers.length ? offers.map((o) => (
             <tr key={o.sequence}>
-              <td>{o.tick}</td><td>sender not reported → {o.node}</td><td>{o.version}</td><td>{o.transfer}</td><td>{o.reason ?? "none"}</td><td>{fmt(o.score, 2)}</td><td>{fmt(o.bytes)}</td>
+              <td>{o.tick}</td><td>{o.sender ?? "not reported"} → {o.node}</td><td>{o.version}</td><td>{o.transfer}</td><td>{o.reason ?? "none"}</td><td>{fmt(o.score, 2)}</td><td>{fmt(o.bytes)}</td>
             </tr>
           )) : <tr><td colSpan={7}>No offers recorded.</td></tr>}
         </tbody>

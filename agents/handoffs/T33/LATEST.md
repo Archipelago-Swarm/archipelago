@@ -10,7 +10,7 @@ Status: implemented, committed on worktree branch (not pushed).
 - `fixtures/partition_run.json` (connected, partition, recovery, connected; accepted and rejected offers) and `live.test.tsx`.
 
 ## Assumptions to confirm
-- LearningEvent has no sender field, so the offers table shows "sender not reported -> <deciding node>".
+- LearningEvent has no sender, but PeerEnvelope (kind peer_envelope) has required sender/recipient/model_version. The reducer stores envelopes; each offer takes the sender of the newest earlier envelope with recipient == deciding node and model_version == new_version, else shows "not reported". Fixture now contains peer_envelope records (sequences renumbered).
 - Fault phase is read from the `phase` of `fault_phase` samples (partition / recovery / other = connected), not the numeric value.
 - Last action is derived from pose deltas between snapshots (no action records are streamed).
 - Sequences are assumed globally monotonic per run (live-runtime.md section 12).
