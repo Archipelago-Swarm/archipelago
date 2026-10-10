@@ -16,7 +16,7 @@ Bootstrap exception: before T02 creates the remote ledger, A records its T01/T02
 4. Use your own branch/worktree: `agent/<machine>/<task>/<short-description>`.
 5. Create a handoff checkpoint with plan, acceptance checks and next steps before implementation.
 
-Computer A is the single dispatcher/integrator. Computer B leads its own workers but accepts A's recorded assignments. Maximum two active coding workers per machine initially, counting any reviewer that invokes a model; no recursive fan-out. Coordinators cannot silently exceed the slot budget by coding in parallel too.
+Computer A is the single dispatcher/integrator. Computer B leads its own workers but accepts A's recorded assignments. Maximum four active coding workers per machine (raised from two by the operator on 2026-10-10, ADR-0009; the cap counts every model-invoking agent including reviewers, and the shared-path and single-integrator rules below still serialize contended files), counting any reviewer that invokes a model; no recursive fan-out. Coordinators cannot silently exceed the slot budget by coding in parallel too.
 
 ## During work
 
