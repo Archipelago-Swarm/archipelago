@@ -1,0 +1,60 @@
+{
+ "args": {
+  "seeds": 12,
+  "episodes": 150,
+  "modes": [
+   "rule",
+   "idle",
+   "independent",
+   "information_only",
+   "p2p",
+   "central_online",
+   "ctde"
+  ],
+  "scenarios": [
+   "connected",
+   "split",
+   "rejoin",
+   "node_failure"
+  ],
+  "out": "agents/handoffs/T09/evidence"
+ },
+ "val": [
+  100000,
+  100001,
+  100002,
+  100003
+ ],
+ "test": [
+  200000,
+  200001,
+  200002,
+  200003,
+  200004,
+  200005
+ ],
+ "rerun": {
+  "env": {
+   "PYTHONPATH": "packages/learning;packages/sim"
+  },
+  "argv": [
+   "C:\\Users\\tient\\.codex\\.chatgpt-projects\\g-p-6ac956ec30c481919651706ebe8ec05b\\archipelago\\.agent-runtime\\worktrees\\20261010T143523Z\\T09\\.venv\\Scripts\\python.exe",
+   "experiments/run.py",
+   "--seeds",
+   "12",
+   "--episodes",
+   "150",
+   "--out",
+   "agents/handoffs/T09/evidence"
+  ]
+ },
+ "train_env_steps": 1724950,
+ "note": "n=12 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0.",
+ "wall_s": 263.71930249992874,
+ "cpu_s": 263.9375,
+ "evidence_bytes": 246874,
+ "sha256": {
+  "raw.jsonl": "cfc01289a2dbed17c514c632efb8e8d49b57698284387ea7b6eef8650c14db93",
+  "summary.json": "2c0ea04aff806491ef85efdca4dfa6504595e2fa567cf979ea66edbcf7ab74ba"
+ }
+}
