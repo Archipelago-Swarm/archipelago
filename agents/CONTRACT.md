@@ -8,11 +8,11 @@ Keep plans, progress and handoffs under `agents/`. Root `CLAUDE.md` and `AGENTS.
 
 ## Before work
 
-Bootstrap exception: before T02 creates the remote ledger, A records its T01/T02 ownership in the task card and handoff and runs those tasks interactively. After T01, A may give explicit, nonoverlapping manual assignments to B in pushed task cards. No unattended dispatch or automatic reassignment is permitted until T02 migrates these assignments into the tested ledger. This exception avoids requiring the supervisor to exist before it can be built.
+Bootstrap exception: before T02 creates the remote ledger, A records its T01/T02 ownership in the task card and handoff and runs those tasks interactively. The project owner has assigned B the T04 lane. Once A publishes a T01 review commit with passing local validation and stable contracts, B may begin T04 from that exact commit in its own worktree, even while T01's CI/merge is pending. B records the upstream SHA in its handoff and PR, stays within T04 paths, and does not merge T04 until T01 is merged and T04 is reconciled with current main. Other assignments need A's explicit, nonoverlapping manual record in a pushed task card. No unattended dispatch or automatic reassignment is permitted until T02 migrates these assignments into the tested ledger. This exception avoids requiring the supervisor to exist before it can be built.
 
 1. Fetch remote state and inspect dirty/unpushed work. Never discard it.
 2. Read your assignment on `agent-coordination`, task card and latest handoff on its recorded branch.
-3. Verify owner, assignment generation, dependencies merged, and no overlapping shared-file reservation.
+3. Verify owner, assignment generation, dependencies merged or the narrowly allowed T04 bootstrap review commit, and no overlapping shared-file reservation.
 4. Use your own branch/worktree: `agent/<machine>/<task>/<short-description>`.
 5. Create a handoff checkpoint with plan, acceptance checks and next steps before implementation.
 
