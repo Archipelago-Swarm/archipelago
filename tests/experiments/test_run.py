@@ -4,7 +4,7 @@ import run
 def test_seeds_disjoint_and_overlap_detected():
     run.check_seeds(range(3), 20)
     try:
-        run.check_seeds(range(60), 20)  # train seeds reach 900
+        run.check_seeds(range(6000), 20)  # train seeds reach 100000
     except AssertionError:
         return
     raise AssertionError("overlap not detected")

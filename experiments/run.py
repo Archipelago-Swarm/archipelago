@@ -19,7 +19,7 @@ from archipelago_sim.env import ACTIONS, explorer_policy
 MODES = ("rule", "independent", "information_only", "p2p", "central_online", "ctde")
 SCENARIOS = ("connected", "split", "rejoin", "node_failure")
 # Experiment seed s trains on seeds s*EPISODES.. ; disjointness asserted in check_seeds.
-TRAIN0, VAL, TEST = 0, range(900, 904), range(950, 956)
+TRAIN0, VAL, TEST = 0, range(100000, 100004), range(200000, 200006)
 
 
 def check_seeds(seeds, episodes):
@@ -174,7 +174,7 @@ def main(argv=None):
         "args": vars(a),
         "val": list(VAL),
         "test": list(TEST),
-        "rerun": "python " + " ".join(sys.argv),
+        "rerun": "PYTHONPATH=packages/learning:packages/sim python " + " ".join(sys.argv),
         "train_env_steps": steps[0],
         "wall_s": sum(r["wall_s"] for r in rows),
         "note": f"n={a.seeds} experiment seeds: preliminary; CIs are bootstrap over seeds, "

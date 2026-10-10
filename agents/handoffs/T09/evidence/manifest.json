@@ -1,0 +1,43 @@
+{
+ "args": {
+  "seeds": 12,
+  "episodes": 150,
+  "modes": [
+   "rule",
+   "independent",
+   "information_only",
+   "p2p",
+   "central_online",
+   "ctde"
+  ],
+  "scenarios": [
+   "connected",
+   "split",
+   "rejoin",
+   "node_failure"
+  ],
+  "out": "agents/handoffs/T09/evidence"
+ },
+ "val": [
+  100000,
+  100001,
+  100002,
+  100003
+ ],
+ "test": [
+  200000,
+  200001,
+  200002,
+  200003,
+  200004,
+  200005
+ ],
+ "rerun": "PYTHONPATH=packages/learning:packages/sim python experiments/run.py --seeds 12 --episodes 150 --out agents/handoffs/T09/evidence",
+ "train_env_steps": 1591668,
+ "wall_s": 215.2571097999953,
+ "note": "n=12 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0.",
+ "sha256": {
+  "raw.jsonl": "90ea6fb724733648fcd807fa637a039e94028f5f318a5c93b137349606caf889",
+  "summary.json": "b7922a6517e3b6d8f86e8b19d915281c994df43c6d63460d972b961ded187f81"
+ }
+}
