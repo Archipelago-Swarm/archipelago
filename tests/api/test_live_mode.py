@@ -1,7 +1,7 @@
 """ARCHIPELAGO_ADAPTER=live end to end: API -> real archipelago_coordinator -> fake HTTP nodes.
 
 The coordinator runs in-process (its stdlib HTTP server on localhost) with fake nodes that
-implement /v1/act, /v1/feedback, /v1/control and /v1/status (tests/coordinator/harness.py, not
+implement /v1/act, /v1/feedback, /v1/control and /v1/status (tests/coordinator/coord_harness.py, not
 edited here). Real TimescaleDB is CI-only; persistence is checked through the Persister with a
 recording sink and through the report queries on a SQLite stand-in (tests/storage/fakedb.py).
 """
@@ -23,7 +23,7 @@ from archipelago_api.settings import Settings
 from archipelago_storage import Writer, queries
 from fakedb import SqliteConn  # type: ignore[import-not-found,unused-ignore]
 from fastapi.testclient import TestClient
-from harness import (  # type: ignore[import-not-found,unused-ignore]
+from coord_harness import (  # type: ignore[import-not-found,unused-ignore]
     ADMIN_TOKEN,
     COORD_TOKEN,
     FakeNode,
