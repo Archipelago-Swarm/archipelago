@@ -16,7 +16,8 @@ PORT = 18765
 
 
 def status(method, path):
-    req = urllib.request.Request(f"http://127.0.0.1:{PORT}{path}", method=method, data=b"{}" if method == "POST" else None)
+    data = b"{}" if method == "POST" else None
+    req = urllib.request.Request(f"http://127.0.0.1:{PORT}{path}", method=method, data=data)
     req.add_header("content-type", "application/json")
     try:
         return urllib.request.urlopen(req, timeout=3).status
@@ -26,11 +27,15 @@ def status(method, path):
 
 def test_api_image_builds_and_rejects_anonymous():
     docker = ["docker"]
-    subprocess.run(docker + ["build", "-q", "-f", "infra/docker/api.Dockerfile", "-t", NAME, "."], cwd=ROOT, check=True)
+    build = ["build", "-q", "-f", "infra/docker/api.Dockerfile", "-t", NAME, "."]
+    subprocess.run(docker + build, cwd=ROOT, check=True)
     subprocess.run(docker + ["rm", "-f", NAME], capture_output=True)
     subprocess.run(
-        docker + ["run", "-d", "--name", NAME, "-e", "ARCHIPELAGO_API_TOKEN=0123456789abcdef0123", "-p", f"127.0.0.1:{PORT}:8000", NAME],
-        check=True, capture_output=True,
+        docker
+        + ["run", "-d", "--name", NAME, "-e", "ARCHIPELAGO_API_TOKEN=0123456789abcdef0123"]
+        + ["-p", f"127.0.0.1:{PORT}:8000", NAME],
+        check=True,
+        capture_output=True,
     )
     try:
         for _ in range(30):
@@ -43,7 +48,12 @@ def test_api_image_builds_and_rejects_anonymous():
         else:
             pytest.fail("api never became healthy")
         assert status("GET", "/healthz") == 200
-        for method, path in [("POST", "/v1/runs"), ("POST", "/v1/runs/x/commands"), ("GET", "/v1/runs/x"), ("GET", "/v1/runs/x/events")]:
+        for method, path in [
+            ("POST", "/v1/runs"),
+            ("POST", "/v1/runs/x/commands"),
+            ("GET", "/v1/runs/x"),
+            ("GET", "/v1/runs/x/events"),
+        ]:
             assert status(method, path) == 401, (method, path)
     finally:
         subprocess.run(docker + ["rm", "-f", NAME], capture_output=True)
