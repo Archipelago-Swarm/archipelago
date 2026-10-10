@@ -1628,13 +1628,13 @@ tasks:
     (coverage, episode return, update counts, loss, policy versions, peer offers accepted/rejected, partition
     phase, deadline misses, telemetry backlog and drops, resources), with offline validation of provisioning
     and a reader-role-only datasource.
-  state: CLAIMED
+  state: INTEGRATION
   priority: 2
   owner: codex/T35
   machine: A
   branch: agent/T35-grafana-live-experiment-dashboar
   created_at: '2026-10-10T19:55:00Z'
-  updated_at: '2026-10-10T19:26:04Z'
+  updated_at: '2026-10-10T20:13:03Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -1661,7 +1661,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: null
+  last_good_commit: d453b91eef
   artifacts: []
   handoff_file: agents/handoffs/T35/LATEST.md
   notes: Hand-off to Codex (agents/operations/codex/T35.md). Does not touch infra/** or services/**.
@@ -1672,18 +1672,36 @@ tasks:
     to: CLAIMED
     by: codex/T35
     note: ''
+  - at: '2026-10-10T20:13:03Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: codex/T35
+    note: ''
+  - at: '2026-10-10T20:13:03Z'
+    event: to_review
+    from: ACTIVE
+    to: REVIEW
+    by: codex/T35
+    note: ''
+  - at: '2026-10-10T20:13:03Z'
+    event: verify_pass
+    from: REVIEW
+    to: INTEGRATION
+    by: A/integrator-direct-run
+    note: ''
 - id: T36
   name: API telemetry ingest endpoint
   description: 'POST /v1/telemetry per agents/architecture/live-runtime.md section 8.1: authenticated,
     bounded, idempotent batch ingest of canonical records into the run event log and the Persister, with
     per-item rejection and overload behavior.'
-  state: CLAIMED
+  state: INTEGRATION
   priority: 1
   owner: codex/T36
   machine: A
   branch: agent/T36-api-telemetry-ingest-endpoint
   created_at: '2026-10-10T19:55:00Z'
-  updated_at: '2026-10-10T19:26:04Z'
+  updated_at: '2026-10-10T20:13:05Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -1710,7 +1728,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: null
+  last_good_commit: d453b91eef
   artifacts: []
   handoff_file: agents/handoffs/T36/LATEST.md
   notes: Hand-off to Codex (agents/operations/codex/T36.md). Adds one module and one test file; the single
@@ -1721,6 +1739,24 @@ tasks:
     from: QUEUED
     to: CLAIMED
     by: codex/T36
+    note: ''
+  - at: '2026-10-10T20:13:04Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: codex/T36
+    note: ''
+  - at: '2026-10-10T20:13:04Z'
+    event: to_review
+    from: ACTIVE
+    to: REVIEW
+    by: codex/T36
+    note: ''
+  - at: '2026-10-10T20:13:05Z'
+    event: verify_pass
+    from: REVIEW
+    to: INTEGRATION
+    by: A/integrator-direct-run
     note: ''
 - id: T37
   name: Pre-registered observation/reward/schedule variant study (offline)
