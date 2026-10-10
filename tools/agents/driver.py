@@ -231,6 +231,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--machine", choices=["A", "B"], required=True)
     p.add_argument("--until-utc", default="2026-10-10T13:00:00Z")
-    p.add_argument("--max-rounds", type=int, default=12)
+    p.add_argument("--max-rounds", type=int, default=10)
     a = p.parse_args()
     (driver_a if a.machine == "A" else driver_b)(a)
