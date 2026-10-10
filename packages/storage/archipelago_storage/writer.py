@@ -28,7 +28,7 @@ def connect_from_env() -> Any:
     url = os.environ["TIGERDATA_URL"]
     if "localhost" not in url and "127.0.0.1" not in url and "sslmode=" not in url:
         raise ValueError("non-local TIGERDATA_URL must set sslmode (require or verify-full)")
-    import psycopg  # type: ignore[import-not-found,unused-ignore]  # not in root manifest yet
+    import psycopg
 
     return psycopg.connect(url, connect_timeout=5)
 
