@@ -1,8 +1,14 @@
 name: ci
 on:
   pull_request:
+    paths-ignore: &ledger_only
+      # Ledger and handoff bookkeeping commits change no code; they must not queue a full run.
+      - "agents/TASKS.yaml"
+      - "agents/STATUS.yaml"
+      - "agents/handoffs/**"
   push:
     branches: [main]
+    paths-ignore: *ledger_only
   workflow_dispatch:
 
 # A newer push to the same ref supersedes the running one (ADR-0005).
@@ -13,6 +19,8 @@ concurrency:
 permissions:
   contents: read
 
+# One slice per job, all in parallel (scripts/check.sh CHECK_PART); the slowest slice sets the
+# wall-clock time. Python slices share the uv cache; torch comes from the CPU index.
 jobs:
   fast:
     runs-on: ubuntu-latest
@@ -25,12 +33,50 @@ jobs:
           enable-cache: true
       - run: uv sync --frozen
       - run: make check-fast
+      - run: CHECK_PART=lint scripts/check.sh
 
-  # Same gate as check-full minus the container build. Docker tests run here (runners have a daemon).
-  bootstrap:
-    needs: fast
+  py-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: scripts/install-torch-cpu.sh
+      - run: CHECK_PART=py-live scripts/check.sh
+
+  py-rest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: scripts/install-torch-cpu.sh
+      - run: CHECK_PART=py-rest scripts/check.sh
+
+  # Docker-marked tests build images; runners have a daemon.
+  docker:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: CHECK_PART=docker scripts/check.sh
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -42,12 +88,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: uv sync --frozen
-      - run: scripts/install-torch-cpu.sh
       - run: npm ci
-      - run: scripts/check.sh
+      - run: CHECK_PART=web scripts/check.sh
 
   container-smoke:
-    needs: fast
     if: github.event_name != 'pull_request' || contains(join(github.event.pull_request.labels.*.name, ','), 'full')
     runs-on: ubuntu-latest
     timeout-minutes: 30

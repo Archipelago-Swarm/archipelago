@@ -1,5 +1,5 @@
 # Validation tiers (agents/PROTOCOL.md section 11). Run from the repository root.
-.PHONY: check-fast check-integration check-full
+.PHONY: check-fast check-affected check-integration check-full
 
 # Seconds: docs/ledger, lint, format, controller tests.
 check-fast:
@@ -8,6 +8,10 @@ check-fast:
 	uv run ruff check packages services tests infra/vultr experiments agents/controller.py agents/launch.py
 	uv run ruff format --check packages services tests infra/vultr experiments agents/controller.py agents/launch.py
 	uv run pytest -q tests/agents
+
+# Lint plus only the tests touched by this branch (pre-push gate; CI runs everything, in parallel slices).
+check-affected:
+	scripts/check-affected.sh
 
 # Minutes, no Docker daemon needed: types, contract drift, full non-Docker pytest, web lint/test/build.
 check-integration:

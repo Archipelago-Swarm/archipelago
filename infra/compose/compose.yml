@@ -126,7 +126,7 @@ services:
       NODE_CONTROL_TOKEN: ${NODE_CONTROL_TOKEN:?set in .env}
       COORDINATOR_DATA_DIR: /data/coordinator
       COORDINATOR_NODE_URLS: node-01=http://node-01:8080,node-02=http://node-02:8080,node-03=http://node-03:8080,node-04=http://node-04:8080
-      COORDINATOR_WORLD_KWARGS: '{"battery_scale": ${DEMO_BATTERY_SCALE:-4}, "n_targets": ${DEMO_N_TARGETS:-0}}'
+      COORDINATOR_WORLD_KWARGS: '{"n_targets": ${DEMO_N_TARGETS:-0}}'
       COORDINATOR_PLAN_FILE: /plans/${DEMO_PLAN:-smoke}.json
       ARCHIPELAGO_COMMIT: ${ARCHIPELAGO_COMMIT:-unknown}
     volumes:

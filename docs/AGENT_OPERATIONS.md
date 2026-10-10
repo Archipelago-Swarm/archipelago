@@ -35,3 +35,14 @@ inspect state -> pick the highest-impact unresolved issue on the critical path -
 ## Bottleneck-first scheduling
 
 Each cycle: what single unresolved issue slows the demo most? Work on that; recompute. A polished dashboard over no learning signal is waste; a working simulator with a broken deployment makes infrastructure the bottleneck.
+
+## CI cost discipline
+
+CI is a bottleneck when it is used as the test runner. Rules:
+
+1. Run `make check-affected` before every push; run `make check-integration` once before the PR/merge push. Never push to find out whether something passes.
+2. Batch commits: push at milestones, not per edit. A newer push cancels the running CI (concurrency group), so pushing mid-run wastes the whole run.
+3. Ledger, status and handoff-only commits do not trigger CI (`paths-ignore`). Keep bookkeeping in separate commits from code so it stays cheap.
+4. CI runs slices in parallel (`CHECK_PART`: lint, py-live, py-rest, docker, web via `scripts/check.sh`); wall-clock is the slowest slice. Keep any slice under ~6 minutes: move tests between `py-live` and `py-rest` (LIVE list in `scripts/check.sh`) when a slice grows. `--durations=10` prints the slowest tests in every run.
+5. Tests must be deterministic and fast. No wall-clock thresholds; use events/barriers. A test over 10 s needs a reason in its docstring.
+6. One integration PR per milestone, merged as soon as it is green. Do not hold a long-lived branch: merge main in early to keep conflicts small.
