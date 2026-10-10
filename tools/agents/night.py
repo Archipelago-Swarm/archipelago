@@ -20,6 +20,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from watchdog import process_lock
+
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME = ROOT / ".agent-runtime"
 COORD_BRANCH = "agent-coordination"
@@ -198,18 +200,11 @@ def join_plan() -> dict[str, Any]:
 
 @contextlib.contextmanager
 def machine_lock(machine: str):
-    RUNTIME.mkdir(exist_ok=True)
-    lock = RUNTIME / f"{machine}.lock"
     try:
-        handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError as error:
-        raise NightError(f"{machine} runner is already locked; inspect PID in {lock}") from error
-    with os.fdopen(handle, "w", encoding="utf-8") as output:
-        output.write(str(os.getpid()))
-    try:
-        yield
-    finally:
-        lock.unlink(missing_ok=True)
+        with process_lock(f"night-{machine}", RUNTIME):
+            yield
+    except RuntimeError as error:
+        raise NightError(f"{machine} runner is already locked") from error
 
 
 def worktree_for(plan: dict[str, Any], task: dict[str, Any]) -> tuple[Path, str]:
@@ -349,8 +344,10 @@ def bash_executable() -> str:
     if os.name == "nt":
         git_exe = shutil.which("git")
         candidates = [Path(git_exe).resolve().parents[1] / "bin" / "bash.exe"] if git_exe else []
-        candidates += [Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git/bin/bash.exe",
-                       Path("C:/msys64/usr/bin/bash.exe")]
+        candidates += [
+            Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git/bin/bash.exe",
+            Path("C:/msys64/usr/bin/bash.exe"),
+        ]
         for candidate in candidates:
             if candidate.is_file():
                 return str(candidate)

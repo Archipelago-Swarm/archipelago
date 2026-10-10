@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from cleanup_branches import cleanup as cleanup_branches
+from watchdog import process_lock
 
 ROOT = Path(__file__).resolve().parents[2]
 RT = ROOT / ".agent-runtime"
@@ -182,6 +183,14 @@ def report_machines(plan):
     return set(plan.values())
 
 
+def run_a_night(max_rounds, hours):
+    return subprocess.run(
+        [sys.executable, "tools/agents/night.py", "--machine", "A", "--billing", "subscription",
+         "--hours", f"{hours:.2f}", "--max-rounds", str(max_rounds)],
+        cwd=ROOT,
+    )
+
+
 def publish(tasks):
     git("checkout", "-q", "main")
     (ROOT / "agents/operations/night-plan.json").write_text(
@@ -222,12 +231,23 @@ def driver_a(a):
     if a.resume_run:  # integrate that run from its own report only; its peer never joined
         plan = {t: "A" for t in (report(a.resume_run, "A") or {})}
     started = now()
-    while True:
+    while now() < until and not (RT / "STOP").exists():
         try:
             if last_run:
+                if cur and cur["run_id"] == last_run and report(last_run, "A") is None and now() < datetime.fromisoformat(cur["stop_at_utc"].replace("Z", "+00:00")):
+                    log(f"{last_run}: A report missing; resuming local supervisor")
+                    remaining = max(0.01, (until - now()).total_seconds() / 3600)
+                    run_a_night(a.max_rounds, remaining)
+                    if report(last_run, "A") is None:
+                        log(f"{last_run}: A still has no report; retrying in 60s")
+                        time.sleep(60)
+                        continue
                 log(f"waiting on reports for {last_run}")
                 results, t0 = {}, None
                 while True:
+                    if now() >= until or (RT / "STOP").exists():
+                        log("run window ended while waiting on reports; preserving remote checkpoints")
+                        return
                     # A peer may be polling or preparing its first branch. Keep the
                     # published assignment stable until its report or the wait limit.
                     peers = report_machines(plan)
@@ -265,17 +285,16 @@ def driver_a(a):
             tasks = next_plan(last_run, prior, s)
             remaining = (until - now()).total_seconds() / 3600
             if not tasks or remaining < 0.4:
+                if remaining < 0.4:
+                    log("run window nearly over; leaving checkpoints for the next run")
+                    return
                 log(f"nothing runnable (done={s['done']}); idling 5 min")
                 last_run = None
                 time.sleep(300)
                 continue
             publish(tasks)
             log(f"launching plan {[t['id'] for t in tasks]} for {remaining:.1f}h")
-            subprocess.run(
-                [sys.executable, "tools/agents/night.py", "--machine", "A", "--billing", "subscription",
-                 "--hours", f"{remaining:.2f}", "--max-rounds", str(a.max_rounds)],
-                cwd=ROOT,
-            )
+            run_a_night(a.max_rounds, remaining)
             saved = RT / "active-plan.json"  # written by night.py; independent of any fetch
             cur = json.loads(saved.read_text()) if saved.exists() else active()
             last_run = cur["run_id"] if cur else None
@@ -288,16 +307,25 @@ def driver_a(a):
 
 def driver_b(a):
     seen = None
-    while True:
+    until = datetime.fromisoformat(a.until_utc.replace("Z", "+00:00")) if a.until_utc else None
+    while (until is None or now() < until) and not (RT / "STOP").exists():
         try:
             cur = active()
             if cur and cur["run_id"] != seen and datetime.fromisoformat(cur["stop_at_utc"].replace("Z", "+00:00")) > now():
-                seen = cur["run_id"]
+                run_id = cur["run_id"]
+                if report(run_id, "B") is not None:
+                    seen = run_id
+                    time.sleep(60)
+                    continue
                 git("checkout", "-q", "main")
                 git("pull", "-q", "--ff-only")
-                log(f"joining {seen}")
-                subprocess.run([sys.executable, "tools/agents/night.py", "--machine", "B", "--billing", "subscription",
-                                "--max-rounds", str(a.max_rounds)], cwd=ROOT)
+                log(f"joining {run_id}")
+                result = subprocess.run([sys.executable, "tools/agents/night.py", "--machine", "B", "--billing", "subscription",
+                                         "--max-rounds", str(a.max_rounds)], cwd=ROOT)
+                if report(run_id, "B") is not None:
+                    seen = run_id
+                else:
+                    log(f"{run_id}: worker exited {result.returncode} without a remote report; retrying")
         except Exception as e:
             log(f"error: {e}")
         time.sleep(60)
@@ -306,8 +334,11 @@ def driver_b(a):
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--machine", choices=["A", "B"], required=True)
-    p.add_argument("--until-utc", default="2026-10-10T13:00:00Z")
+    p.add_argument("--until-utc")
     p.add_argument("--resume-run", default=None)
     p.add_argument("--max-rounds", type=int, default=10)
     a = p.parse_args()
-    (driver_a if a.machine == "A" else driver_b)(a)
+    if a.machine == "A" and not a.until_utc:
+        p.error("A requires --until-utc to bound the run")
+    with process_lock(f"driver-{a.machine}"):
+        (driver_a if a.machine == "A" else driver_b)(a)
