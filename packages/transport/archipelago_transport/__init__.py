@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 from collections import deque
 from dataclasses import dataclass, field
@@ -34,6 +35,26 @@ class Stats:
     rejected: dict = field(default_factory=dict)
 
 
+def load_manifest(text: str) -> tuple[dict[str, str], set[tuple[str, str]]]:
+    """Static manifest JSON {"nodes": {id: url}, "links": [[src, dst]]} -> (urls, links)."""
+    m = json.loads(text)
+    nodes = m["nodes"]
+    links = {(a, b) for a, b in m["links"]}
+    if any(a not in nodes or b not in nodes for a, b in links):
+        raise ValueError("link references node missing from manifest")
+    return dict(nodes), links
+
+
+class Telemetry:
+    """Separate, bounded, non-blocking channel; never gated by learning links."""
+
+    def __init__(self, maxlen: int = 256):
+        self.records: deque = deque(maxlen=maxlen)
+
+    def emit(self, node: str, record: dict):
+        self.records.append((node, record))
+
+
 class Network:
     """Deterministic memory network. links: set of allowed directed (src, dst) pairs.
 
@@ -53,6 +74,9 @@ class Network:
         self._flight: list[tuple[int, Envelope]] = []
         self._seen: dict[tuple[str, str], int] = {}  # (dst, src) -> latest accepted seq
         self._latest: dict[str, Envelope] = {}  # src -> newest sent, for catch-up
+        self._pending: dict[
+            tuple[str, str, int], list
+        ] = {}  # reliable: [env, deadline, retries, timeout]
 
     def _reject(self, why: str, n: int):
         self.stats.rejected[why] = self.stats.rejected.get(why, 0) + 1
@@ -83,6 +107,22 @@ class Network:
         self._flight.append((self.now + self.delay, env))
         return True
 
+    def send_reliable(self, env: Envelope, timeout: int = 3, retries: int = 3):
+        """Send, then resend from tick() until acked or retries run out (never blocks)."""
+        self._pending[(env.src, env.dst, env.seq)] = [env, self.now + timeout, retries, timeout]
+        return self.send(env)
+
+    def _retry(self):
+        for key, p in list(self._pending.items()):
+            if self.now < p[1]:
+                continue
+            if p[2] == 0:
+                del self._pending[key]
+                self._reject("timeout", 0)
+                continue
+            p[1], p[2] = self.now + p[3], p[2] - 1
+            self.send(p[0])
+
     def tick(self):
         self.now += 1
         due = [e for t, e in self._flight if t <= self.now]
@@ -95,7 +135,9 @@ class Network:
                     self._flight.append((self.now + 1, e))  # defer to next tick
                     continue
                 budget -= n
+            self._pending.pop((e.src, e.dst, e.seq), None)  # any verdict acks
             self._deliver(e)
+        self._retry()
 
     def _deliver(self, e: Envelope):
         n = len(e.payload)
