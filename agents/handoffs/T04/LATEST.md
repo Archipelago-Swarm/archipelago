@@ -53,3 +53,20 @@ pyproject.toml (workspace member, deps, mypy files), scripts/check.sh (ruff path
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Run 20261010T061419Z round 2 (B worker, no commits)
+- Re-checked: `uv run pytest tests/api -q` -> 11 passed. Still no simulator package (`packages/` has only contracts), so T03 real-run wiring is blocked; no code changed.
+- Remaining acceptance gap: real T03 run (fixture-only stays partial). Next: when T03 merges, add real adapter factory in `create_app_from_env` plus a real-run test.
+
+## Supervisor checkpoint 2026-10-10T06:19:37Z
+
+- Run: 20261010T061419Z
+- Machine: B
+- Task/branch: T04 / agent/B/20261010T061419Z/T04
+- Base: ebf81adfd106fe3bbf8faf752dcf254e49ee6e95
+- Round: 2
+- State: blocked
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
