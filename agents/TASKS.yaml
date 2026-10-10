@@ -468,13 +468,13 @@ tasks:
   name: Persist run events so replay survives restart
   description: services/api keeps events in memory only, so replay is empty after a restart (T10 acceptance
     check 4). Persist events and serve replay from the store.
-  state: CLAIMED
+  state: ACTIVE
   priority: 1
   owner: cloud/w3
   machine: cloud
   branch: agent/T14-persist-run-events-so-replay-sur
   created_at: '2026-10-10T18:30:00Z'
-  updated_at: '2026-10-10T20:44:16Z'
+  updated_at: '2026-10-10T20:47:19Z'
   dependencies:
   - T04
   blocked_by: []
@@ -513,6 +513,12 @@ tasks:
     event: transition
     from: QUEUED
     to: CLAIMED
+    by: cloud/w3
+    note: ''
+  - at: '2026-10-10T20:47:19Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
     by: cloud/w3
     note: ''
 - id: T15
