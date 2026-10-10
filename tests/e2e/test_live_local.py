@@ -90,7 +90,7 @@ def test_isolated_nodes_end_with_distinct_policies(make_cluster):
     c.start_run(
         "isolated",
         episodes=[{"kind": "train", "seed": 51}],
-        fault_schedule=[{"start_tick": 0, "end_tick": 10_000, "cut_links": all_pairs}],
+        fault_schedule=[{"start_tick": 0, "end_tick": 60, "cut_links": all_pairs}],
         seed=7,
     )
     assert c.wait_run("isolated")["status"] == "completed"

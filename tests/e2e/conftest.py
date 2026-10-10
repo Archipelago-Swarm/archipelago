@@ -41,7 +41,7 @@ def make_cluster(tmp_path_factory, request):
         c.close()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def smoke(tmp_path_factory, request):
     """One shared 4-episode run (2 train, validation, test) with a cut window; returns (cluster, run_id, final view)."""
     c = e2e_procs.Cluster(tmp_path_factory.mktemp("live-smoke"), ticks=80)
