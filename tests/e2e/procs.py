@@ -113,89 +113,8 @@ class TelemetrySink:
 
     def records(self, node: str | None = None) -> list[dict[str, Any]]:
         with self.lock:
-            out = [r["record"] for b in self.batches for r in b.get("records", [])]
+            out = [r for b in self.batches for r in b.get("events", [])]
         return [r for r in out if node is None or r["source_node_id"] == node]
-
-    def close(self) -> None:
-        self.server.shutdown()
-        self.server.server_close()
-
-
-class ControlShim:
-    """TEMPORARY compatibility proxy between the coordinator and one node (coordinator -> shim -> node).
-
-    The coordinator and the node runtime currently disagree on three control messages (both owned by the
-    simulation/learning owner, pending the T27/T39 amendments): the coordinator sends ``reset`` with extra
-    ``seed``/``episode_kind`` fields and ``set_schedule`` as ``{run_id, episode, schedule, schedule_sha256}``,
-    while the node accepts ``reset{run_id, episode, mode, fault_schedule?}``, ``set_schedule{fault_schedule}`` and
-    ``episode_end{tick?, wait?}`` (``extra=forbid``; the coordinator adds ``run_id``/``episode`` to ``episode_end``).
-    The shim rewrites exactly those three messages and forwards everything else untouched, so
-    the rest of the stack can be exercised. It records the raw coordinator bodies and counts rewrites;
-    test_live_contract.py asserts that no rewrite was needed, which is the signal to delete this class.
-    """
-
-    def __init__(self, node_url: str) -> None:
-        self.target = node_url
-        self.raw_control: list[dict[str, Any]] = []
-        self.rewrites = 0
-        shim = self
-
-        class H(BaseHTTPRequestHandler):
-            protocol_version = "HTTP/1.1"
-
-            def log_message(self, *a):
-                pass
-
-            def _forward(self, method: str) -> None:
-                n = int(self.headers.get("Content-Length", 0))
-                raw = self.rfile.read(n) if n else b""
-                if method == "POST" and self.path == "/v1/control":
-                    raw = shim._rewrite(raw)
-                req = urllib.request.Request(shim.target + self.path, raw or None, method=method)
-                for h in ("Authorization", "Content-Type"):
-                    if self.headers.get(h):
-                        req.add_header(h, self.headers[h])
-                try:
-                    with urllib.request.urlopen(req, timeout=30) as r:
-                        code, out = r.status, r.read()
-                except urllib.error.HTTPError as e:
-                    code, out = e.code, e.read()
-                except OSError:
-                    code, out = 502, b'{"error":"node unreachable"}'
-                self.send_response(code)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Content-Length", str(len(out)))
-                self.end_headers()
-                self.wfile.write(out)
-
-            def do_GET(self):
-                self._forward("GET")
-
-            def do_POST(self):
-                self._forward("POST")
-
-        self.server = ThreadingHTTPServer(("127.0.0.1", 0), H)
-        self.server.daemon_threads = True
-        threading.Thread(target=self.server.serve_forever, daemon=True).start()
-        self.url = f"http://127.0.0.1:{self.server.server_port}"
-
-    def _rewrite(self, raw: bytes) -> bytes:
-        try:
-            body = json.loads(raw)
-        except ValueError:
-            return raw
-        self.raw_control.append(body)
-        cmd, new = body.get("command"), None
-        if cmd == "reset":
-            new = {k: body[k] for k in ("command", "run_id", "episode", "mode") if k in body}
-        elif cmd == "episode_end":
-            new = {k: body[k] for k in ("command", "tick", "wait") if k in body}
-        elif cmd == "set_schedule" and "schedule" in body:
-            new = {"command": "set_schedule", "fault_schedule": body["schedule"]}
-        if new is None or new == body:
-            return raw
-        self.rewrites += 1
-        return json.dumps(new).encode()
 
     def close(self) -> None:
         self.server.shutdown()
@@ -266,10 +185,8 @@ def child_env(paths: list[str], **extra: str) -> dict[str, str]:
 class Cluster:
     """Coordinator + four node processes. ``ticks`` is the episode length of both worlds."""
 
-    def __init__(self, tmp: Path, ticks: int = 80, shim: bool = True, **node_env: str) -> None:
+    def __init__(self, tmp: Path, ticks: int = 80, **node_env: str) -> None:
         self.tmp, self.ticks = Path(tmp), ticks
-        self.use_shim = shim
-        self.shims: dict[str, ControlShim] = {}
         self.logs = self.tmp / "logs"
         self.logs.mkdir(parents=True, exist_ok=True)
         ports = free_ports(2 * len(NODE_IDS) + 1)
@@ -280,18 +197,29 @@ class Cluster:
         self.node_env = node_env
         self.nodes: dict[str, Proc] = {}
         self.coord: Proc | None = None
+        self.plan_file = self.tmp / "plans.json"
+        self.plans: dict[str, Any] = {}
+        self._write_plans()
+
+    def _write_plans(self) -> None:
+        """The coordinator re-reads this server-side file for every run (A9)."""
+        tmp = self.plan_file.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"plans": self.plans or {"placeholder": self._placeholder()}}))
+        tmp.replace(self.plan_file)
+
+    def _placeholder(self) -> dict[str, Any]:
+        return {
+            "node_urls": {n: self.coord_node_url(n) for n in NODE_IDS},
+            "episodes": [{"kind": "train", "seed": 1}],
+        }
 
     # -- addresses
     def node_url(self, n: str) -> str:
         return f"http://127.0.0.1:{self.control_port[n]}"
 
     def coord_node_url(self, n: str) -> str:
-        """The URL the coordinator uses for node ``n`` (through the temporary control shim by default)."""
-        if not self.use_shim:
-            return self.node_url(n)
-        if n not in self.shims:
-            self.shims[n] = ControlShim(self.node_url(n))
-        return self.shims[n].url
+        """The URL the coordinator uses for node ``n`` (talks to the node directly)."""
+        return self.node_url(n)
 
     @property
     def coord_url(self) -> str:
@@ -332,7 +260,8 @@ class Cluster:
             COORDINATOR_TOKEN=COORD_TOKEN, COORDINATOR_ADMIN_TOKEN=ADMIN_TOKEN,
             NODE_CONTROL_TOKEN=CONTROL_TOKEN, COORDINATOR_DATA_DIR=str(self.tmp / "coordinator"),
             COORDINATOR_NODE_URLS=urls, ARCHIPELAGO_ENV="production", ARCHIPELAGO_COMMIT="e2e",
-            COORDINATOR_WORLD_KWARGS=json.dumps({"size": 8, "n_targets": 0, "battery_scale": 4.0}),
+            COORDINATOR_WORLD_KWARGS=json.dumps({"size": 8, "n_targets": 0}),
+            COORDINATOR_PLAN_FILE=str(self.plan_file),
             COORDINATOR_TICK_INTERVAL_S=str(tick_interval_s),
         )  # fmt: skip
         self.coord = Proc(
@@ -396,8 +325,11 @@ class Cluster:
 
     def start_run(self, run_id: str, *, episodes: list[dict], fault_schedule: list[dict] | None = None,
                   ticks: int | None = None, seed: int = 1, **plan: Any) -> dict[str, Any]:  # fmt: skip
+        req = self.run_body(run_id, episodes, fault_schedule, ticks, seed, **plan)
+        self.plans[run_id] = req["plan"]
+        self._write_plans()
         code, body = self.coord_call(
-            "POST", "/v1/runs", self.run_body(run_id, episodes, fault_schedule, ticks, seed, **plan)
+            "POST", "/v1/runs", {"run_config": req["run_config"], "plan_name": run_id}
         )
         assert code == 201, (code, body)
         return body
@@ -420,7 +352,7 @@ class Cluster:
             "run_config": cfg,
             "plan": {
                 "node_urls": {n: self.coord_node_url(n) for n in NODE_IDS}, "deadline_ms": 2000,
-                "episodes": episodes, "fault_schedule": faults, **plan,
+                "battery_scale": 4.0, "episodes": episodes, "fault_schedule": faults, **plan,
             },
         }  # fmt: skip
 
@@ -474,6 +406,4 @@ class Cluster:
                 p.kill()
             except Exception as e:  # noqa: BLE001 - teardown must reach every process
                 print(f"teardown: could not stop {p.name}: {e!r}", file=sys.stderr)
-        for sh in self.shims.values():
-            sh.close()
         self.sink.close()

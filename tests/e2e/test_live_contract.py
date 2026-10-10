@@ -2,39 +2,27 @@
 """Cross-service wire contracts, checked with the real processes of the local smoke.
 
 These guard the seams between components owned by different workers. They fail while a seam is broken and the
-failure message says which bytes disagree. test_live_local.py runs through a temporary control shim
-(procs.ControlShim) only because of the first seam; when ``test_coordinator_control_messages_are_accepted_by_nodes``
-passes, delete the shim.
+failure message says which bytes disagree.
 """
 
 import json
 import sys
 from pathlib import Path
 
-from e2e_procs import NODE_PATHS, ROOT
+from e2e_procs import NODE_IDS, NODE_PATHS, ROOT
 
 sys.path[:0] = [str(ROOT / p) for p in NODE_PATHS]  # to import the node runtime's protocol models
 GOOD = ROOT / "packages/contracts/fixtures/good"
 
 
 def test_coordinator_control_messages_are_accepted_by_nodes(smoke):
-    """Every control body the coordinator sent validates against the node runtime's own protocol model."""
-    from archipelago_noderuntime.protocol import CONTROL
-    from pydantic import ValidationError
-
-    c, _, _ = smoke
-    problems = []
-    for node, shim in c.shims.items():
-        assert shim.raw_control, f"coordinator sent no control messages to {node}"
-        for body in shim.raw_control:
-            try:
-                CONTROL.validate_python(body)
-            except ValidationError as e:
-                problems.append(
-                    (node, body["command"], [(x["loc"], x["msg"]) for x in e.errors()][:3])
-                )
-    assert not problems, f"nodes would answer 422 without the shim: {problems[:2]}"
-    assert all(s.rewrites == 0 for s in c.shims.values())
+    """The run completed with the coordinator talking to the nodes directly (no translating proxy), and the
+    plan the nodes ran under is the one in the server-side plan file."""
+    c, run_id, view = smoke
+    assert view["status"] == "completed", view
+    assert json.loads(c.plan_file.read_text())["plans"][run_id]["battery_scale"] == 4.0
+    for n in NODE_IDS:
+        assert c.node_status(n)["counters"]["acts"] > 0
 
 
 def test_node_telemetry_batches_are_accepted_by_the_api_ingest(smoke, tmp_path):
@@ -69,9 +57,9 @@ def test_node_telemetry_batches_are_accepted_by_the_api_ingest(smoke, tmp_path):
         )
         assert resp.status_code == 200, (
             f"API ingest rejected the node's batch ({resp.status_code} {resp.text}); node sends keys "
-            f"{sorted(batch)}, ingest requires exactly ['boot_id', 'events', 'source'] (agreement 8.1/A7)"
+            f"{sorted(batch)}, ingest requires ['boot_id', 'events', 'source'] plus optional 'context' (agreement 8.1/A7)"
         )
-        assert resp.json()["accepted"] > 0
+        assert resp.json()["accepted"] > 0, resp.json()
 
 
 def test_api_telemetry_route_is_mounted_in_the_served_app():
