@@ -29,6 +29,7 @@ class Sim2DAdapter:
         self.replay: list[dict] = []
         self._seq = 0
         self._run_id = ""
+        self._kills: list[str] = []  # applied since the last step; recorded so replay repeats them
 
     def capabilities(self) -> SimulatorCapabilities:
         return SimulatorCapabilities("sim2d", "2d", "act-v0")
@@ -66,6 +67,7 @@ class Sim2DAdapter:
         )
         self.world.possible_agents = nodes  # contract node ids replace default names
         self._run_id, self._seq, self.replay, self._cfg = config.run_id, 0, [], config
+        self._kills = []
         starts = {n.node_id: (int(n.start_pose.x), int(n.start_pose.y)) for n in config.nodes}
         if len(set(starts.values())) != len(starts):
             raise ValueError("node start poses must be distinct")
@@ -76,16 +78,32 @@ class Sim2DAdapter:
         raw = self.world.reset(seed=config.seeds["env"], starts=starts)
         return {n: self._obs(n, o) for n, o in raw.items()}
 
+    def kill_node(self, node: str) -> None:
+        """Remove a drone from the world (it stays as a wreck that blocks its cell).
+
+        This models a lost vehicle, distinct from restarting the process that controls it.
+        """
+        w = self.world
+        if w is None:
+            raise RuntimeError("reset() first")
+        if node not in w.agents:
+            raise ValueError(f"{node} is not active in this episode")
+        w.agents.remove(node)
+        w.events.append({"tick": w.tick, "node": node, "event": "node_killed"})
+        self._kills.append(node)
+
     def step(self, actions: dict[str, Action]) -> StepResult:
         w = self.world
         if w is None:
             raise RuntimeError("reset() first")
         cmds = {n: a.command for n, a in actions.items() if n in w.agents}
         n_events = len(w.events)
+        kills, self._kills = self._kills, []
         obs, rew, term, trunc, info = w.step(cmds)
         self.replay.append(
             {
                 "tick": w.tick,
+                **({"kills": kills} if kills else {}),
                 "actions": {n: cmds.get(n) for n in w.possible_agents},
                 "events": w.events[n_events:],
                 "state_hash": w.trace_hash(),
@@ -134,5 +152,7 @@ def replay_final_hash(config: RunConfig, records: list[dict], **world_kwargs) ->
     ad = Sim2DAdapter(**world_kwargs)
     ad.reset(config)
     for r in records:
+        for node in r.get("kills", []):
+            ad.kill_node(node)
         ad.step({n: make_action(n, r["tick"], c) for n, c in r["actions"].items() if c})
     return ad.world.trace_hash()  # type: ignore[union-attr]
