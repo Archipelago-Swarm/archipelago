@@ -194,3 +194,19 @@ The repo `.venv` is Python 3.13 and has no pybullet, so there the flight test sk
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A round 6
+- Check failed on `ruff format --check` for tests/adapters3d/test_pybullet.py (mixed CRLF/LF endings, core.autocrlf=true). Normalized to LF; `bash scripts/check.sh` now passes. Other open items unchanged.
+
+## Supervisor checkpoint 2026-10-10T07:17:11Z
+
+- Run: 20261010T065500Z
+- Machine: A
+- Task/branch: T12 / agent/A/20261010T065500Z/T12
+- Base: b63e8184fb0f13ca5ffc2342cab2b0be19a835a5
+- Round: 6
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
