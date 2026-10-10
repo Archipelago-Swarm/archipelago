@@ -12,7 +12,7 @@
 - `Sim2DAdapter.kill_node` + replay records `kills` (replay_final_hash repeats them).
 
 ## Acceptance
-- `uv run pytest tests/coordinator tests/sim -q`: 25 passed (pre-existing sim tests plus 9 coordinator tests).
+- `uv run pytest tests/coordinator tests/sim -q`: 26 passed (existing tests/sim plus the coordinator tests).
 - `make check-fast`: only `test_real_ledger_is_valid` fails on this branch, caused by T14's missing handoff on the ledger branch; fixed by PR #16 (not in this branch's base).
 - `SKIP_DOCKER=1 make check-integration`: 232 passed, 5 skipped, same single failure.
 - Assertion mapping: node isolation, deadline/unavailable/stall, idempotent commands, kill_node, replay hash (including a kill), no fixture fallback, sequence continuity and unique ids are each a named test in tests/coordinator/test_coordinator.py.
