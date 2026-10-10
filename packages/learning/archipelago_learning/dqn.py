@@ -11,8 +11,19 @@ ENCODER = "grid-flat-v0"
 
 
 class Learner:
-    def __init__(self, node_id, obs_dim, n_actions, hidden=32, seed=0, lr=1e-2, gamma=0.95,
-                 capacity=5000, mode="independent", encoder=ENCODER):
+    def __init__(
+        self,
+        node_id,
+        obs_dim,
+        n_actions,
+        hidden=32,
+        seed=0,
+        lr=1e-2,
+        gamma=0.95,
+        capacity=5000,
+        mode="independent",
+        encoder=ENCODER,
+    ):
         assert mode in ("independent", "information_only", "mixing")
         self.node_id, self.mode, self.encoder = node_id, mode, encoder
         self.obs_dim, self.n_actions, self.hidden = obs_dim, n_actions, hidden
@@ -27,10 +38,13 @@ class Learner:
         }
         self.target = {k: v.copy() for k, v in self.params.items()}
         self._reset_optimizer()
-        self.replay = {"o": np.zeros((capacity, obs_dim), np.float32),
-                       "a": np.zeros(capacity, np.int64), "r": np.zeros(capacity, np.float32),
-                       "o2": np.zeros((capacity, obs_dim), np.float32),
-                       "d": np.zeros(capacity, np.float32)}
+        self.replay = {
+            "o": np.zeros((capacity, obs_dim), np.float32),
+            "a": np.zeros(capacity, np.int64),
+            "r": np.zeros(capacity, np.float32),
+            "o2": np.zeros((capacity, obs_dim), np.float32),
+            "d": np.zeros(capacity, np.float32),
+        }
         self.n = 0  # total transitions ever stored
         self.steps = 0
         self.version = 0  # bumped on every parameter change (train, accept, rollback)
@@ -39,8 +53,10 @@ class Learner:
         self.previous: dict | None = None  # params before last accepted peer candidate
 
     def _reset_optimizer(self):
-        self.opt = {"t": 0, **{f"{s}_{k}": np.zeros_like(v) for k, v in self.params.items()
-                               for s in "mv"}}
+        self.opt = {
+            "t": 0,
+            **{f"{s}_{k}": np.zeros_like(v) for k, v in self.params.items() for s in "mv"},
+        }
 
     @staticmethod
     def forward(p, x):
@@ -85,8 +101,9 @@ class Learner:
         for k, gk in g.items():
             m = self.opt[f"m_{k}"] = 0.9 * self.opt[f"m_{k}"] + 0.1 * gk
             v = self.opt[f"v_{k}"] = 0.999 * self.opt[f"v_{k}"] + 0.001 * gk * gk
-            self.params[k] -= (self.lr * (m / (1 - 0.9**t)) /
-                               (np.sqrt(v / (1 - 0.999**t)) + 1e-8)).astype(np.float32)
+            self.params[k] -= (
+                self.lr * (m / (1 - 0.9**t)) / (np.sqrt(v / (1 - 0.999**t)) + 1e-8)
+            ).astype(np.float32)
         self.steps += 1
         self.version += 1
         if self.steps % target_every == 0:
@@ -99,9 +116,12 @@ class Learner:
         d = Path(d)
         d.mkdir(parents=True, exist_ok=True)
         meta = {"steps": self.steps, "version": self.version, "n": self.n}
-        np.savez(d / "model.npz", **{f"p_{k}": v for k, v in self.params.items()},
-                 **{f"t_{k}": v for k, v in self.target.items()},
-                 **{f"o_{k}": v for k, v in self.opt.items()})
+        np.savez(
+            d / "model.npz",
+            **{f"p_{k}": v for k, v in self.params.items()},
+            **{f"t_{k}": v for k, v in self.target.items()},
+            **{f"o_{k}": v for k, v in self.opt.items()},
+        )
         np.savez(d / "replay.npz", **self.replay)
         (d / "rng.json").write_text(json.dumps(self.rng.bit_generator.state))
         (d / "meta.json").write_text(json.dumps(meta))

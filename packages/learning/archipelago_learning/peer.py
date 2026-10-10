@@ -17,8 +17,14 @@ class PeerError(ValueError):
 
 
 def encode(learner) -> bytes:
-    meta = {"encoder": learner.encoder, "obs_dim": learner.obs_dim, "hidden": learner.hidden,
-            "n_actions": learner.n_actions, "node": learner.node_id, "version": learner.version}
+    meta = {
+        "encoder": learner.encoder,
+        "obs_dim": learner.obs_dim,
+        "hidden": learner.hidden,
+        "n_actions": learner.n_actions,
+        "node": learner.node_id,
+        "version": learner.version,
+    }
     buf = io.BytesIO()
     np.savez(buf, _meta=np.frombuffer(json.dumps(meta).encode(), np.uint8), **learner.params)
     return buf.getvalue()
@@ -50,8 +56,11 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None):
 
     alpha (mixing mode only, <=0.5) blends instead of replacing. Returns the logged event.
     """
-    ev = {"type": "peer_offer", "payload_sha256": hashlib.sha256(payload).hexdigest(),
-          "local_version": learner.version}
+    ev = {
+        "type": "peer_offer",
+        "payload_sha256": hashlib.sha256(payload).hexdigest(),
+        "local_version": learner.version,
+    }
     try:
         if learner.mode == "information_only":
             raise PeerError("information_only mode never loads parameters")
@@ -60,8 +69,10 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None):
         if alpha is not None:
             if learner.mode != "mixing" or not 0 < alpha <= 0.5:
                 raise PeerError("mixing needs mode=mixing and 0<alpha<=0.5")
-            cand = {k: ((1 - alpha) * learner.params[k] + alpha * cand[k]).astype(np.float32)
-                    for k in KEYS}
+            cand = {
+                k: ((1 - alpha) * learner.params[k] + alpha * cand[k]).astype(np.float32)
+                for k in KEYS
+            }
         cur, new = eval_fn(learner.params), eval_fn(cand)
         ev.update(current_score=cur, candidate_score=new)
         if not new > cur + margin:
