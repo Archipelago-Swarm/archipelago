@@ -60,9 +60,15 @@ def batch(*events: Any) -> dict[str, Any]:
 
 
 def runtime(
-    tmp_path: Path, *, capacity: int = 2000, persister: Persister | None = None
+    tmp_path: Path,
+    *,
+    capacity: int = 2000,
+    persister: Persister | None = None,
+    event_log_size: int = 5000,
 ) -> TestClient:
-    settings = Settings(api_token=LOGIN, data_dir=tmp_path, tick_interval=None)
+    settings = Settings(
+        api_token=LOGIN, data_dir=tmp_path, tick_interval=None, event_log_size=event_log_size
+    )
     app = create_app(settings, fixture_factory(GOOD), persister)
     app.include_router(make_router(app.state.manager, token=TELEMETRY, capacity=capacity))
     return TestClient(app)
@@ -283,3 +289,16 @@ def test_shutdown_drains_the_accepted_batch(tmp_path: Path) -> None:
         assert c.post("/v1/telemetry", json=batch(record()), headers=AUTH).json()["accepted"] == 1
     events, _ = EventLog(tmp_path).load("run-a", 100)
     assert any(ev.get("event_id") == "e1" for ev in events)
+
+
+def test_dedupe_recovers_ids_outside_replay_tail_after_restart(tmp_path: Path) -> None:
+    with runtime(tmp_path, event_log_size=1) as first:
+        create_run(first)
+        response = first.post("/v1/telemetry", json=batch(record()), headers=AUTH)
+        assert response.json()["accepted"] == 1
+    with runtime(tmp_path, event_log_size=1) as restarted:
+        # Only the final status event remains in memory; full durable IDs are recovered.
+        before = manager(restarted).get("run-a").seq
+        response = restarted.post("/v1/telemetry", json=batch(record()), headers=AUTH)
+        assert response.json() == {"accepted": 0, "duplicates": 1, "rejected": []}
+        assert manager(restarted).get("run-a").seq == before
