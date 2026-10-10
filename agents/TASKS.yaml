@@ -1,7 +1,11 @@
 # Canonical task ledger. Edit through agents/controller.py; see agents/PROTOCOL.md.
 # A task is COMPLETE only after verifier PASS and an integrator merge commit.
 version: 1
-events: []
+events:
+- at: '2026-10-10T18:24:10Z'
+  event: human_intervention
+  by: bootstrap
+  note: Bootstrap requested by operator prompt (one-time setup)
 tasks:
 - id: T01
   name: Bootstrap workspace and freeze contracts
@@ -781,3 +785,62 @@ tasks:
   artifacts: []
   handoff_file: null
   notes: 'Source: BOARD T08 row.'
+- id: T22
+  name: Control-plane bootstrap
+  description: Retrospective, task ledger, controller, protocol, tiered checks and CI changes that replace
+    branch mail and watchers.
+  state: REVIEW
+  priority: 0
+  owner: bootstrap/claude
+  machine: A
+  branch: claude/quirky-dirac-4eomw1
+  created_at: '2026-10-10T18:24:10Z'
+  updated_at: '2026-10-10T18:24:10Z'
+  dependencies: []
+  blocked_by: []
+  owned_paths:
+  - agents/controller.py
+  - agents/schemas/**
+  - agents/PROTOCOL.md
+  - agents/LESSONS.md
+  - agents/OWNERSHIP.yaml
+  - agents/TASKS.yaml
+  - agents/reports/**
+  - agents/decisions/**
+  - agents/contracts/**
+  - agents/handoffs/BOOTSTRAP/**
+  - Makefile
+  - .github/**
+  - scripts/**
+  - CLAUDE.md
+  - AGENTS.md
+  - tests/agents/test_controller.py
+  - tests/infra/**
+  - tests/storage/test_timescale_integration.py
+  contracts:
+  - agents/PROTOCOL.md
+  acceptance:
+    commands:
+    - command: make check-fast
+      expected_exit_code: 0
+      tier: fast
+    - command: SKIP_DOCKER=1 make check-integration
+      expected_exit_code: 0
+      tier: integration
+    - command: uv run python agents/controller.py validate
+      expected_exit_code: 0
+      tier: fast
+    assertions:
+    - description: 'First GitHub Actions run of ci.yml: fast and bootstrap jobs pass.'
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 2
+  last_good_commit: 60f0c87
+  artifacts:
+  - agents/reports/LAST_RUN_RETROSPECTIVE.md
+  - agents/reports/AUTONOMY_READINESS.md
+  handoff_file: agents/handoffs/BOOTSTRAP/LATEST.md
+  notes: 'Dogfooded: bootstrap enters the ledger at REVIEW, not COMPLETE. Needs verifier/human PASS and
+    a green CI run.'

@@ -48,7 +48,7 @@ Two concurrent workers at most (one per machine) plus the verifier and integrato
 
 ## Safe overnight tasks (reversible, in-repo, no credentials)
 
-First complete T22 (the bootstrap itself, in REVIEW): it holds `.github/**`, `scripts/**` and the `docker` test markers, so the ledger correctly keeps T14 and T16 unrunnable until T22 is COMPLETE. Then:
+First complete T22 (the bootstrap itself, in REVIEW): it holds `.github/**`, `scripts/**` and the `docker` test markers, so the ledger correctly keeps T14, T16 and T20 unrunnable until T22 is COMPLETE. Then:
 
 T14 persist run events (A); T16 browser smoke in CI (B; workflow file needs the integrator to merge); T20 runner retirement (A; keep the old runner until a live `claude -p` trial passes); T19 card reconciliation (A). Then T15 and T21 once T14 lands. T17 is safe if the compute cap in its description (CPU-only, 45 min per sweep) is accepted.
 
