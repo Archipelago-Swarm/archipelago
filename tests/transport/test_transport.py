@@ -1,10 +1,5 @@
-import sys
-from pathlib import Path
-
 import pytest
-
-sys.path.insert(0, str(Path(__file__).parents[2] / "packages" / "transport"))
-from archipelago_transport import MAX_PAYLOAD, Envelope, Network, Telemetry, load_manifest  # noqa: E402
+from archipelago_transport import MAX_PAYLOAD, Envelope, Network, Telemetry, load_manifest
 
 
 def mk(src, dst, seq, p=b"x"):

@@ -4,23 +4,21 @@ from __future__ import annotations
 
 import base64
 import json
-import sys
 import threading
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
+from urllib.parse import urlparse
 
-sys.path.insert(0, str(Path(__file__).parents[3] / "transport"))
-from archipelago_transport import MAX_PAYLOAD, Envelope, Network  # noqa: E402
+from archipelago_transport import MAX_PAYLOAD, Envelope, Network, load_manifest
 
 
 class PeerServer:
     """Accepts POST /envelope from peers; gates and validation are the shared Network rules."""
 
-    def __init__(self, node: str, links, host: str = "127.0.0.1", port: int = 0):
+    def __init__(self, node: str, links, host: str = "127.0.0.1", port: int = 0, **faults):
         # shortcut: binds loopback by default; private-network binding is the caller's choice
-        self.node, self.net, self.lock = node, Network(links), threading.Lock()
+        self.node, self.net, self.lock = node, Network(links, **faults), threading.Lock()
         outer = self
 
         class H(BaseHTTPRequestHandler):
@@ -57,7 +55,10 @@ class PeerServer:
             before = sum(self.net.stats.rejected.values())
             self.net.send(env)
             self.net.tick()
-            return 200 if sum(self.net.stats.rejected.values()) == before else 422
+            if sum(self.net.stats.rejected.values()) != before:
+                return 422
+            # accepted but deferred by the fault schedule (delay/bandwidth): not delivered yet
+            return 200 if self.net._seen.get((env.dst, env.src), -1) >= env.seq else 202
 
     def receive(self):
         with self.lock:
@@ -91,3 +92,31 @@ def post(url: str, env: Envelope, timeout: float = 1.0, retries: int = 2) -> int
         except OSError:
             continue
     return 0
+
+
+def serve_manifest(text: str, **faults) -> dict[str, PeerServer]:
+    """Start one PeerServer per manifest node, bound to its manifest URL."""
+    urls, links = load_manifest(text)
+    out = {}
+    for node, url in urls.items():
+        u = urlparse(url)
+        out[node] = PeerServer(node, links, u.hostname or "127.0.0.1", u.port or 0, **faults)
+    return out
+
+
+class PeerClient:
+    """Sends to manifest peers; remembers the latest envelope per peer for bounded catch-up."""
+
+    def __init__(self, node: str, urls: dict[str, str], timeout: float = 1.0, retries: int = 2):
+        self.node, self.urls, self.timeout, self.retries = node, urls, timeout, retries
+        self.seq = 0
+        self.latest: dict[str, Envelope] = {}
+
+    def send(self, dst: str, payload: bytes) -> int:
+        self.seq += 1
+        env = self.latest[dst] = Envelope.make(self.node, dst, self.seq, payload)
+        return post(self.urls[dst], env, self.timeout, self.retries)
+
+    def catch_up(self, dst: str) -> int:
+        """On reconnect, resend only the newest update (never a backlog)."""
+        return post(self.urls[dst], self.latest[dst], self.timeout, self.retries)
