@@ -7,3 +7,9 @@
 - Validation: scripts/check.sh WITH the Docker tests: 1 failed, 2 errors, all from the missing daemon (see issue file); everything else passed (Vitest 27 + 24). Exit 0 was only reached earlier with a skip shim that has since been removed. Docker runtime tests, T08 real-DB tests NOT run.
 - BOARD.md: T13 and T10 and T11 lines refreshed. Only the integrator edits it.
 - Still open: see T10 handoff (secure cookie, psycopg, coordinator service, Vultr/TigerData), T06/T13 API-log confirmation, T09 blockers, unticked acceptance boxes in T02-T09/T12.
+
+## Update (autonomous directive)
+
+- Six earlier T06 branches (061419Z, 063026Z, 132342Z, carry1, carry2, carryover) recorded as merged with `-s ours`: ancestry only, NO content imported, because they are smaller alternative implementations superseded by reconciled T06 (a81a192).
+- `agent-coordination` deliberately NOT merged into main: agents/operations/overnight.md says never merge its divergent tree into main; it is the live ledger branch the drivers write to.
+- CI fix: Docker runtime tests now build images (`--build`); stray `.claude/worktrees` gitlinks removed.
