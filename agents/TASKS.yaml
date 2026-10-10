@@ -1130,13 +1130,13 @@ tasks:
   description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
     fallback, episode and train/validation/test schedules, peer-fault schedule distribution, node health,
     authoritative replay and privileged snapshots. Does not own models.'
-  state: QUEUED
+  state: CLAIMED
   priority: 1
-  owner: null
-  machine: null
+  owner: cloud/w2
+  machine: cloud
   branch: agent/T28-simulation-coordinator-service
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:32:10Z'
+  updated_at: '2026-10-10T20:44:13Z'
   dependencies:
   - T03
   blocked_by: []
@@ -1192,6 +1192,12 @@ tasks:
     to: QUEUED
     by: controller
     note: stale claim
+  - at: '2026-10-10T20:44:13Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: cloud/w2
+    note: ''
 - id: T29
   name: 'Live integration: API, dashboard, persistence and local end-to-end smoke'
   description: Wire services/api (ARCHIPELAGO_ADAPTER=live) to the coordinator, add Compose services coordinator
