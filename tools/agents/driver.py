@@ -38,7 +38,11 @@ def log(msg):
 
 
 def active():
-    if sh("git", "fetch", "-q", "origin", COORD, check=False).returncode:
+    for _ in range(4):  # a concurrent fetch (mail watcher) can lose the ref lock
+        if sh("git", "fetch", "-q", "origin", COORD, check=False).returncode == 0:
+            break
+        time.sleep(3)
+    else:
         return None
     r = sh("git", "show", f"FETCH_HEAD:agents/coordination/active.json", check=False)
     return json.loads(r.stdout) if r.returncode == 0 else None
@@ -133,19 +137,27 @@ def publish(tasks):
         json.dumps({"schema_version": 1, "tasks": tasks}, indent=2) + "\n"
     )
     git("add", "-A")
-    git("commit", "-q", "-m", "Driver: next overnight plan\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>")
+    if sh("git", "diff", "--cached", "--quiet", check=False).returncode:  # retry-safe: plan may already be committed
+        git("commit", "-q", "-m", "Driver: next overnight plan\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>")
     git("push", "-q", "origin", "main")
     wt = RT / "coord-expire"
+    for attempt in range(5):  # B also writes this branch (mailbox), so refetch and retry on a lost race
+        sh("git", "worktree", "remove", "--force", str(wt), check=False)
+        git("fetch", "-q", "origin", COORD)
+        git("worktree", "add", "-q", str(wt), "--detach", f"origin/{COORD}")
+        f = wt / "agents/coordination/active.json"
+        d = json.loads(f.read_text())
+        d["stop_at_utc"] = "2026-01-01T00:00:00Z"
+        f.write_text(json.dumps(d, indent=2, sort_keys=True) + "\n")
+        sh("git", "add", "-A", cwd=wt)
+        if sh("git", "diff", "--cached", "--quiet", cwd=wt, check=False).returncode:
+            sh("git", "commit", "-q", "-m", "Driver: expire completed run", cwd=wt)
+        if sh("git", "push", "-q", "origin", f"HEAD:{COORD}", cwd=wt, check=False).returncode == 0:
+            break
+        time.sleep(2)
+    else:
+        raise RuntimeError("could not expire the active run after 5 attempts")
     sh("git", "worktree", "remove", "--force", str(wt), check=False)
-    git("worktree", "add", "-q", str(wt), "--detach", f"origin/{COORD}")
-    f = wt / "agents/coordination/active.json"
-    d = json.loads(f.read_text())
-    d["stop_at_utc"] = "2026-01-01T00:00:00Z"
-    f.write_text(json.dumps(d, indent=2, sort_keys=True) + "\n")
-    sh("git", "add", "-A", cwd=wt)
-    sh("git", "commit", "-q", "-m", "Driver: expire completed run", cwd=wt)
-    sh("git", "push", "-q", "origin", f"HEAD:{COORD}", cwd=wt)
-    git("worktree", "remove", "--force", str(wt))
     (RT / "active-plan.json").unlink(missing_ok=True)
 
 
@@ -154,8 +166,10 @@ def driver_a(a):
     s = load()
     sh("npm", "ci", check=False, shell=True)
     cur = active()
-    last_run = cur["run_id"] if cur else None
+    last_run = a.resume_run or (cur["run_id"] if cur else None)
     plan = {t["id"]: t["machine"] for t in (cur or {}).get("tasks", [])}
+    if a.resume_run:  # integrate that run from its own report only; its peer never joined
+        plan = {t: "A" for t in (report(a.resume_run, "A") or {})}
     started = now()
     while True:
         try:
@@ -193,7 +207,8 @@ def driver_a(a):
                  "--hours", f"{remaining:.2f}", "--max-rounds", str(a.max_rounds)],
                 cwd=ROOT,
             )
-            cur = active()
+            saved = RT / "active-plan.json"  # written by night.py; independent of any fetch
+            cur = json.loads(saved.read_text()) if saved.exists() else active()
             last_run = cur["run_id"] if cur else None
             plan = {t["id"]: t["machine"] for t in (cur or {}).get("tasks", [])}
             prior = {}
@@ -223,6 +238,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--machine", choices=["A", "B"], required=True)
     p.add_argument("--until-utc", default="2026-10-10T13:00:00Z")
-    p.add_argument("--max-rounds", type=int, default=12)
+    p.add_argument("--resume-run", default=None)
+    p.add_argument("--max-rounds", type=int, default=10)
     a = p.parse_args()
     (driver_a if a.machine == "A" else driver_b)(a)
