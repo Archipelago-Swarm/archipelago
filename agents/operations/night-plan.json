@@ -2,15 +2,13 @@
   "schema_version": 1,
   "tasks": [
     {
-      "id": "T13",
+      "id": "T10",
       "machine": "B",
       "paths": [
-        "services/api/",
-        "tests/api/",
-        "apps/web/",
-        "tests/web/"
+        "infra/",
+        "tests/infra/"
       ],
-      "source_branch": "agent/B/T13/carry-20261010T151923Z-1"
+      "source_branch": "agent/B/T10/carry-20261010T153519Z"
     }
   ]
 }
