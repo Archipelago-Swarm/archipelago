@@ -26,6 +26,7 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
+from .persistence import Persister
 from .runs import AdapterFactory, Conflict, NotFound, Run, RunManager, Subscriber
 from .settings import Settings
 
@@ -56,13 +57,20 @@ class LoginBody(BaseModel):
     token: str
 
 
-def create_app(settings: Settings, factory: AdapterFactory) -> FastAPI:
+def create_app(
+    settings: Settings, factory: AdapterFactory, persister: Persister | None = None
+) -> FastAPI:
     mgr = RunManager(settings, factory)
+    mgr.sink = persister
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        if persister is not None:
+            persister.start()
         yield
         await mgr.shutdown()
+        if persister is not None:
+            await persister.stop()
 
     app = FastAPI(title="Archipelago API", lifespan=lifespan)
     app.state.manager = mgr
@@ -109,8 +117,10 @@ def create_app(settings: Settings, factory: AdapterFactory) -> FastAPI:
     async def login(body: LoginBody, response: Response) -> dict[str, str]:
         if not token_ok(body.token):
             raise HTTPException(401, "bad token")
-        # shortcut: secure=False for local http; set True behind TLS (T10)
-        response.set_cookie(COOKIE, body.token, httponly=True, samesite="strict", secure=False)
+        # Secure by default (TLS via Caddy); ARCHIPELAGO_COOKIE_SECURE=false for plain-HTTP dev
+        response.set_cookie(
+            COOKIE, body.token, httponly=True, samesite="strict", secure=settings.cookie_secure
+        )
         return {"status": "ok"}
 
     @app.post("/v1/runs", dependencies=[Depends(auth)])
@@ -193,6 +203,6 @@ def sim2d_factory(_: Path | None = None) -> AdapterFactory:
 
 def create_app_from_env() -> FastAPI:
     if os.environ.get("ARCHIPELAGO_ADAPTER") == "sim2d":
-        return create_app(Settings.from_env(), sim2d_factory())
+        return create_app(Settings.from_env(), sim2d_factory(), Persister.from_env())
     fixtures = Path(os.environ.get("ARCHIPELAGO_FIXTURE_DIR", "packages/contracts/fixtures/good"))
-    return create_app(Settings.from_env(), fixture_factory(fixtures))
+    return create_app(Settings.from_env(), fixture_factory(fixtures), Persister.from_env())

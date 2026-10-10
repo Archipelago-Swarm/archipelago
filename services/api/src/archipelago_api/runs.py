@@ -14,6 +14,7 @@ from typing import Any, Literal
 from archipelago_contracts.adapter import SimulatorAdapter
 from archipelago_contracts.models import RunConfig
 
+from .persistence import Persister
 from .settings import Settings
 
 Status = Literal[
@@ -70,6 +71,7 @@ class Run:
 class RunManager:
     def __init__(self, settings: Settings, factory: AdapterFactory) -> None:
         self.s, self.factory = settings, factory
+        self.sink: Persister | None = None  # optional TigerData persistence; never raises
         self.runs: dict[str, Run] = {}
         self.keys: dict[str, tuple[str, str]] = {}  # idempotency key -> (config hash, run id)
         self._file = settings.data_dir / "runs.json"
@@ -129,6 +131,8 @@ class RunManager:
         run.seq += 1
         ev = {"sequence": run.seq, "type": kind, "tick": run.tick, "status": run.status, **extra}
         run.events.append(ev)
+        if self.sink is not None:
+            self.sink.record_event(run.config.run_id, ev)
         while len(run.events) > self.s.event_log_size:
             run.events.popleft()
         for sub in run.subs:
@@ -177,6 +181,8 @@ class RunManager:
             raise Conflict("run capacity reached")
         run = Run(config, chash)
         self.runs[config.run_id], self.keys[key] = run, (chash, config.run_id)
+        if self.sink is not None:
+            self.sink.record_run(config.run_id, config.scenario_hash)
         self._set(run, "starting")
         try:
             run.adapter = self.factory(config)

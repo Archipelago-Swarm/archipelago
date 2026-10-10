@@ -25,7 +25,7 @@ const until = async (fn, what, ms = 30000) => { const t = Date.now(); for (;;) {
 try {
   const dataDir = mkdtempSync(join(tmpdir(), "arch-api-"));
   const startApi = () => run("uv", ["run", "--with", "websockets", "uvicorn", "archipelago_api.app:create_app_from_env", "--factory", "--port", `${API}`],
-    { ARCHIPELAGO_API_TOKEN: TOKEN, ARCHIPELAGO_DATA_DIR: dataDir, ARCHIPELAGO_ADAPTER: adapter, ...(adapter === "sim2d" && { PYTHONPATH: srcPath }) });
+    { ARCHIPELAGO_API_TOKEN: TOKEN, ARCHIPELAGO_COOKIE_SECURE: "false", ARCHIPELAGO_DATA_DIR: dataDir, ARCHIPELAGO_ADAPTER: adapter, ...(adapter === "sim2d" && { PYTHONPATH: srcPath }) });
   let api = startApi();
   run("npx", ["vite", "--port", `${WEB}`, "--strictPort", "--host", "127.0.0.1"], { ARCHIPELAGO_URL: `http://127.0.0.1:${API}` }, new URL("../../apps/web", import.meta.url));
   run(browserPath, ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), "arch-br-"))}`, "--no-first-run", "--disable-extensions", "--disable-sync", "about:blank"]);
