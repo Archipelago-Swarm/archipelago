@@ -15,6 +15,7 @@ RUN useradd --system --uid 10001 --create-home app && mkdir -p /data && chown ap
 WORKDIR /repo
 COPY --from=build /repo /repo
 ENV PATH="/repo/.venv/bin:$PATH" PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/repo/packages/storage \
     ARCHIPELAGO_DATA_DIR=/data \
     ARCHIPELAGO_FIXTURE_DIR=/repo/packages/contracts/fixtures/good
 USER app

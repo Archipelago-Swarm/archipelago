@@ -12,7 +12,7 @@ Designed but not implemented (depend on unmerged wiring; implement when the node
 5. Peer isolation: from the api container, `nc -z node-01 9000` must fail (nodes are on the internal `peers` network only); from the host, 9000 must be closed.
 6. Four-node local smoke with `--profile local` on a Docker-capable dev machine.
 
-Known gaps to resolve before the checks are meaningful: the api cookie is set with `secure=False` (see comment in `services/api/src/archipelago_api/app.py` for T10; needs `secure=True` behind TLS, a change outside T10's allowed paths, so it needs A's serialized ownership); the simulation coordinator is not a compose service yet; psycopg is not yet a locked runtime dependency of the API image.
+Known gaps to resolve before the checks are meaningful: the simulation coordinator is not a compose service yet; API events are held in memory only, so replay across an API restart is not retained (see Restart and replay below). The login cookie is Secure by default (`ARCHIPELAGO_COOKIE_SECURE`).
 
 ## Restart and replay (acceptance check 4)
 

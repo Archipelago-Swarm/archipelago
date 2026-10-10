@@ -48,6 +48,12 @@ def test_api_image_builds_and_rejects_anonymous():
         else:
             pytest.fail("api never became healthy")
         assert status("GET", "/healthz") == 200
+        # Persistence deps must be importable in the image, or TIGERDATA_URL silently does nothing.
+        subprocess.run(
+            docker + ["exec", NAME, "python", "-c", "import archipelago_storage, psycopg"],
+            check=True,
+            capture_output=True,
+        )
         for method, path in [
             ("POST", "/v1/runs"),
             ("POST", "/v1/runs/x/commands"),

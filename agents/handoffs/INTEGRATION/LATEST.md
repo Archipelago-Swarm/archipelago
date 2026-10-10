@@ -13,3 +13,8 @@
 - Six earlier T06 branches (061419Z, 063026Z, 132342Z, carry1, carry2, carryover) recorded as merged with `-s ours`: ancestry only, NO content imported, because they are smaller alternative implementations superseded by reconciled T06 (a81a192).
 - `agent-coordination` deliberately NOT merged into main: agents/operations/overnight.md says never merge its divergent tree into main; it is the live ledger branch the drivers write to.
 - CI fix: Docker runtime tests now build images (`--build`); stray `.claude/worktrees` gitlinks removed.
+
+## Update: T10 fan-out (workflow wf_9481ba3a-659)
+
+Four isolated workers + four independent verifiers. Verdicts: tigerdata PASS; cookie, smoke-replay, rollback FAIL on specific points. All four branches integrated here, then A fixed the verifier findings: compose forwards ARCHIPELAGO_COOKIE_SECURE, browser smoke sets it false for plain http, stale runbook gap removed; psycopg is now a runtime dependency of archipelago-api (uv.lock regenerated) and the api image sets PYTHONPATH for packages/storage; smoke-replay test lost its conditional skip, no longer masks setup errors, pauses the live run instead of racing the timer, and pins the real (empty) post-restart replay; rollback tests assert exact exit codes and that docker is never called on refusal, and the script persists IMAGE_TAG to the env file.
+Local gate: ruff/mypy/non-Docker pytest/web checks pass; Docker-dependent tests fail locally with 'cannot connect to docker API' (no daemon). CI is the first real verdict.

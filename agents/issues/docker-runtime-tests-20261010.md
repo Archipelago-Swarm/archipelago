@@ -32,3 +32,19 @@ GitHub runners DO have a Docker daemon, so these tests actually ran there. Resul
 
 - `tests/infra/test_four_nodes.py` and `test_runtime_ports.py` now start the stack with `up -d --build` instead of `--no-build`, so a clean host builds `archipelago/{web,api,node}:dev` itself. Not verified locally (no daemon); GitHub Actions is the first evidence.
 - Stray `.claude/worktrees/*` gitlinks removed from the index and `.claude/worktrees/` added to `.gitignore`.
+
+## Update after PR #5 merge (CI evidence)
+
+- On GitHub Actions (main `1fd1ebd`, run 38073356624 / PR run 38073353702): `145 passed, 3 skipped`. The Docker runtime tests passed with `--build`, and `tests/storage/test_timescale_integration.py` ran and passed against real TimescaleDB. The 3 skips are pybullet (not installed).
+- Locally (no daemon) the Docker tests still fail by design; they are not skipped.
+
+## T10 fan-out (this branch) - what is and is not proven
+
+New Docker-dependent tests, UNVERIFIED until CI runs them: `tests/infra/test_smoke_and_replay.py`, `tests/infra/test_rollback.py::test_rollback_to_previous_image_keeps_volumes`, and the new `import archipelago_storage, psycopg` assertion in `test_api_image.py`.
+
+Known gaps, deliberately NOT hidden:
+- T10 acceptance check 4 (replay retained across restart) is NOT met: `runs.py` keeps events in memory only. `test_smoke_and_replay.py` pins the current behaviour (empty events after restart) and must be changed to assert `replay == before` once events are persisted.
+- Persister (TIGERDATA_URL) has no real-DB test and nothing calls `migrate()` on startup; if the `run` row is shed from the spool, later event rows can fail the FK and stall a batch (`packages/storage` Writer is all-or-nothing per batch).
+- A non-local TIGERDATA_URL without sslmode only shows up as recurring flush failures.
+- rollback.sh runs the CURRENT compose files (documented in its output); it does not check the running tag equals `<current-tag>`.
+- Vultr/TigerData evidence (check 3), and spend inventory (check 5), need operator credentials/budget.

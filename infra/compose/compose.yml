@@ -61,6 +61,7 @@ services:
     environment:
       ARCHIPELAGO_API_TOKEN: ${ARCHIPELAGO_API_TOKEN:?set in .env}
       ARCHIPELAGO_ALLOWED_ORIGINS: ${ARCHIPELAGO_ALLOWED_ORIGINS:-}
+      ARCHIPELAGO_COOKIE_SECURE: ${ARCHIPELAGO_COOKIE_SECURE:-true}
       TIGERDATA_URL: ${TIGERDATA_URL:-}
     volumes: ["api-data:/data"]
     networks: [core, egress]

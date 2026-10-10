@@ -3,7 +3,7 @@ name = "archipelago-api"
 version = "0.0.0"
 description = "Archipelago run lifecycle API and live/replay streaming"
 requires-python = ">=3.12"
-dependencies = ["archipelago-contracts", "fastapi>=0.115", "uvicorn>=0.30"]
+dependencies = ["archipelago-contracts", "fastapi>=0.115", "uvicorn>=0.30", "psycopg[binary]>=3.2"]
 
 [build-system]
 requires = ["hatchling"]

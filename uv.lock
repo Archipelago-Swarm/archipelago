@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -88,6 +88,7 @@ source = { editable = "services/api" }
 dependencies = [
     { name = "archipelago-contracts" },
     { name = "fastapi" },
+    { name = "psycopg", extra = ["binary"] },
     { name = "uvicorn" },
 ]
 
@@ -95,6 +96,7 @@ dependencies = [
 requires-dist = [
     { name = "archipelago-contracts", editable = "packages/contracts" },
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
     { name = "uvicorn", specifier = ">=0.30" },
 ]
 

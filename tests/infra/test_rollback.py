@@ -24,19 +24,6 @@ def run(*args, env=None):
     )
 
 
-@pytest.mark.parametrize(
-    "args", [(), ("v2",), ("", "v1"), ("v2", ""), ("v1", "v1"), ("a", "b", "c")]
-)
-def test_refuses_without_both_distinct_tags(args):
-    r = run(*args)
-    assert r.returncode != 0
-    assert "->" not in r.stdout
-
-
-def test_refuses_invalid_tag():
-    assert run("v2", "bad tag;rm").returncode != 0
-
-
 @pytest.fixture
 def fake_docker(tmp_path):
     """A docker stand-in on PATH that logs calls; images listed in $FAKE_IMAGES exist."""
@@ -56,6 +43,23 @@ def fake_docker(tmp_path):
     return env, log
 
 
+@pytest.mark.parametrize(
+    "args", [(), ("v2",), ("", "v1"), ("v2", ""), ("v1", "v1"), ("a", "b", "c")]
+)
+def test_refuses_without_both_distinct_tags(args, fake_docker):
+    env, log = fake_docker
+    r = run(*args, env=env)
+    assert r.returncode == 2  # usage / invalid-argument refusal
+    assert "->" not in r.stdout
+    assert not log.exists(), "docker must not be invoked when arguments are refused"
+
+
+def test_refuses_invalid_tag(fake_docker):
+    env, log = fake_docker
+    assert run("v2", "bad tag;rm", env=env).returncode == 2
+    assert not log.exists()
+
+
 def images(tag):
     return " ".join(f"archipelago/{n}:{tag}" for n in ("web", "api", "node"))
 
@@ -64,18 +68,22 @@ def test_refuses_when_previous_image_missing_and_changes_nothing(fake_docker):
     env, log = fake_docker
     env["FAKE_IMAGES"] = "archipelago/api:v1 archipelago/web:v1"  # node:v1 missing
     r = run("v2", "v1", env=env)
-    assert r.returncode != 0
+    assert r.returncode == 1  # missing-image refusal, distinct from usage errors (2)
     assert "node:v1" in r.stderr
     assert not any(" up " in f" {ln} " for ln in log.read_text().splitlines())
 
 
-def test_switches_tag_without_destructive_commands(fake_docker):
+def test_switches_tag_without_destructive_commands(fake_docker, tmp_path):
     env, log = fake_docker
     env["FAKE_IMAGES"] = images("v1")
+    envfile = tmp_path / "compose.env"
+    envfile.write_text("IMAGE_TAG=v2\nOTHER=keep\n")
+    env["COMPOSE_ENV_FILE"] = str(envfile)
     for _ in range(2):  # idempotent: a second run behaves the same
         r = run("v2", "v1", env=env)
         assert r.returncode == 0, r.stderr
         assert "v2 -> v1" in r.stdout
+    assert envfile.read_text() == "IMAGE_TAG=v1\nOTHER=keep\n"  # tag persisted, rest untouched
     lines = log.read_text().splitlines()
     ups = [ln for ln in lines if " up " in ln]
     assert len(ups) == 2
@@ -123,7 +131,9 @@ def build_tag(tag):
 
 
 @needs_docker
-def test_rollback_to_previous_image_keeps_volumes():
+def test_rollback_to_previous_image_keeps_volumes(tmp_path):
+    envfile = tmp_path / "compose.env"
+    shutil.copy(ENV_FILE, envfile)  # the script rewrites IMAGE_TAG; never touch the tracked file
     try:
         build_tag("v1")
         build_tag("v2")
@@ -135,7 +145,7 @@ def test_rollback_to_previous_image_keeps_volumes():
         env = {
             **ENV,
             "COMPOSE_PROJECT": PROJECT,
-            "COMPOSE_ENV_FILE": ENV_FILE,
+            "COMPOSE_ENV_FILE": str(envfile),
             "ROLLBACK_SERVICES": "api",
         }
         r = run("v2", "v1", env=env)
@@ -145,7 +155,12 @@ def test_rollback_to_previous_image_keeps_volumes():
         assert image_after == "archipelago/api:v1"
         assert mounts_after == mounts_before and mounts_after
     finally:
-        compose("down", "-v")  # test-owned project only
+        subprocess.run(  # test-owned project only; check=False so cleanup never masks the failure
+            ["docker", "compose", "-p", PROJECT, "-f", COMPOSE_FILE, "--env-file", ENV_FILE]
+            + ["down", "-v"],
+            env=ENV,
+            capture_output=True,
+        )
         for tag in ("v1", "v2"):
             subprocess.run(
                 [

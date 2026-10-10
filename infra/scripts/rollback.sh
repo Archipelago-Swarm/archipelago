@@ -39,5 +39,16 @@ done
 echo "rollback: $CURRENT -> $PREVIOUS (services: ${SERVICES[*]})"
 # --no-build: only use the existing image; --no-deps: leave proxy/db/volumes alone.
 IMAGE_TAG="$PREVIOUS" "${compose[@]}" up -d --no-build --no-deps "${SERVICES[@]}"
+# Persist the tag so a later plain `docker compose up` does not silently roll forward again.
+if [[ -f "$ENV_FILE" ]]; then
+  if grep -q '^IMAGE_TAG=' "$ENV_FILE"; then
+    sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$PREVIOUS/" "$ENV_FILE"
+  else
+    printf 'IMAGE_TAG=%s\n' "$PREVIOUS" >> "$ENV_FILE"
+  fi
+  echo "rollback: wrote IMAGE_TAG=$PREVIOUS to $ENV_FILE"
+fi
+echo "rollback: NOTE this uses the CURRENT infra/compose files; if compose/proxy config changed since $PREVIOUS, check out the old infra/ first (see runbook)."
+echo "rollback: run infra/scripts/smoke.sh against the stack to confirm before accepting."
 echo "rollback: services now on archipelago/*:$PREVIOUS; volumes untouched, no schema change"
 echo "rollback: image archipelago/*:$CURRENT kept on host (do not prune until accepted)"

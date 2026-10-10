@@ -97,14 +97,28 @@ def stop(run: dict[str, Any]) -> dict[str, Any]:
 
 @pytest.fixture(scope="module")
 def stack():
-    if is_open(80) or is_open(443):
-        pytest.skip("host ports 80/443 already in use")
+    # No port-in-use skip: if 80/443 are taken, `up` must fail loudly.
     try:
         compose("up", "-d", "--build", "proxy", "web", "api", "grafana")
         wait_ready()
         yield
+    except BaseException:
+        # Surface the real cause (logs) before teardown, and never let teardown mask it.
+        logs = subprocess.run(
+            ["docker", "compose", "-p", "archi-t10-smoke", "logs", "--no-color", "--tail=80"],
+            env=ENV,
+            capture_output=True,
+            text=True,
+        )
+        print(logs.stdout[-6000:], logs.stderr[-2000:])
+        raise
     finally:
-        compose("down", "-v")
+        subprocess.run(
+            ["docker", "compose", "-p", "archi-t10-smoke", "down", "-v"],
+            env=ENV,
+            capture_output=True,
+            text=True,
+        )
 
 
 def test_smoke_script_passes_and_run_state_survives_api_restart(stack):
@@ -126,6 +140,12 @@ def test_smoke_script_passes_and_run_state_survives_api_restart(stack):
     # A run still active when the api container restarts (capacity is 1, so after the first ended).
     live = new_run("run-t10-live")
     assert live["status"] == "running"
+    paused = call(
+        "POST",
+        "/v1/runs/run-t10-live/commands",
+        {"command_id": "pause-live", "command": "pause", "expected_revision": live["revision"]},
+    )
+    assert paused["status"] == "paused", "pause keeps the run active without depending on timing"
 
     compose("restart", "api")
     wait_ready()
@@ -139,10 +159,14 @@ def test_smoke_script_passes_and_run_state_survives_api_restart(stack):
     # Active run: reported as interrupted, never as running or completed.
     after_live = call("GET", "/v1/runs/run-t10-live")
     assert after_live["status"] == "interrupted"
-    assert after_live["completion_reason"] in {"process_restart", "process_shutdown"}
+    # `docker compose restart` sends SIGTERM, so the graceful shutdown path (not crash recovery)
+    # is what marks it.
+    assert after_live["completion_reason"] == "process_shutdown"
 
-    # Events are not persisted today (gap, see module docstring). The API must stay honest: it may
-    # return a prefix of what was recorded, but never events that were not emitted before restart.
+    # KNOWN GAP (T10 acceptance check 4 is NOT met): the event log is memory-only, so replay of a
+    # finished run is lost on restart. This pins the current behaviour exactly so the gap is
+    # visible; when events are persisted (T08 wiring) this assertion must be replaced by
+    # `replay == before`.
     replay = call("GET", "/v1/runs/run-t10-done/events?limit=500")
-    assert {e["sequence"] for e in replay["events"]} <= set(seqs)
-    assert replay["latest_sequence"] <= before["latest_sequence"]
+    assert replay["events"] == []
+    assert replay["latest_sequence"] == 0
