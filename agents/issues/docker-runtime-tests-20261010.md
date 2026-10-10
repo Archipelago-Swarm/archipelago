@@ -48,3 +48,10 @@ Known gaps, deliberately NOT hidden:
 - A non-local TIGERDATA_URL without sslmode only shows up as recurring flush failures.
 - rollback.sh runs the CURRENT compose files (documented in its output); it does not check the running tag equals `<current-tag>`.
 - Vultr/TigerData evidence (check 3), and spend inventory (check 5), need operator credentials/budget.
+
+## Update: PR #6 CI and persistence fan-out (wf_b2b3ce5b-cd1)
+
+- PR #6 CI: green on `76cf62c` after the smoke test waited for Grafana through the proxy. The earlier `grafana anonymous (502)` was a startup race, not a crash. Rollback Docker test and the api-image import check passed in CI.
+- Now closed in code (CI still must confirm the Docker/DB parts): acceptance check 4 (replay across restart) via durable per-run JSONL events in the api; persister applies migrations at startup; FK-poisoned rows are quarantined and counted instead of stalling a batch; remote TIGERDATA_URL must set sslmode to require/verify-ca/verify-full and `host=`/`hostaddr=` overrides are judged; real-DB persister test added.
+- Still open: Vultr/TigerData evidence (check 3), spend inventory (check 5), simulation coordinator as a compose service, real-DB behaviour of the FK salvage (psycopg `sqlstate` on a Timescale hypertable) until CI runs `test_persister_integration.py`.
+- Verifier minor notes, deliberately left: event log reopens the file per event and fsyncs on status events inside the run loop (latency risk); case-insensitive filesystems alias ids differing by case (Linux target unaffected).

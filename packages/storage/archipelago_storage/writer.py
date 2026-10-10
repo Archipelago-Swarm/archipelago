@@ -28,14 +28,27 @@ LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "timescaledb"})
 FK_VIOLATION = "23503"
 
 
+SAFE_SSLMODES = frozenset({"require", "verify-ca", "verify-full"})
+
+
 def validate_url(url: str) -> None:
-    """Raise ValueError unless `url` points at a local host or sets sslmode."""
+    """Raise ValueError unless every effective host is local, or sslmode forces TLS.
+
+    libpq lets `?host=`/`?hostaddr=` override the URL host, so those are the hosts that count.
+    """
     parts = urlsplit(url)
-    host = (parts.hostname or "").lower()
-    if host in LOCAL_HOSTS:
+    query = parse_qs(parts.query)
+    hosts = [h for v in (query.get("host", []) + query.get("hostaddr", [])) for h in v.split(",")]
+    if not hosts:
+        hosts = [parts.hostname or ""]
+    if all(h.strip().lower() in LOCAL_HOSTS for h in hosts):
         return
-    if not parse_qs(parts.query).get("sslmode"):
-        raise ValueError("non-local TIGERDATA_URL must set sslmode (require or verify-full)")
+    modes = query.get("sslmode", [])
+    if not modes or any(m not in SAFE_SSLMODES for m in modes):
+        raise ValueError(
+            "non-local TIGERDATA_URL must set sslmode to one of: "
+            + ", ".join(sorted(SAFE_SSLMODES))
+        )
 
 
 def connect_from_env() -> Any:

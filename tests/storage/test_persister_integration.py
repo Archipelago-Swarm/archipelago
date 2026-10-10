@@ -1,8 +1,9 @@
 """API Persister -> Writer -> real TimescaleDB. Runs only where a Docker daemon exists (CI here)."""
 
 import asyncio
+import itertools
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -24,7 +25,8 @@ def _persister(monkeypatch: pytest.MonkeyPatch, url: str, **kw: Any) -> Persiste
     monkeypatch.setenv("TIGERDATA_URL", url)
     p = Persister.from_env()
     assert p is not None
-    p._now = lambda: FIXED  # fixed ts so a replay is byte-identical
+    ticks = itertools.count()  # distinct ts per record (metrics are unique on ts), same per pass
+    p._now = lambda: FIXED + timedelta(seconds=next(ticks))
     for k, v in kw.items():
         setattr(p, k, v)
     return p

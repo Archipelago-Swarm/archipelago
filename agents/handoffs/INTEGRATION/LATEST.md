@@ -18,3 +18,7 @@
 
 Four isolated workers + four independent verifiers. Verdicts: tigerdata PASS; cookie, smoke-replay, rollback FAIL on specific points. All four branches integrated here, then A fixed the verifier findings: compose forwards ARCHIPELAGO_COOKIE_SECURE, browser smoke sets it false for plain http, stale runbook gap removed; psycopg is now a runtime dependency of archipelago-api (uv.lock regenerated) and the api image sets PYTHONPATH for packages/storage; smoke-replay test lost its conditional skip, no longer masks setup errors, pauses the live run instead of racing the timer, and pins the real (empty) post-restart replay; rollback tests assert exact exit codes and that docker is never called on refusal, and the script persists IMAGE_TAG to the env file.
 Local gate: ruff/mypy/non-Docker pytest/web checks pass; Docker-dependent tests fail locally with 'cannot connect to docker API' (no daemon). CI is the first real verdict.
+
+## Update: persistence fan-out (wf_b2b3ce5b-cd1)
+
+Replay worker PASS (verifier minors recorded). Migrate/DB worker FAILED verification on: metric ts collision in its real-DB test (would give 1 row not 3), `sslmode` accepted any value incl. disable/prefer and `?host=` override bypassed the local-host check, vacuous quarantine assertion. A fixed all three with tests. Local: ruff/mypy clean, 182 passed, 6 skipped (3 pybullet, Docker-guarded DB tests). Docker tests (smoke/replay restart equality, persister real-DB) run first in CI.

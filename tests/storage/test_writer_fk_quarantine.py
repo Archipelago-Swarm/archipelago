@@ -58,6 +58,8 @@ def test_fk_poisoned_rows_are_quarantined_not_stalled() -> None:
     assert w.flush() is True
     assert len(w) == 0
     assert w.dropped_total == 3
+    assert store["dropped"] == [("r1", "event", 3)]  # the quarantine count was durably recorded
+    assert len(store["event"]) == 1  # only the healthy run's event landed
     assert store["event"] == [("t", "r2", "n", "e0", "x", "{}")]  # healthy run unaffected
     assert w.dropped == {}  # the dropped counter row was recorded
 
@@ -76,6 +78,8 @@ def test_outage_is_not_mistaken_for_fk_poison() -> None:
         "postgresql://u@127.0.0.1:5432/x",
         "postgresql://u:p@timescaledb:5432/x",
         "postgresql://u@db.example.com/x?sslmode=require",
+        "postgresql://u@db.example.com/x?sslmode=verify-full",
+        "postgresql://u@localhost/x?host=localhost",
     ],
 )
 def test_validate_url_accepts(url: str) -> None:
@@ -88,6 +92,12 @@ def test_validate_url_accepts(url: str) -> None:
         "postgresql://u@db.example.com/x",
         "postgresql://localhost:p@db.example.com/x",  # 'localhost' only in userinfo
         "postgresql://u@db.example.com/x?application_name=sslmode",
+        "postgresql://u@db.example.com/x?sslmode=disable",  # TLS explicitly off
+        "postgresql://u@db.example.com/x?sslmode=prefer",  # may fall back to cleartext
+        "postgresql://u@db.example.com/x?sslmode=allow",
+        "postgresql://u@localhost/x?host=db.remote.example",  # libpq: host= overrides the URL host
+        "postgresql://u@localhost/x?hostaddr=203.0.113.9",
+        "postgresql://u@localhost/x?host=localhost,db.remote.example",
     ],
 )
 def test_validate_url_rejects(url: str) -> None:
