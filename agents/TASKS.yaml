@@ -1143,13 +1143,13 @@ tasks:
   description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
     fallback, episode and train/validation/test schedules, peer-fault schedule distribution, node health,
     authoritative replay and privileged snapshots. Does not own models.'
-  state: CLAIMED
+  state: ACTIVE
   priority: 1
   owner: cloud/w2
   machine: cloud
   branch: agent/T28-simulation-coordinator-service
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:44:13Z'
+  updated_at: '2026-10-10T20:47:16Z'
   dependencies:
   - T03
   blocked_by: []
@@ -1209,6 +1209,12 @@ tasks:
     event: transition
     from: QUEUED
     to: CLAIMED
+    by: cloud/w2
+    note: ''
+  - at: '2026-10-10T20:47:16Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
     by: cloud/w2
     note: ''
 - id: T29
