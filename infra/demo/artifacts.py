@@ -40,6 +40,10 @@ def normalize(events: Iterable[Event] | Mapping[str, Any]) -> list[dict[str, Any
     seen: set[str] = set()
     out: list[dict[str, Any]] = []
     for e in events:
+        # GET /v1/runs/{id}/events also interleaves API lifecycle rows ({"type": "status", ...}); they are not
+        # canonical records (no "kind", no "sim_tick") and the run view carries the final status.
+        if "kind" not in e:
+            continue
         eid = e.get("event_id")
         if eid is not None:
             if eid in seen:
@@ -100,7 +104,15 @@ def fault_phase_intervals(
     last_tick = max((e.get("sim_tick", 0) for e in events), default=0)
     out: list[dict[str, Any]] = []
     for s in samples:
-        phase = FAULT_PHASES.get(int(s["value"]), f"state-{int(s['value'])}")
+        # The live coordinator names the phase in `phase` and puts the number of cut links in `value`
+        # (unit "links"); older recordings used value 0/1/2 (unit "state") with the same names.
+        name = s.get("phase")
+        if name in ("partition", "recovery"):
+            phase = name
+        elif name in ("none", "other", "normal"):
+            phase = "normal"
+        else:
+            phase = FAULT_PHASES.get(int(s["value"]), f"state-{int(s['value'])}")
         if out and out[-1]["phase"] == phase:
             continue
         if out:

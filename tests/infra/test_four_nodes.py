@@ -60,7 +60,7 @@ def test_four_nodes_are_ready_and_keep_checkpoints_across_restart(nodes):
     status = wait_ready()
     assert {s["backend"] for s in status.values()} == {"torch-cpu"}
     for n in NODES:
-        node_call(n, "/v1/control", {"command": "checkpoint"})
+        node_call(n, "/v1/control", {"command": "checkpoint", "run_id": "docker-four-nodes"})
     before = {n: node_call(n, "/v1/status")["checkpoint_generation"] for n in NODES}
     assert all(g is not None and g >= 0 for g in before.values())
     compose("restart", *NODES)
