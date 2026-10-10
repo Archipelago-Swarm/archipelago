@@ -177,6 +177,11 @@ def recovery_ref(task, candidate):
     return recovery
 
 
+def report_machines(plan):
+    """Wait for every assigned machine, including one preparing its first branch."""
+    return set(plan.values())
+
+
 def publish(tasks):
     git("checkout", "-q", "main")
     (ROOT / "agents/operations/night-plan.json").write_text(
@@ -223,8 +228,9 @@ def driver_a(a):
                 log(f"waiting on reports for {last_run}")
                 results, t0 = {}, None
                 while True:
-                    # a peer that never pushed a branch for this run has nothing to wait for
-                    peers = {m for m in set(plan.values()) if m == "A" or sh("git", "ls-remote", "--heads", "origin", f"agent/{m}/{last_run}/*", check=False).stdout.strip()}
+                    # A peer may be polling or preparing its first branch. Keep the
+                    # published assignment stable until its report or the wait limit.
+                    peers = report_machines(plan)
                     reps = {m: report(last_run, m) for m in peers}
                     if all(reps.values()):
                         break
