@@ -72,6 +72,7 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --frozen
+      - run: scripts/install-torch-cpu.sh  # test modules import torch at collection time
       - run: CHECK_PART=docker scripts/check.sh
 
   web:
