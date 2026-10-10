@@ -271,3 +271,21 @@ Working dir: C:\archipelago\.agent-runtime\worktrees\T10prep.
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Update run 20261010T160917Z (machine B, worker round 5)
+
+- Fixed external check failure (exit 1): `tests/infra/test_runtime_ports.py` had a ruff E501 and was not ruff-formatted. Now `ruff check`/`ruff format --check` pass on tests/infra; `py -m pytest tests/infra` 6 passed; mypy clean. Full `scripts/check.sh` not re-run (node/npm steps untouched).
+- Acceptance checks 1, 3, 4 (checkpoints), 5, 6 unchanged; blockers remain outside T10 paths (node entrypoint, secure cookie, psycopg).
+
+## Supervisor checkpoint 2026-10-10T16:14:18Z
+
+- Run: 20261010T160917Z
+- Machine: B
+- Task/branch: T10 / agent/B/20261010T160917Z/T10
+- Base: a84d1005b3ea17fc159dd9c38394224a163b00dc
+- Round: 3
+- State: in_progress
+- External check exit: 0
+- Independent review: {"pass": false, "issues": ["The T10 handoff says acceptance checks 1, 3, 4 (checkpoints), 5 and 6 are unchanged and unmet. The task is not ready for human PR review.", "No Vultr deployment evidence is recorded: no URL, commit or images, TigerData connection, spend status or resource inventory. Deployment is blocked on credentials and budget, and the handoff lists no completed human steps.", "Rollback has not been verified, and restart recovery is only partly evidenced. `tests/infra/test_runtime_ports.py` exists, but the handoff gives no evidence that checkpoint preservation or replay retrieval were verified.", "The local four-node integration smoke is not shown to pass. The node image is a placeholder with no `archipelago_node` entrypoint, and `packages/node` is not a uv workspace member. The handoff does not show image builds or `smoke.sh` being run.", "The login cookie uses `secure=False`, and the API has no wiring for `psycopg` or `TIGERDATA_URL`. The handoff says both blockers are outside the T10 paths and are not fixed.", "The task card's own status and next step still read 'waiting' and 'wait for dependencies', and the handoff calls this a prep branch rather than a formal T10 assignment. The handoff states that the 'Compose validation and local four-node integration smoke' check is only partly met.", "This round's diff is only ruff formatting of a test file plus a handoff note. It adds no acceptance evidence. The external check passing means lint, tests and build are clean, not that the acceptance checks are met."]}
+- Next issue: The T10 handoff says acceptance checks 1, 3, 4 (checkpoints), 5 and 6 are unchanged and unmet. The task is not ready for human PR review.; No Vultr deployment evidence is recorded: no URL, commit or images, TigerData connection, spend status or resource inventory. Deployment is blocked on credentials and budget, and the handoff lists no completed human steps.; Rollback has not been verified, and restart recovery is only partly evidenced. `tests/infra/test_runtime_ports.py` exists, but the handoff gives no evidence that checkpoint preservation or replay retrieval were verified.; The local four-node integration smoke is not shown to pass. The node image is a placeholder with no `archipelago_node` entrypoint, and `packages/node` is not a uv workspace member. The handoff does not show image builds or `smoke.sh` being run.; The login cookie uses `secure=False`, and the API has no wiring for `psycopg` or `TIGERDATA_URL`. The handoff says both blockers are outside the T10 paths and are not fixed.; The task card's own status and next step still read 'waiting' and 'wait for dependencies', and the handoff calls this a prep branch rather than a formal T10 assignment. The handoff states that the 'Compose validation and local four-node integration smoke' check is only partly met.; This round's diff is only ruff formatting of a test file plus a handoff note. It adds no acceptance evidence. The external check passing means lint, tests and build are clean, not that the acceptance checks are met.
+- Resume: fetch this branch, inspect latest commit and continue the task card.

@@ -16,8 +16,19 @@ ENV = {**os.environ, "ARCHIPELAGO_API_TOKEN": "x" * 32, "GRAFANA_ADMIN_PASSWORD"
 
 
 def compose(*args):
-    cmd = ["docker", "compose", "-p", "archi-t10-rt", "-f", str(ROOT / "infra/compose/compose.yml"),
-           "--env-file", str(ROOT / "infra/compose/.env.example"), "--profile", "local", *args]
+    cmd = [
+        "docker",
+        "compose",
+        "-p",
+        "archi-t10-rt",
+        "-f",
+        str(ROOT / "infra/compose/compose.yml"),
+        "--env-file",
+        str(ROOT / "infra/compose/.env.example"),
+        "--profile",
+        "local",
+        *args,
+    ]
     return subprocess.run(cmd, env=ENV, check=True, capture_output=True, text=True).stdout
 
 
@@ -31,8 +42,10 @@ def healthy(timeout=60):
     end = time.time() + timeout
     while time.time() < end:
         try:
-            # http redirects to https with a local self-signed cert; a redirect (or 200) proves api+proxy up.
-            req = urllib.request.build_opener(NoRedirect).open("http://127.0.0.1/healthz", timeout=3)
+            # http redirects to https (self-signed locally); redirect or 200 proves api+proxy up.
+            req = urllib.request.build_opener(NoRedirect).open(
+                "http://127.0.0.1/healthz", timeout=3
+            )
             return req.status
         except urllib.error.HTTPError as e:
             if e.code in (301, 302, 307, 308):
