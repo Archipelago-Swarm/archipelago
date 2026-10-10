@@ -37,6 +37,7 @@ class Persister:
         cap: int = 10_000,
         interval: float = 1.0,
         now: Callable[[], datetime] | None = None,
+        migrate: Callable[[], None] | None = None,
     ) -> None:
         self._sink, self._cap, self._interval = sink, cap, interval
         self._now = now or (lambda: datetime.now(UTC))
@@ -46,6 +47,9 @@ class Persister:
         self._stop: asyncio.Event | None = None
         self._task: asyncio.Task[None] | None = None
         self._healthy = True
+        self._migrate = migrate  # applied once, in the worker thread, before the first write
+        self._migrated = migrate is None
+        self.migration_failures = 0
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Persister | None:
@@ -54,12 +58,28 @@ class Persister:
             log.info("TIGERDATA_URL is not set: TigerData persistence disabled")
             return None
         try:
-            from archipelago_storage import Writer, connect_from_env
+            from archipelago_storage import Writer, connect_from_env, migrate, validate_url
         except ImportError:  # image built without the storage package or psycopg
             log.error("TIGERDATA_URL is set but archipelago_storage is not importable: disabled")
             return None
+        try:
+            validate_url(env["TIGERDATA_URL"])
+        except ValueError as exc:
+            log.error("TIGERDATA_URL rejected, TigerData persistence disabled: %s", exc)
+            return None
+
+        def connect() -> Any:
+            return connect_from_env()
+
+        def apply_migrations() -> None:
+            conn = connect()
+            try:
+                migrate(conn)
+            finally:
+                conn.close()
+
         log.info("TigerData persistence enabled")
-        return cls(Writer(connect_from_env))
+        return cls(Writer(connect), migrate=apply_migrations)
 
     @property
     def dropped(self) -> int:
@@ -101,7 +121,7 @@ class Persister:
             async with self._lock:
                 while self._pending:
                     self._sink.put(*self._pending.popleft())
-                ok = await asyncio.to_thread(self._sink.flush)
+                ok = await self._ensure_migrated() and await asyncio.to_thread(self._sink.flush)
         except Exception:
             log.exception("persistence flush crashed")
             ok = False
@@ -116,6 +136,22 @@ class Persister:
                     self.dropped,
                 )
         return ok
+
+    async def _ensure_migrated(self) -> bool:
+        if self._migrated:
+            return True
+        assert self._migrate is not None
+        try:
+            await asyncio.to_thread(self._migrate)
+        except Exception:
+            self.migration_failures += 1
+            log.exception(
+                "TigerData migration failed (attempt %d); will retry", self.migration_failures
+            )
+            return False
+        self._migrated = True
+        log.info("TigerData migrations applied")
+        return True
 
     async def _run(self) -> None:
         assert self._stop is not None
