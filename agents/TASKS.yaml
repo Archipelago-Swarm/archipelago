@@ -813,13 +813,13 @@ tasks:
   name: Control-plane bootstrap
   description: Retrospective, task ledger, controller, protocol, tiered checks and CI changes that replace
     branch mail and watchers.
-  state: INTEGRATION
+  state: COMPLETE
   priority: 0
   owner: bootstrap/claude
   machine: A
   branch: claude/quirky-dirac-4eomw1
   created_at: '2026-10-10T18:24:10Z'
-  updated_at: '2026-10-10T20:50:17Z'
+  updated_at: '2026-10-10T20:52:22Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -863,7 +863,7 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: 41c334f
+  last_good_commit: a73546c
   artifacts:
   - agents/reports/LAST_RUN_RETROSPECTIVE.md
   - agents/reports/AUTONOMY_READINESS.md
@@ -877,6 +877,12 @@ tasks:
     to: INTEGRATION
     by: cloud/verifier
     note: ''
+  - at: '2026-10-10T20:52:22Z'
+    event: complete
+    from: INTEGRATION
+    to: COMPLETE
+    by: integrator/cloud
+    note: merged at a73546c
 - id: T23
   name: Live trial of the launcher in cloud sessions
   description: 'Run launch.py in Claude cloud sessions (no machines A/B): a routine ticks, one worker
