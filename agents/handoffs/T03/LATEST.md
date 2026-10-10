@@ -60,3 +60,22 @@
 Resolved: `start_pose` honoured by adapter (distinct required; `make_config` uses (i,0)); `reward_id` selects from `REWARD_SPECS` (unknown id -> ValueError); added `observation_space()/action_space()` methods; new test runs a full 900-tick scenario (`n_targets=0, battery_scale=10`), asserts `ticks == 900`, and re-executes `replay.jsonl` via `replay_final_hash` to match `final_state_hash`. `pytest tests -q` -> 51 passed; ruff clean on reserved paths.
 
 STILL OPEN (needs supervisor, shared files): (1) `pettingzoo`/`gymnasium` not installable here, so `parallel_api_test` is NOT run and check 1 stays unmet; needs dep in pyproject/uv.lock, then wrap GridWorld with gymnasium spaces. (2) Packaging/mypy/CI do not cover packages/sim, sim2d, tests/sim (conftest sys.path hack remains). (3) Not committed by worker; supervisor must checkpoint/push.
+
+## Worker update (run 20261010T061419Z, round 4)
+
+Closed acceptance check 1: added `packages/sim/archipelago_sim/pz.py` (`GridParallelEnv`, a real `pettingzoo.ParallelEnv` wrapping `GridWorld`; flat float32 Box obs, Discrete(5) actions) and `tests/sim/test_sim.py::test_pettingzoo_parallel_api` running `pettingzoo.test.parallel_api_test` (300 cycles). `.venv/Scripts/python -m pytest tests -q` -> 52 passed; ruff clean on reserved paths. Not committed (supervisor owns).
+
+STILL OPEN: packaging/mypy/CI do not cover packages/sim, sim2d, tests/sim (conftest sys.path hack; shared files). Adapter-level contract test not re-verified beyond existing tests.
+
+## Supervisor checkpoint 2026-10-10T06:16:23Z
+
+- Run: 20261010T061419Z
+- Machine: A
+- Task/branch: T03 / agent/A/20261010T061419Z/T03
+- Base: ebf81adfd106fe3bbf8faf752dcf254e49ee6e95
+- Round: 1
+- State: review
+- External check exit: 0
+- Independent review: {"pass": true, "issues": ["Non-blocking: the PettingZoo wrapper (packages/sim/archipelago_sim/pz.py), the test change and the handoff update are uncommitted. The supervisor must commit and push them before PR review.", "Non-blocking: packages/sim, packages/adapters/sim2d and tests/sim are outside the workspace packaging, mypy and CI scope. The external check's 7-file mypy and 18-file ruff-format runs don't cover them, and tests rely on the conftest sys.path hack. This needs a follow-up in shared config.", "Non-blocking: the 900-tick smoke run uses a special scenario (n_targets=0, battery_scale=10) to reach 900 ticks. The default seed-1 CLI run ends at about 66 ticks once all targets are found.", "I did not re-run the tests myself. The 52-pass result and the ruff-clean claim come from the external check and the handoff."]}
+- Next issue: none
+- Resume: fetch this branch, inspect latest commit and continue the task card.

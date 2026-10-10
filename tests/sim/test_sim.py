@@ -97,3 +97,10 @@ def test_full_900_ticks_replay_reexecutes_and_start_poses(tmp_path):
 def test_unknown_reward_id_rejected():
     with pytest.raises(ValueError):
         GridWorld(reward_id="nope")
+
+
+def test_pettingzoo_parallel_api():
+    from archipelago_sim.pz import GridParallelEnv
+    from pettingzoo.test import parallel_api_test
+
+    parallel_api_test(GridParallelEnv(), num_cycles=300)
