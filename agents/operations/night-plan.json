@@ -2,12 +2,29 @@
   "schema_version": 1,
   "tasks": [
     {
-      "id": "T07",
+      "id": "T12",
       "machine": "A",
       "paths": [
-        "packages/learning/",
-        "packages/node/learner/",
-        "tests/learning/"
+        "packages/adapters/pybullet/",
+        "tests/adapters3d/"
+      ]
+    },
+    {
+      "id": "T04",
+      "machine": "A",
+      "source_branch": "agent/A/T04/carryover",
+      "paths": [
+        "services/api/",
+        "tests/api/"
+      ]
+    },
+    {
+      "id": "T06",
+      "machine": "B",
+      "source_branch": "agent/B/T06/carryover",
+      "paths": [
+        "apps/web/",
+        "tests/web/"
       ]
     }
   ]
