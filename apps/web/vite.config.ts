@@ -1,4 +1,6 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-export default defineConfig({ plugins: [react()] });
+// Dev/smoke only: the app calls relative /v1 URLs, so forward them (and the stream WebSocket) to the API.
+const target = process.env.ARCHIPELAGO_URL ?? "http://127.0.0.1:8000";
+export default defineConfig({ plugins: [react()], server: { proxy: { "/v1": { target, ws: true } } } });
