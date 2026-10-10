@@ -16,7 +16,11 @@ def inv(
     return {
         "account": {"balance": balance, "pending_charges": pending},
         "instances": [{"id": str(i), "plan": "p"} for i in range(existing)],
-        "plans": {"p": {"monthly_cost": price}, "big": {"monthly_cost": "730"}},
+        "plans": {
+            "p": {"monthly_cost": price},
+            "big": {"monthly_cost": "730"},
+            "mid": {"monthly_cost": "200"},
+        },
     }
 
 
@@ -52,15 +56,16 @@ def test_monthly_boundary(price: str, ok: bool) -> None:
         assert rep.violations == ["MAX_MONTHLY_COST: 200.01 > 200 USD"]
 
 
-@pytest.mark.parametrize(("hours", "ok"), [(79.99, True), (80, True), (80.01, False)])
+@pytest.mark.parametrize(("hours", "ok"), [(291.99, True), (292, True), (292.01, False)])
 def test_cumulative_boundary(hours: float, ok: bool) -> None:
-    # plan "big" costs 730/month = 1 USD/hour; x1.25 safety => 80h is exactly 100 USD
-    rep = guard.evaluate(inv(), mkplan(new(1, "big", hours)), START, NOW)
+    # plan "mid" is 200/month (exactly the monthly ceiling); at 200/730 per hour x1.25 safety,
+    # 292 hours burn exactly 100 USD. The monthly ceiling therefore holds while cumulative trips.
+    rep = guard.evaluate(inv(), mkplan(new(1, "mid", hours)), START, NOW)
     assert rep.passed is ok
-    if ok and hours == 80:
+    if ok and hours == 292:
         assert rep.costs["projected_cumulative"] == "100.00"
     if not ok:
-        assert rep.violations[0].startswith("MAX_CUMULATIVE_SPEND: 100.01 > 100")
+        assert rep.violations[0].startswith("MAX_CUMULATIVE_SPEND: 100.00 > 100")
 
 
 def test_cumulative_includes_recorded_spend_and_existing_burn() -> None:
@@ -118,3 +123,13 @@ def test_run_guard_writes_report_and_exit_codes(tmp_path: Path) -> None:
     assert report["passed"] is False and "projected_monthly" in report["costs"]
     files["p"].write_text(json.dumps(mkplan(new(1))))
     assert guard.run_guard(files["i"], files["p"], files["s"], None, NOW)[0] == guard.EXIT_OK
+
+
+def test_short_expensive_plan_still_violates_the_monthly_ceiling() -> None:
+    """A 730 USD/month plan used for one hour burns little; its recurring price breaks 200/month."""
+    rep = guard.evaluate(inv(), mkplan(new(1, "big", 1)), START, NOW)
+    assert not rep.passed
+    assert rep.violations == ["MAX_MONTHLY_COST: 730.00 > 200 USD"]
+    assert rep.costs["new_monthly_full"] == "730.00"
+    assert rep.costs["projected_monthly"] == "730.00"
+    assert rep.costs["new_prorated"] != rep.costs["new_monthly_full"]

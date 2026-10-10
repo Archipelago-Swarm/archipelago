@@ -103,11 +103,13 @@ def evaluate(
         existing_monthly += p
         existing_burn += p / HOURS_PER_MONTH * remaining * SAFETY
     new_cost = Decimal(0)
+    new_monthly_full = Decimal(0)
     for n in new:
         p = prices.get(str(n.get("plan")))
         if p is None:
             violations.append(f"UNKNOWN_PLAN_PRICE: new instance plan {n.get('plan')}")
             continue
+        new_monthly_full += p  # recurring price if the instance is left running a full month
         hours = max(Decimal(str(n.get("duration_hours", 0))), remaining)
         new_cost += min(p, p / HOURS_PER_MONTH * hours * SAFETY)
 
@@ -115,7 +117,8 @@ def evaluate(
     spent = abs(Decimal(acct.get("balance", "0")) - Decimal(start["balance"])) + max(
         Decimal(0), Decimal(acct.get("pending_charges", "0")) - Decimal(start["pending_charges"])
     )
-    monthly = existing_monthly + new_cost
+    # The monthly ceiling is about recurring price, not the time-bounded burn of this experiment.
+    monthly = existing_monthly + new_monthly_full
     cumulative = spent + existing_burn + new_cost
     count = len(existing) + len(new)
 
@@ -131,6 +134,7 @@ def evaluate(
         costs={
             "existing_monthly": _q(existing_monthly),
             "new_prorated": _q(new_cost),
+            "new_monthly_full": _q(new_monthly_full),
             "projected_monthly": _q(monthly),
             "spend_so_far": _q(spent),
             "existing_burn_to_end": _q(existing_burn),

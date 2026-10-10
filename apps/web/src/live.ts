@@ -136,3 +136,17 @@ export function panelLabel(source: Source, conn: Conn, status: string | undefine
   if (status !== "paused" && freshness(lastAt, now) !== "fresh") return "STALE (no recent events)";
   return "LIVE";
 }
+
+// Replay scrubbing: panel state as of the selected world_snapshot (0-based among snapshots). Later records
+// (policy versions, transfers, fault phase) must not appear at earlier frames.
+export function panelsAtFrame(records: unknown[], frame: number): Panels {
+  let seen = -1;
+  let upto = -1;
+  for (let i = 0; i < records.length; i++) {
+    const r = records[i];
+    if (isObj(r) && r.kind === "world_snapshot" && ++seen === frame) { upto = i; break; }
+  }
+  let s = emptyPanels();
+  for (let i = 0; i <= upto; i++) s = panelsReducer(s, { t: "record", record: records[i], at: 0 });
+  return s;
+}

@@ -76,9 +76,14 @@ def render_env_file(env: Mapping[str, str], release: str, reveal: bool) -> str:
         val = env.get(key, "")
         if "\n" in val or "\r" in val:
             raise DeployError(f"{key} must not contain a newline")
+        if "'" in val:
+            raise DeployError(
+                f"{key} must not contain a single quote (cannot be written literally)"
+            )
         if key in SECRET_KEYS and not reveal:
             val = "<redacted>" if val else "<unset>"
-        lines.append(f"{key}={val}")
+        # Single quotes: Compose reads the value literally (no $VAR interpolation, no # comments).
+        lines.append(f"{key}='{val}'")
     return "\n".join(lines) + "\n"
 
 

@@ -2,7 +2,7 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { WorldSnapshot } from "@archipelago/contracts";
 import events from "./fixtures/partition_run.json";
-import { emptyPanels, freshness, MAX_CURVE_POINTS, MAX_OFFERS, panelLabel, panelsReducer, recordOf, STALE_AFTER_MS, type Panels } from "./live";
+import { emptyPanels, freshness, MAX_CURVE_POINTS, MAX_OFFERS, panelLabel, panelsAtFrame, panelsReducer, recordOf, STALE_AFTER_MS, type Panels } from "./live";
 import { View } from "./View";
 
 const T0 = 1_000_000;
@@ -136,5 +136,29 @@ describe("rendered panels", () => {
     expect(html).toContain("No offers recorded");
     expect(html).toContain("not reported");
     expect(html).toContain("STALE");
+  });
+});
+
+
+describe("replay scrubbing never shows future records", () => {
+  const records = events as unknown[];
+  const snapshots = records.filter((r) => (r as { kind?: string }).kind === "world_snapshot").length;
+
+  it("frame 0 has no offers beyond those recorded before the first snapshot", () => {
+    const first = panelsAtFrame(records, 0);
+    const last = panelsAtFrame(records, snapshots - 1);
+    expect(snapshots).toBeGreaterThan(1);
+    expect(first.lastSequence).toBeLessThan(last.lastSequence);
+    expect(first.offers.length).toBeLessThanOrEqual(last.offers.length);
+    expect(last.offers.length).toBeGreaterThan(0);
+    // The partition and its transfers happen after the first frame in the fixture.
+    expect(first.offers.length).toBeLessThan(last.offers.length);
+    expect(first.faultPhase).not.toBe(last.faultPhase);
+  });
+
+  it("the last frame equals reducing every record", () => {
+    let all = emptyPanels();
+    for (const r of records) all = panelsReducer(all, { t: "record", record: r, at: 0 });
+    expect(panelsAtFrame(records, snapshots - 1)).toEqual(all);
   });
 });

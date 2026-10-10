@@ -100,7 +100,7 @@ def test_dry_run_prints_commands_executes_nothing_and_masks_secrets(ws: dict[str
     assert rc == 0 and rec.calls == []
     assert f"docker pull registry.example/archipelago/api@sha256:{D1}" in text
     assert "docker compose -f infra/compose/compose.yml" in text and "up -d --no-build" in text
-    assert "ARCHIPELAGO_API_TOKEN=<redacted>" in text
+    assert "ARCHIPELAGO_API_TOKEN='<redacted>'" in text
     log = (ws["ev"] / "deploy-log.txt").read_text()
     for blob in (text, log):
         assert not any(s in blob for s in SECRETS.values())
@@ -120,7 +120,7 @@ def test_execute_deploy_passes_real_env_over_ssh_but_never_logs_it(ws: dict[str,
     assert rc == 0 and len(rec.calls) == 1
     argv, kw = rec.calls[0]
     assert argv[:3] == ["ssh", "-i", str(ws["key"])] and "StrictHostKeyChecking=yes" in argv
-    assert "ARCHIPELAGO_API_TOKEN=tok-SECRET-1234567890abcdef" in kw["input"]
+    assert "ARCHIPELAGO_API_TOKEN='tok-SECRET-1234567890abcdef'" in kw["input"]
     assert "chmod 600 infra/compose/.env.new" in kw["input"] and "umask 077" in kw["input"]
     assert (ws["ev"] / "guard-report.json").exists()
     log = (ws["ev"] / "deploy-log.txt").read_text() + "\n".join(printed)
@@ -232,3 +232,48 @@ def test_rollback_uses_previous_manifest_and_smoke_script(ws: dict[str, Path]) -
     deploy.main(args(ws, "smoke", "--manifest", str(ws["m"])), ENV, Recorder(), NOW, printed.append)
     assert "infra/scripts/smoke.sh" in "\n".join(printed)
     assert SECRETS["ARCHIPELAGO_API_TOKEN"] not in "\n".join(printed)
+
+
+def test_env_file_values_survive_compose_interpolation_literally(tmp_path: Path) -> None:
+    """Secrets with $, #, spaces, double quotes and backslashes must reach containers unchanged."""
+    tricky = {
+        "ARCHIPELAGO_API_TOKEN": "api$UNSET_SUFFIX#tail",
+        "GRAFANA_ADMIN_PASSWORD": 'pa ss"w\\ord$HOME',
+    }
+    env = {**ENV, **{k: v for k, v in tricky.items() if k in deploy.SECRET_KEYS}}
+    text = deploy.render_env_file(env, "rel1", True)
+    envfile = tmp_path / "x.env"
+    envfile.write_text(text)
+    compose = tmp_path / "c.yml"
+    keys = [k for k in tricky if k in deploy.SECRET_KEYS]
+    assert keys, "test must exercise at least one real secret key"
+    compose.write_text(
+        "services:\n  x:\n    image: busybox\n    environment:\n"
+        + "".join(f"      {k}: ${{{k}}}\n" for k in keys)
+    )
+    out = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(compose),
+            "--env-file",
+            str(envfile),
+            "config",
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    got = json.loads(out)["services"]["x"]["environment"]
+    for k in keys:
+        # `compose config` re-escapes `$` as `$$` in its rendered output; a container receives `$`.
+        # An interpolated value would have lost `$UNSET_SUFFIX` entirely.
+        assert got[k].replace("$$", "$") == tricky[k]
+
+
+def test_env_file_rejects_values_that_cannot_be_written_literally() -> None:
+    with pytest.raises(deploy.DeployError):
+        deploy.render_env_file({**ENV, "SITE_ADDRESS": "it's"}, "r", True)
