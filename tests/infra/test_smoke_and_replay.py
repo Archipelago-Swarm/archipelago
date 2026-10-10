@@ -27,7 +27,13 @@ pytestmark = [
     pytest.mark.skipif(not shutil.which("docker"), reason="docker not installed"),
 ]
 TOKEN = "t" * 32
-ENV = {**os.environ, "ARCHIPELAGO_API_TOKEN": TOKEN, "GRAFANA_ADMIN_PASSWORD": "x" * 16}
+ENV = {
+    **os.environ,
+    "ARCHIPELAGO_API_TOKEN": TOKEN,
+    "GRAFANA_ADMIN_PASSWORD": "x" * 16,
+    "SITE_ADDRESS": "localhost",  # local.env uses plain http for make demo; these tests probe TLS
+    "ARCHIPELAGO_COOKIE_SECURE": "true",
+}
 BASE = "https://localhost"
 CTX = ssl._create_unverified_context()  # Caddy internal CA for localhost
 
@@ -42,6 +48,8 @@ def compose(*args: str) -> str:
         str(ROOT / "infra/compose/compose.yml"),
         "--env-file",
         str(ROOT / "infra/compose/.env.example"),
+        "--env-file",
+        str(ROOT / "infra/compose/local.env"),
         "--profile",
         "local",
         *args,
