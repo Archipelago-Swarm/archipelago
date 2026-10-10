@@ -900,13 +900,13 @@ tasks:
   name: Live-runtime interface agreement and task registration
   description: Integrator-authored interface agreement (agents/architecture/live-runtime.md), ADR-0008,
     ownership domains and ledger entries T24-T31 for the live decentralized-learning experiment.
-  state: QUEUED
+  state: REVIEW
   priority: 0
-  owner: null
+  owner: A/integrator
   machine: A
-  branch: null
+  branch: agent/T24-live-runtime-interface-agreement
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:30:00Z'
+  updated_at: '2026-10-10T20:32:10Z'
   dependencies: []
   blocked_by: []
   owned_paths:
@@ -930,11 +930,30 @@ tasks:
     build_failure: 3
     integration_failure: 3
     same_failure_signature: 2
-  last_good_commit: null
+  last_good_commit: d30d299
   artifacts: []
-  handoff_file: null
+  handoff_file: agents/handoffs/T24/LATEST.md
   notes: 'Bootstrap exception: authored by the integrator; independent review runs while T26/T28 implement.
     Amendments go through the integrator.'
+  history:
+  - at: '2026-10-10T20:32:09Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: A/integrator
+    note: ''
+  - at: '2026-10-10T20:32:10Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: A/integrator
+    note: ''
+  - at: '2026-10-10T20:32:10Z'
+    event: to_review
+    from: ACTIVE
+    to: REVIEW
+    by: A/integrator
+    note: ''
 - id: T25
   name: Make the legacy runners safe to leave on disk
   description: driver.py/night.py/watchdog.py merge into and reset main of the checkout they run in and
@@ -987,13 +1006,13 @@ tasks:
   description: 'TorchLearner per agents/architecture/live-runtime.md section 4 and 7: per-instance policy/target/optimizer/replay/RNG,
     snapshot inference, param-map-v1 import/export shared with the NumPy baseline, transactional generation
     checkpoints, thread control. NumPy learner kept and labeled as regression baseline.'
-  state: CLAIMED
+  state: QUEUED
   priority: 1
-  owner: A/wf-w1
+  owner: null
   machine: A
   branch: agent/T26-pytorch-cpu-learner-with-peer-pr
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:14:36Z'
+  updated_at: '2026-10-10T20:32:10Z'
   dependencies:
   - T07
   blocked_by: []
@@ -1039,6 +1058,16 @@ tasks:
     to: CLAIMED
     by: A/wf-w1
     note: ''
+  - at: '2026-10-10T20:32:10Z'
+    event: claim_expired
+    by: controller
+    note: no ledger or branch activity for 77 min
+  - at: '2026-10-10T20:32:10Z'
+    event: requeue
+    from: CLAIMED
+    to: QUEUED
+    by: controller
+    note: stale claim
 - id: T27
   name: Node runtime process (act/feedback/control/peer/telemetry)
   description: 'archipelago_noderuntime: the per-container process of agents/architecture/live-runtime.md
@@ -1094,13 +1123,13 @@ tasks:
   description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
     fallback, episode and train/validation/test schedules, peer-fault schedule distribution, node health,
     authoritative replay and privileged snapshots. Does not own models.'
-  state: CLAIMED
+  state: QUEUED
   priority: 1
-  owner: A/wf-w2
+  owner: null
   machine: A
   branch: agent/T28-simulation-coordinator-service
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T19:14:23Z'
+  updated_at: '2026-10-10T20:32:10Z'
   dependencies:
   - T03
   blocked_by: []
@@ -1146,6 +1175,16 @@ tasks:
     to: CLAIMED
     by: A/wf-w2
     note: ''
+  - at: '2026-10-10T20:32:10Z'
+    event: claim_expired
+    by: controller
+    note: no ledger or branch activity for 77 min
+  - at: '2026-10-10T20:32:10Z'
+    event: requeue
+    from: CLAIMED
+    to: QUEUED
+    by: controller
+    note: stale claim
 - id: T29
   name: 'Live integration: API, dashboard, persistence and local end-to-end smoke'
   description: Wire services/api (ARCHIPELAGO_ADAPTER=live) to the coordinator, add Compose services coordinator
