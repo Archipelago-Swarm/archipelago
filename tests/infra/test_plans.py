@@ -65,7 +65,7 @@ def test_episode_seeds_are_unique_and_disjoint_from_node_private_gate_seeds(name
 def test_run_config_from_the_driver_validates_with_the_plan(name):
     p = json.loads((ROOT / f"infra/demo/plans/{name}.json").read_text())
     cfg = run_demo.build_run_config(name, p, run_demo.new_run_id(name))
-    body = CreateRun.model_validate({"run_config": cfg, "plan": p})
+    body = CreateRun.model_validate({"run_config": cfg, "plan_name": name})
     RunConfig.model_validate(cfg)
     assert len({(n.start_pose.x, n.start_pose.y) for n in body.run_config.nodes}) == 4
     assert body.run_config.budgets.max_ticks == run_demo.PROFILES[name]["max_ticks"]
@@ -75,12 +75,8 @@ def test_run_config_from_the_driver_validates_with_the_plan(name):
     )
 
 
-def test_battery_scale_for_the_demo_horizon_is_at_least_four_in_the_stack():
-    """A13. The Plan model has no battery_scale field yet; the world is set by compose env (tested in
-    test_compose). If the coordinator grows the field, the plans must carry it."""
-    if "battery_scale" in Plan.model_fields:
-        for name in ("smoke", "demo"):
-            data = json.loads((ROOT / f"infra/demo/plans/{name}.json").read_text())
-            assert data.get("battery_scale", 0) >= 4
-    else:
-        assert "battery_scale" not in json.loads((ROOT / "infra/demo/plans/demo.json").read_text())
+def test_battery_scale_for_the_demo_horizon_is_at_least_four():
+    """A13: the 900-tick demo needs battery_scale >= 4 carried by the plan itself."""
+    for name in ("smoke", "demo"):
+        data = json.loads((ROOT / f"infra/demo/plans/{name}.json").read_text())
+        assert data.get("battery_scale", 0) >= 4

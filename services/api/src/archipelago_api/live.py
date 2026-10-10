@@ -115,6 +115,11 @@ def load_plans(path: Path) -> dict[str, dict[str, Any]]:
         raise LiveConfigError(f"COORDINATOR_PLAN_FILE unreadable: {type(e).__name__}") from None
     if not isinstance(doc, dict) or not doc:
         raise LiveConfigError("COORDINATOR_PLAN_FILE must be a JSON object of name -> plan")
+    # same shapes as the coordinator's plan file: one Plan, {"plans": {name: Plan}}, or name -> Plan
+    if set(doc) == {"plans"} and isinstance(doc["plans"], dict):
+        doc = doc["plans"]
+    elif "node_urls" in doc:
+        doc = {"default": doc}
     plans: dict[str, dict[str, Any]] = {}
     for name, body in doc.items():
         try:
@@ -201,10 +206,11 @@ class LiveBackend:
             existing = self.mgr.precheck(key, config, fingerprint)
             if existing is not None:
                 return existing, False
-            plan = self.plans[plan_name]
             try:
                 code, out = await self._call(
-                    "POST", "/v1/runs", {"run_config": config.model_dump(mode="json"), "plan": plan}
+                    "POST",
+                    "/v1/runs",
+                    {"run_config": config.model_dump(mode="json"), "plan_name": plan_name},
                 )
             except UpstreamError:
                 raise Rejected(502, "coordinator unreachable") from None

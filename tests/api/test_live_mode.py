@@ -61,16 +61,17 @@ class TeeSink:
 class Stack:
     def __init__(self, tmp: Path, persister: Persister | None, **settings: Any) -> None:
         self.nodes: dict[str, FakeNode] = make_nodes(4)
+        plan_file = tmp / "plans.json"  # one server-side file, read by the API and the coordinator
         self.coordinator = Live(
             tmp / "coordinator",
+            plan_file=plan_file,
             start_paused=True,
             commit="94712c5",
             node_urls={k: v.url for k, v in self.nodes.items()},  # COORDINATOR_NODE_URLS probes
         )
         body = run_body("live-1", self.nodes, ticks=25, fault_schedule=CUT)
         self.run_config: dict[str, Any] = body["run_config"]
-        plan_file = tmp / "plans.json"
-        plan_file.write_text(json.dumps({"demo": body["plan"]}))
+        plan_file.write_text(json.dumps({"plans": {"demo": body.plan}}))
         self.settings = Settings(
             api_token=LOGIN,
             data_dir=tmp / "api",
