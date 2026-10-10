@@ -13,8 +13,17 @@ import time
 from pathlib import Path
 
 import numpy as np
+from archipelago_learning.dqn import Learner
 from archipelago_learning.peer import encode, offer
-from archipelago_learning.rollout import _norm, episode, evaluate, make_env, make_learner
+from archipelago_learning.rollout import (
+    _norm,
+    ctde_episode,
+    episode,
+    evaluate,
+    make_env,
+    make_learner,
+    reset,
+)
 from archipelago_sim.env import ACTIONS, explorer_policy
 
 MODES = ("rule", "idle", "independent", "information_only", "p2p", "central_online", "ctde")
@@ -40,19 +49,6 @@ def alive1(scenario, i, episodes):
     return not (scenario == "node_failure" and i >= episodes // 2)  # node-1 stops training
 
 
-class Down:
-    """A failed node: stays put (action 0), stores nothing, learns nothing."""
-
-    def act(self, _o, _eps=0.0, _snap=None):
-        return 0
-
-    def observe(self, *_a):
-        pass
-
-    def train_step(self):
-        pass
-
-
 def share_obs(src, dst, k):
     """information_only: copy src's newest k raw transitions into dst's replay (no parameters)."""
     for i in range(src.n - min(k, src.capacity), src.n):
@@ -60,9 +56,9 @@ def share_obs(src, dst, k):
         dst.observe(*(src.replay[f][j] for f in ("o", "a", "r", "o2", "d")))
 
 
-def rollout(env, act, seed):
+def rollout(env, act, seed, drop=()):
     """Greedy eval episode. Returns (mean per-agent return, action-replay sha256)."""
-    obs, _ = env.reset(seed=seed)
+    obs = reset(env, seed, drop)
     tot, log = dict.fromkeys(env.possible_agents, 0.0), []
     while env.agents:
         acts = {a: act(a, obs[a]) for a in env.agents}
@@ -91,19 +87,25 @@ def run_cell(mode, scenario, seed, episodes, steps):
         def act(a, _o):
             return ACTIONS.index(explorer_policy(w.observe(a), visits[a], rngs[a]))
     else:
-        shared = mode in ("central_online", "ctde")
+        shared = mode == "central_online"
         kw = {"mode": "information_only"} if mode == "information_only" else {}
         L = {a: make_learner(a, seed * 10 + k, **kw) for k, a in enumerate(agents)}
         if shared:
             L = dict.fromkeys(agents, L[agents[0]])
+        critic = None
+        if mode == "ctde":  # joint-observation critic: used in training only, never at inference
+            critic = Learner("critic", len(agents) * L[agents[0]].obs_dim, 1, seed=seed * 10 + 9)
         shared_n = {}
         for i in range(episodes):
             s = TRAIN0 + seed * episodes + i
             up = link_up(scenario, i, episodes)
             if shared and mode == "central_online" and not up:
                 continue  # online central learner only sees data while the link is up
-            live = L if alive1(scenario, i, episodes) else {**L, agents[1]: Down()}
-            episode(env, live, s, 0.2)
+            gone = () if alive1(scenario, i, episodes) else (agents[1],)
+            if critic:
+                ctde_episode(env, L, critic, s, 0.2, gone)
+            else:
+                episode(env, L, s, 0.2, drop=gone)
             steps[0] += env.world.tick * len(agents)
             if (
                 mode in ("p2p", "information_only")
@@ -136,11 +138,11 @@ def run_cell(mode, scenario, seed, episodes, steps):
     # final-episode link state); ctde runs decentralised copies and is link-independent.
     no_ctl = mode == "central_online" and not link_up(scenario, episodes - 1, episodes)
 
-    def act(a, o):  # node_failure: node-1 is down at test too, so it just stays put
-        down = scenario == "node_failure" and a == agents[1]
-        return 0 if down or no_ctl else act0(a, o)
+    def act(a, o):
+        return 0 if no_ctl else act0(a, o)
 
-    res = [rollout(env, act, s) for s in TEST]
+    gone = (agents[1],) if scenario == "node_failure" else ()  # node-1 absent at test too
+    res = [rollout(env, act, s, gone) for s in TEST]
     return {
         "mode": mode,
         "scenario": scenario,

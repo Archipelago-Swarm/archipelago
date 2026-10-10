@@ -39,7 +39,7 @@
     "PYTHONPATH": "packages/learning;packages/sim"
    },
    "argv": [
-    "C:\\Users\\tient\\.codex\\.chatgpt-projects\\g-p-6ac956ec30c481919651706ebe8ec05b\\archipelago\\.agent-runtime\\worktrees\\20261010T140742Z\\T09\\.venv\\Scripts\\python.exe",
+    "C:\\Users\\tient\\.codex\\.chatgpt-projects\\g-p-6ac956ec30c481919651706ebe8ec05b\\archipelago\\.agent-runtime\\worktrees\\20261010T143523Z\\T09\\.venv\\Scripts\\python.exe",
     "experiments/run.py",
     "--seeds",
     "12",
@@ -49,7 +49,7 @@
     "agents/handoffs/T09/evidence"
    ]
   },
-  "train_env_steps": 1650636,
+  "train_env_steps": 1724950,
   "note": "n=12 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0."
  },
  "paired_vs_independent": [
@@ -70,10 +70,10 @@
    "mode": "ctde",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 2.836805555555561,
+   "mean_diff": 1.783611111111114,
    "ci95": [
-    -2.019444444444448,
-    7.996388888888897
+    -1.9562500000000025,
+    6.081666666666673
    ],
    "wins": 7
   },
@@ -130,58 +130,58 @@
    "mode": "central_online",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 1.6223611111111171,
+   "mean_diff": 0.0458333333333385,
    "ci95": [
-    -0.37333333333332863,
-    3.6580555555555634
+    -1.488749999999997,
+    1.6390972222222275
    ],
-   "wins": 8
+   "wins": 7
   },
   {
    "scenario": "node_failure",
    "mode": "ctde",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 0.16347222222222327,
+   "mean_diff": -1.8838194444444427,
    "ci95": [
-    -3.2900000000000014,
-    3.4248611111111136
+    -2.8454166666666687,
+    -0.9724999999999971
    ],
-   "wins": 7
+   "wins": 1
   },
   {
    "scenario": "node_failure",
    "mode": "idle",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 1.6223611111111171,
+   "mean_diff": 0.0458333333333385,
    "ci95": [
-    -0.37333333333332863,
-    3.6580555555555634
+    -1.488749999999997,
+    1.6390972222222275
    ],
-   "wins": 8
+   "wins": 7
   },
   {
    "scenario": "node_failure",
    "mode": "information_only",
    "vs": "independent",
    "n": 12,
-   "mean_diff": -1.0712500000000003,
+   "mean_diff": -3.538888888888888,
    "ci95": [
-    -3.257777777777777,
-    1.1831944444444444
+    -5.781736111111112,
+    -0.7371527777777769
    ],
-   "wins": 6
+   "wins": 2
   },
   {
    "scenario": "node_failure",
    "mode": "p2p",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 0.8551388888888897,
+   "mean_diff": -0.19645833333333437,
    "ci95": [
-    -1.7601388888888894,
-    3.493333333333337
+    -2.7012500000000013,
+    2.4837500000000006
    ],
    "wins": 6
   },
@@ -190,10 +190,10 @@
    "mode": "rule",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 11.941944444444445,
+   "mean_diff": 14.246805555555556,
    "ci95": [
-    9.422222222222222,
-    14.604027777777782
+    12.48604166666667,
+    16.167708333333337
    ],
    "wins": 12
   },
@@ -214,10 +214,10 @@
    "mode": "ctde",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 2.836805555555561,
+   "mean_diff": 1.783611111111114,
    "ci95": [
-    -2.019444444444448,
-    7.996388888888897
+    -1.9562500000000025,
+    6.081666666666673
    ],
    "wins": 7
   },
@@ -286,10 +286,10 @@
    "mode": "ctde",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 2.836805555555561,
+   "mean_diff": 1.783611111111114,
    "ci95": [
-    -2.019444444444448,
-    7.996388888888897
+    -1.9562500000000025,
+    6.081666666666673
    ],
    "wins": 7
   },

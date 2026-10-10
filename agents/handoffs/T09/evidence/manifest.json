@@ -38,7 +38,7 @@
    "PYTHONPATH": "packages/learning;packages/sim"
   },
   "argv": [
-   "C:\\Users\\tient\\.codex\\.chatgpt-projects\\g-p-6ac956ec30c481919651706ebe8ec05b\\archipelago\\.agent-runtime\\worktrees\\20261010T140742Z\\T09\\.venv\\Scripts\\python.exe",
+   "C:\\Users\\tient\\.codex\\.chatgpt-projects\\g-p-6ac956ec30c481919651706ebe8ec05b\\archipelago\\.agent-runtime\\worktrees\\20261010T143523Z\\T09\\.venv\\Scripts\\python.exe",
    "experiments/run.py",
    "--seeds",
    "12",
@@ -48,13 +48,13 @@
    "agents/handoffs/T09/evidence"
   ]
  },
- "train_env_steps": 1650636,
+ "train_env_steps": 1724950,
  "note": "n=12 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0.",
- "wall_s": 218.68935960003728,
- "cpu_s": 219.390625,
- "evidence_bytes": 245380,
+ "wall_s": 263.71930249992874,
+ "cpu_s": 263.9375,
+ "evidence_bytes": 246874,
  "sha256": {
-  "raw.jsonl": "d4505cbcabdbe1c7c62527f9603e62a1118a13326d885209f8c8011a1fdb0c35",
-  "summary.json": "b67c15d28a4e441c51833d8f5579936db13b9994b8bd9668ac0595f31fbff9db"
+  "raw.jsonl": "cfc01289a2dbed17c514c632efb8e8d49b57698284387ea7b6eef8650c14db93",
+  "summary.json": "2c0ea04aff806491ef85efdca4dfa6504595e2fa567cf979ea66edbcf7ab74ba"
  }
 }

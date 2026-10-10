@@ -55,9 +55,20 @@ def test_information_only_shares_data_not_parameters():
     assert io["replay_hashes"] != rows["independent"]["replay_hashes"]  # no longer a stub
 
 
-def test_down_node_is_inert():
-    d = run.Down()
-    assert d.act(None, 0.2) == 0 and d.observe(1) is None and d.train_step() is None
+def test_node_failure_removes_drone_from_world():
+    env = run.make_env()
+    obs = run.reset(env, 0, ("node-1",))
+    assert list(obs) == env.agents == env.world.agents == ["node-0"]
+    assert "node-1" not in env.world.drones
+
+
+def test_ctde_has_per_node_actors_and_trains_a_joint_critic():
+    env = run.make_env()
+    actors = {a: run.make_learner(a, k) for k, a in enumerate(env.possible_agents)}
+    critic = run.Learner("critic", 2 * actors["node-0"].obs_dim, 1)
+    run.ctde_episode(env, actors, critic, 0)
+    assert actors["node-0"] is not actors["node-1"] and critic.n > 0
+    assert all(x.n > 0 for x in actors.values())
 
 
 def test_committed_evidence_hashes_match():
