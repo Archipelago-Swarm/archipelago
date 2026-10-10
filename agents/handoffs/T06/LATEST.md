@@ -382,3 +382,19 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, run 20261010T143523Z (uncommitted)
+- No code change; slice already complete. Re-verified: tsc clean, vitest 21/21. Browser smoke not re-run. Blocker remains the missing independent review, not code.
+
+## Supervisor checkpoint 2026-10-10T14:36:31Z
+
+- Run: 20261010T143523Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T143523Z/T06
+- Base: e644b28e9d98fcef46d0c87a7c1fb3f220bd0ddd
+- Round: 1
+- State: review
+- External check exit: 0
+- Independent review: {"pass": true, "issues": ["Browser smoke (tests/web/browser-smoke.mjs, `npm run smoke`) is real: it drives headless Edge/Chrome over CDP and asserts start, pause, resume, stop, replay, and disconnect/reconnect. It is opt-in and not in `npm test` or the external check. I did not run it. The handoff says it passed on the fixture and sim2d adapters, so a human reviewer should reproduce it with `ARCHIPELAGO_ADAPTER=sim2d npm run smoke -w @archipelago/web`.", "Policy versions and transfer decisions have no real data source. The API emits no learning_event, so the wire shape is assumed and the UI shows 'not reported' outside fixtures. This is honest rather than stubbed, but the 'local model versions' part of the Outcome is unproven end to end. Node health comes from topology only.", "Reconnect after an API restart was only checked for LIVE returning and DISCONNECTED clearing. Stream behaviour is otherwise covered by stream.test.ts with a fake WebSocket.", "Process: the task card (outside T06's allowed paths) still reads unassigned with unchecked boxes and 'Latest handoff: none'. The integrator must update it. LATEST.md has an uncommitted edit that must be committed and pushed.", "The 'no credentials or hardcoded metrics' check has automated coverage in hygiene.test.ts. The fixed TOKEN in the smoke script is a test-only constant."]}
+- Next issue: none
+- Resume: fetch this branch, inspect latest commit and continue the task card.
