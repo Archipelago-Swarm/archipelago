@@ -10,6 +10,7 @@ import hmac
 import json
 import logging
 import os
+from collections import deque
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -59,6 +60,24 @@ class TelemetryIngest:
         # Both paths must use the same writer or later simulation writes can overtake
         # telemetry on disk, and EventLog.load would discard the late lower sequence.
         manager.log = _QueuedLog(self)
+
+    def restore_dedupe(self) -> None:
+        """Recover all durable IDs, including events outside the in-memory replay tail."""
+        for run_id in self.manager.runs:
+            path = self._original_log.path(run_id)
+            if not path.exists():
+                continue
+            try:
+                with path.open(encoding="utf-8") as stream:
+                    for line in stream:
+                        try:
+                            event = json.loads(line)
+                        except ValueError:
+                            continue
+                        if isinstance(event, dict) and isinstance(event.get("event_id"), str):
+                            self.seen.add((run_id, event["event_id"]))
+            except OSError:
+                log.warning("telemetry dedupe recovery failed")
 
     def start(self) -> None:
         if self._task is None:
@@ -191,7 +210,7 @@ class _QueuedLog(EventLog):
     def append(self, run_id: str, event: dict[str, Any], sync: bool = False) -> None:
         self.ingest.enqueue(run_id, event, sync)
 
-    def load(self, run_id: str, keep: int) -> tuple[Any, int]:
+    def load(self, run_id: str, keep: int) -> tuple[deque[dict[str, Any]], int]:
         return self.ingest._original_log.load(run_id, keep)
 
 
@@ -205,6 +224,7 @@ def make_router(
 
     @asynccontextmanager
     async def lifespan(_: Any) -> AsyncIterator[None]:
+        await asyncio.to_thread(ingest.restore_dedupe)
         ingest.start()
         try:
             yield
