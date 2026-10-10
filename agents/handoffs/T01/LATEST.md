@@ -1,31 +1,34 @@
-# Handoff: T01 / 20261010T045256Z
+# Handoff: T01 / 20261010T045629Z
 
-- State: in_progress
-- Run / machine / worker: RUN_ID not yet set (no ledger exists before T02) / A / A-lead (interactive, bootstrap exception in CONTRACT.md)
-- Assignment generation / dispatcher generation: bootstrap exception, manual; generation 0
-- Branch / worktree / base commit: claude/elegant-pascal-a8a3hp (session-mandated; contract's agent/A/T01/... name not used) / /home/user/archipelago / c1a5f6e
-- Last known remote checkpoint SHA / last good commit: c1a5f6e (no application code yet)
-- Resume from branch/commit: origin/claude/elegant-pascal-a8a3hp
-- Related PR / dependency commits: none
-- Reserved paths: root manifests/lockfiles, packages/contracts/, apps/web/ (scaffold only), CI, tests/, scripts
+- State: review (local evidence; CI not yet run)
+- Run / machine / worker: no RUN_ID yet / A / A-lead (bootstrap exception)
+- Assignment generation: bootstrap, 0
+- Branch / base commit: claude/elegant-pascal-a8a3hp / c1a5f6e
+- Resume from: origin/claude/elegant-pascal-a8a3hp
+- Reserved paths: root manifests/lockfiles, packages/contracts/, apps/web scaffold, CI, scripts/, infra/docker/ci.Dockerfile, tests/contracts
 
-## Intended outcome and acceptance
+## Completed and verified (local)
 
-Clean clone installs locked deps; fixtures validate (good pass, malformed/incompatible fail); Python and TS accept the same fixtures from one canonical schema; no placeholder app described as the simulator. See agents/tasks/T01.md.
+- Pydantic v2 canonical models for the 8 v0 records; JSON Schema exported; TS types generated; drift checks for both.
+- 8 good + 19 bad fixtures consumed by both pytest and Vitest. Bad set covers unsupported major, z!=0, non-UTC/naive time, NaN literal, oversize payload, path traversal, unknown kind/type, extra fields.
+- SequenceTracker (stale/duplicate) and SimulatorAdapter protocol with replay-only FixtureAdapter (pytest only).
+- ruff, mypy strict, eslint, tsc, vite build; CI workflow ci.yml; commands in agents/operations/bootstrap.md.
 
-## Plan
+## Validation
 
-1. Canonical Pydantic v2 models in packages/contracts -> exported JSON Schema (committed) -> generated TS types (json-schema-to-typescript).
-2. Fixtures under packages/contracts/fixtures/{good,bad}.
-3. Python tests (pytest) and Vitest (ajv) both consume the same fixtures; drift check for generated files.
-4. ruff, mypy, eslint/tsc, CI workflow, container smoke build, docs.
+`scripts/check.sh` from repo root: exit 0 (foundation 31 docs; pytest 31 passed; Vitest 27 + 1 passed; build ok).
 
-## Completed and verified
+NOT run: GitHub Actions (including container-smoke) and docker build (no daemon in sandbox); clean-clone install in CI is therefore unverified. Python 3.12 not exercised locally (3.13 used).
 
-Nothing yet. Environment seen: Python 3.13.16, Node v22.22.0, Docker 29.8.2, uv 0.11.32.
+## Decisions
 
-## Next steps in execution order
+Pydantic is canonical (Python-first project); cross-field rules (e.g. z=0) expressed as schema bounds so both languages enforce them. Used session branch instead of agent/A/T01/*.
 
-1. uv sync; write models; generate schemas/types.
-2. Fixtures + tests; web package; CI.
-3. Update T01 card, record versions, open PR for review (state: review, not done).
+## Next steps
+
+1. Push, confirm ci.yml passes on Actions (fix failures, esp. container-smoke and Python 3.12).
+2. Integrator merges to main; update BOARD; then start T02 and T03 (A) and assign T04/T08 to B via pushed task cards.
+
+## Risks
+
+Version-range deps resolved by lockfiles only; npm audit reports not triaged. No ADR written for schema pipeline choice.

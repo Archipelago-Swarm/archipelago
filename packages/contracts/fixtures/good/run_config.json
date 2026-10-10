@@ -1,0 +1,55 @@
+{
+  "kind": "run_config",
+  "schema_version": "0.1.0",
+  "run_id": "run-fixture-001",
+  "simulator": "fixture-2d",
+  "simulator_version": "0.0.0-fixture",
+  "scenario_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "seeds": {
+    "env": 1,
+    "topology": 2,
+    "learner": 3,
+    "exploration": 4
+  },
+  "nodes": [
+    {
+      "node_id": "node-01",
+      "start_pose": {
+        "x": 0,
+        "y": 0,
+        "z": 0.0,
+        "heading_rad": 0.0
+      }
+    },
+    {
+      "node_id": "node-02",
+      "start_pose": {
+        "x": 5,
+        "y": 0,
+        "z": 0.0,
+        "heading_rad": 0.0
+      }
+    }
+  ],
+  "observation_id": "obs-v0",
+  "action_id": "act-v0",
+  "reward_id": "rew-v0",
+  "mode": "lockstep",
+  "learner": "peer_dqn",
+  "budgets": {
+    "max_ticks": 100,
+    "max_wall_seconds": 60
+  },
+  "fault_schedule": [
+    {
+      "start_tick": 10,
+      "end_tick": 20,
+      "cut_links": [
+        [
+          "node-01",
+          "node-02"
+        ]
+      ]
+    }
+  ]
+}

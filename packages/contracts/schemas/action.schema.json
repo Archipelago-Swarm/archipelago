@@ -1,0 +1,97 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "action_space_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Action Space Version",
+      "type": "string"
+    },
+    "command": {
+      "enum": [
+        "stay",
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "title": "Command",
+      "type": "string"
+    },
+    "emitted_at_utc": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]00:00)$",
+      "title": "Emitted At Utc",
+      "type": "string"
+    },
+    "event_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "action",
+      "default": "action",
+      "title": "Kind",
+      "type": "string"
+    },
+    "policy_version": {
+      "minimum": 0,
+      "title": "Policy Version",
+      "type": "integer"
+    },
+    "run_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "pattern": "^0\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "sim_tick": {
+      "minimum": 0,
+      "title": "Sim Tick",
+      "type": "integer"
+    },
+    "source_node_id": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Source Node Id"
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "run_id",
+    "source_node_id",
+    "sim_tick",
+    "emitted_at_utc",
+    "sequence",
+    "action_space_version",
+    "command",
+    "policy_version"
+  ],
+  "title": "Action",
+  "type": "object"
+}

@@ -1,0 +1,249 @@
+{
+  "$defs": {
+    "Budgets": {
+      "additionalProperties": false,
+      "properties": {
+        "max_ticks": {
+          "exclusiveMinimum": 0,
+          "title": "Max Ticks",
+          "type": "integer"
+        },
+        "max_wall_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Max Wall Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_ticks",
+        "max_wall_seconds"
+      ],
+      "title": "Budgets",
+      "type": "object"
+    },
+    "FaultWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "cut_links": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Cut Links",
+          "type": "array"
+        },
+        "end_tick": {
+          "minimum": 0,
+          "title": "End Tick",
+          "type": "integer"
+        },
+        "start_tick": {
+          "minimum": 0,
+          "title": "Start Tick",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_tick",
+        "end_tick",
+        "cut_links"
+      ],
+      "title": "FaultWindow",
+      "type": "object"
+    },
+    "NodeSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Node Id",
+          "type": "string"
+        },
+        "start_pose": {
+          "$ref": "#/$defs/Pose"
+        }
+      },
+      "required": [
+        "node_id",
+        "start_pose"
+      ],
+      "title": "NodeSpec",
+      "type": "object"
+    },
+    "Pose": {
+      "additionalProperties": false,
+      "description": "ENU meters; 2D worlds fix z to 0.",
+      "properties": {
+        "heading_rad": {
+          "default": 0.0,
+          "title": "Heading Rad",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "z": {
+          "default": 0.0,
+          "maximum": 0,
+          "minimum": 0,
+          "title": "Z",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "Pose",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "budgets": {
+      "$ref": "#/$defs/Budgets"
+    },
+    "fault_schedule": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FaultWindow"
+      },
+      "title": "Fault Schedule",
+      "type": "array"
+    },
+    "kind": {
+      "const": "run_config",
+      "default": "run_config",
+      "title": "Kind",
+      "type": "string"
+    },
+    "learner": {
+      "enum": [
+        "none",
+        "independent_dqn",
+        "peer_dqn"
+      ],
+      "title": "Learner",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "lockstep",
+        "distributed"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/NodeSpec"
+      },
+      "minItems": 1,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "observation_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "reward_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Reward Id",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "scenario_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scenario Hash",
+      "type": "string"
+    },
+    "schema_version": {
+      "pattern": "^0\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seeds": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "propertyNames": {
+        "enum": [
+          "env",
+          "topology",
+          "learner",
+          "exploration"
+        ]
+      },
+      "title": "Seeds",
+      "type": "object"
+    },
+    "simulator": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Simulator",
+      "type": "string"
+    },
+    "simulator_version": {
+      "title": "Simulator Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "run_id",
+    "simulator",
+    "simulator_version",
+    "scenario_hash",
+    "seeds",
+    "nodes",
+    "observation_id",
+    "action_id",
+    "reward_id",
+    "mode",
+    "learner",
+    "budgets"
+  ],
+  "title": "RunConfig",
+  "type": "object"
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1.0",
+  "run_id": "run-fixture-001",
+  "sim_tick": 3,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 1,
+  "kind": "peer_envelope",
+  "event_id": "ev-peer-1",
+  "source_node_id": "node-01",
+  "type": "model_pickle",
+  "sender": "node-01",
+  "recipient": "node-02",
+  "message_id": "msg-1",
+  "model_version": 2,
+  "architecture_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "encoder_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "reward_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "payload_length": 1024,
+  "payload_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "ttl_ticks": 50
+}

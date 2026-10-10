@@ -1,0 +1,14 @@
+{
+  "kind": "artifact_manifest",
+  "schema_version": "0.1.0",
+  "run_id": "run-fixture-001",
+  "node_id": "node-01",
+  "sim_tick": 3,
+  "path": "checkpoints/node-01/v2.safetensors",
+  "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "format": "safetensors",
+  "format_version": "1",
+  "size_bytes": 1024,
+  "commit": "c1a5f6e",
+  "config_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

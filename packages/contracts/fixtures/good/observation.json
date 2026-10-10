@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1.0",
+  "run_id": "run-fixture-001",
+  "sim_tick": 3,
+  "emitted_at_utc": "2026-10-10T12:00:00Z",
+  "sequence": 1,
+  "kind": "observation",
+  "event_id": "ev-obs-1",
+  "source_node_id": "node-01",
+  "crop": [
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      0
+    ]
+  ],
+  "known_mask": [
+    [
+      true,
+      true
+    ],
+    [
+      false,
+      true
+    ]
+  ],
+  "pose": {
+    "x": 1,
+    "y": 2,
+    "z": 0.0,
+    "heading_rad": 0.0
+  },
+  "battery": 0.9,
+  "visible_markers": [
+    [
+      2.0,
+      3.0
+    ]
+  ],
+  "neighbor_summaries": [
+    {
+      "distance_m": 4.0
+    }
+  ]
+}

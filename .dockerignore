@@ -1,0 +1,7 @@
+.git
+.venv
+node_modules
+**/node_modules
+dist
+.worktrees
+.agent-runtime
