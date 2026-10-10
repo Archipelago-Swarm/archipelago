@@ -6,7 +6,7 @@ This is the executable T02 runner, built around [Loop Engineering](https://blake
 
 - T01 and T02 must be merged into `main`, with CI green. Clone or pull that main on both machines. Do not start from a task worktree or a dirty main checkout.
 - Both machines need Git push access, a configured Git `user.name` and `user.email`, Claude Code authentication, Python 3.12+, `uv`, Node/npm, and Git Bash. B needs Docker before T08; without it the runner records T08 as blocked and continues no further B tasks.
-- Each person chooses `subscription` or `api` based on their own account. API mode requires a dollar cap. Subscription mode has wall-time, turn, and round caps but cannot promise a precise quota budget. The runner never changes billing mode.
+- Each person chooses `subscription` or `api` based on their own account. The flag controls the runner's limits; it does not switch Claude Code credentials or supply a subscription. B must configure its own Claude Code API authentication before using API mode. API mode requires a user-chosen dollar cap. Subscription mode has wall-time, turn, and round caps but cannot promise a precise quota budget.
 - Keep the computers awake, online, and plugged in. Leave the terminal processes open. `.agent-runtime/` is ignored and contains local logs, state, and worktrees. Do not delete it during a run.
 
 ## Start without repeated prompts
@@ -17,13 +17,14 @@ From a clean repository root on **A**:
 python tools/agents/night.py --machine A --billing subscription --hours 8
 ```
 
-After A prints the run ID, from a clean repository root on **B**:
+After A prints the run ID, from a clean repository root on **B** if B uses an API key. B enters a positive maximum spend in USD once at startup:
 
 ```powershell
-python tools/agents/night.py --machine B --billing subscription
+$capUsd = Read-Host "B API cap in USD"
+python tools/agents/night.py --machine B --billing api --budget-usd $capUsd
 ```
 
-For a deliberately funded API run, replace `--billing subscription` with `--billing api --budget-usd <your-per-machine-cap>` on that computer. The two computers can use their own billing modes and budgets. A publishes the shared run ID, base commit, deadline and fixed assignments on `agent-coordination`; B reads them. No `/agent`, `/goal`, `/loop`, manual RUN_ID copying, or permission bypass flag is needed. Each slice starts a fresh `claude -p` session with automatic permission review and no interactive prompts.
+The two computers can use different billing modes and budgets. A publishes the shared run ID, base commit, deadline and fixed assignments on `agent-coordination`; B reads them. No `/agent`, `/goal`, `/loop`, manual RUN_ID copying, or permission bypass flag is needed. Each slice starts a fresh `claude -p` session with automatic permission review and no interactive prompts.
 
 Initial assignments are in `night-plan.json`: A takes T03 and T05; B takes T04, T06 and T08. T04 starts from B's existing `agent/B/T04/run-api` branch and merges the run's main commit into a new night branch, preserving work already pushed there. B must finish or stop its interactive T04 session and push its latest handoff before the night run begins; two writers must never share that branch. The plan excludes T07 and later tasks because they depend on branches that need integration. Change assignments only before A publishes a new run, and keep paths disjoint. The supervisor currently does not implement dynamic reassignment, two simultaneous workers per computer, or automatic merge. It keeps coding while the independent tasks are available and stops when they are reviewable, blocked, out of rounds, out of budget, or at the deadline. A short early finish is a valid result; it does not invent new work to consume the full eight hours.
 
