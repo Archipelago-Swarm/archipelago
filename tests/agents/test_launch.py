@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import stat
 import subprocess
 import sys
@@ -156,9 +157,15 @@ def fake_claude(bin_dir: Path, log: Path, body: str = "") -> None:
     bin_dir.mkdir(exist_ok=True)
     script = bin_dir / "claude"
     script.write_text(
-        f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> {log}\n{body}\necho '{{\"ok\":true}}'\n"
+        f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{log.as_posix()}'\n{body}\necho '{{\"ok\":true}}'\n",
+        newline="\n",
     )
     script.chmod(script.stat().st_mode | stat.S_IEXEC)
+    if os.name == "nt":  # Windows cannot spawn a shebang script; route a claude.cmd through sh
+        sh = shutil.which("sh")
+        if not sh:
+            pytest.skip("needs sh (Git for Windows) to fake the claude CLI")
+        (bin_dir / "claude.cmd").write_text(f'@"{sh}" "%~dp0claude" %*\r\n')
 
 
 def test_tick_claims_then_runs_a_bounded_session_without_bypass_flags(
@@ -276,7 +283,8 @@ def test_session_runs_in_a_dedicated_worktree_not_the_shared_checkout(
     origin: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     where = tmp_path / "where.log"
-    body = f"pwd >> {where}; git rev-parse --abbrev-ref HEAD >> {where}"
+    w = f"'{where.as_posix()}'"
+    body = f"(pwd -W 2>/dev/null || pwd) >> {w}; git rev-parse --abbrev-ref HEAD >> {w}"
     a, _ = claimed_clone(origin, tmp_path, monkeypatch, body=body)
     for _ in range(2):  # the second tick reuses the same worktree
         assert lch.tick("A", "main", 1, [])[0] == "no_progress"
@@ -344,3 +352,16 @@ def test_tick_refuses_a_dirty_worktree_and_a_worktree_on_main(
     status, detail = lch.tick("A", "main", 1, [])
     assert status == "error" and "is on main" in detail
     assert log.read_text().count("session") + log.read_text().count("WORKER") == runs
+
+
+def test_unpushed_local_work_counts_as_progress_not_a_stall(
+    origin: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A slow session that commits locally and pushes later is progress, not a stall."""
+    body = (
+        "echo work >> notes.txt; git add notes.txt; "
+        "git -c user.name=t -c user.email=t@t commit -qm wip"
+    )
+    claimed_clone(origin, tmp_path, monkeypatch, body=body)
+    for _ in range(2):
+        assert lch.tick("A", "main", 1, [])[0] == "progress"
