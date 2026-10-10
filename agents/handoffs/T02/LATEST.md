@@ -22,12 +22,13 @@ Rate-limit waits persist their next eligible UTC time and use a reported reset w
 - T02's first Linux CI bootstrap exposed missing Git identity in the supervisor's temporary coordination clone. The runner now copies the calling repository's configured identity into that clone and checks identity during preflight; bootstrap CI passed.
 - The Docker smoke image also needed the `git` executable because the new supervisor tests exercise real local repositories. The image now installs it; container CI passed.
 - PR #2's foundation, bootstrap, and container-smoke checks passed; merge commit `602124f` is on main.
-- The merged B T04 source branch passed the full local suite after refreshing the generated TypeScript file to LF. A follow-up T02 runner fix now performs that byte-identical refresh automatically when a Windows worktree inherits CRLF from the older T04 branch; its test rejects substantive generated-file drift. Follow-up CI remains pending.
+- The merged B T04 source branch passed the full local suite after refreshing the generated TypeScript file to LF. A follow-up T02 runner fix now performs that byte-identical refresh automatically when a Windows worktree inherits CRLF from the older T04 branch; its test rejects substantive generated-file drift. PR #3 passed foundation, bootstrap and container-smoke CI and merged as `b090250`.
 
 ## Remaining gate / limits
 
 - T01 and T02 merged to main through PRs #1 and #2 with successful GitHub checks.
 - Test the actual A/B startup once on both computers. B's last readiness handoff reported `uv` and Docker missing; install `uv` for any run and Docker before T08. `gh` is optional to the runner.
+- B's published T04 source branch includes earlier shared dependency/check changes in `pyproject.toml`, `uv.lock`, and `scripts/check.sh`. Its merged worktree passed local checks, but A must reconcile those shared files when reviewing a future T04 PR; the night runner does not auto-merge them.
 - The current runner has a fixed plan, one worker per machine and review branches; dynamic reallocation, concurrent workers within one machine, automatic PR creation and merge, resource caps beyond task count, and a hard OS-kill recovery test are future work.
 - No real eight-hour training/coding session or Vultr deployment has run. The CLI can terminate early when independent tasks are reviewable or blocked.
 
