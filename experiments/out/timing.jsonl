@@ -1,0 +1,96 @@
+{"scenario": "connected", "mode": "rule", "seed": 0, "wall_s": 0.21698841399984303, "decision_wall_s": []}
+{"scenario": "connected", "mode": "rule", "seed": 1, "wall_s": 0.2415733310001542, "decision_wall_s": []}
+{"scenario": "connected", "mode": "rule", "seed": 2, "wall_s": 0.25598361000015757, "decision_wall_s": []}
+{"scenario": "connected", "mode": "idle", "seed": 0, "wall_s": 0.2545469949998278, "decision_wall_s": []}
+{"scenario": "connected", "mode": "idle", "seed": 1, "wall_s": 0.27726430799998525, "decision_wall_s": []}
+{"scenario": "connected", "mode": "idle", "seed": 2, "wall_s": 0.3191677400000117, "decision_wall_s": []}
+{"scenario": "connected", "mode": "independent", "seed": 0, "wall_s": 2.073668323999982, "decision_wall_s": []}
+{"scenario": "connected", "mode": "independent", "seed": 1, "wall_s": 2.3069578120000642, "decision_wall_s": []}
+{"scenario": "connected", "mode": "independent", "seed": 2, "wall_s": 2.2044850760000827, "decision_wall_s": []}
+{"scenario": "connected", "mode": "info_only", "seed": 0, "wall_s": 2.2637444459999188, "decision_wall_s": []}
+{"scenario": "connected", "mode": "info_only", "seed": 1, "wall_s": 2.529369450000104, "decision_wall_s": []}
+{"scenario": "connected", "mode": "info_only", "seed": 2, "wall_s": 2.2396604900000057, "decision_wall_s": []}
+{"scenario": "connected", "mode": "p2p", "seed": 0, "wall_s": 4.180273359000012, "decision_wall_s": [0.22526618000006238, 0.2556666640000458, 0.20284623799989276, 0.26011741399997845, 0.2264876889998959, 0.21473735700010366, 0.20675527599996713, 0.20648261800010914]}
+{"scenario": "connected", "mode": "p2p", "seed": 1, "wall_s": 4.014230811999823, "decision_wall_s": [0.20598226300012357, 0.20920774699993672, 0.21344874999999774, 0.21858216900000116, 0.20635843199988813, 0.20539058500003193, 0.20752334999997402, 0.2074419680000119]}
+{"scenario": "connected", "mode": "p2p", "seed": 2, "wall_s": 4.125085915999989, "decision_wall_s": [0.21436375600001156, 0.20505402699996012, 0.2250819630000933, 0.23401448300000993, 0.20753424899999118, 0.24274841400006153, 0.22992306100013593, 0.22877680300007341]}
+{"scenario": "connected", "mode": "replay_sharing", "seed": 0, "wall_s": 2.282106461000012, "decision_wall_s": []}
+{"scenario": "connected", "mode": "replay_sharing", "seed": 1, "wall_s": 2.1342397280000114, "decision_wall_s": []}
+{"scenario": "connected", "mode": "replay_sharing", "seed": 2, "wall_s": 2.3240654500000346, "decision_wall_s": []}
+{"scenario": "connected", "mode": "central_online", "seed": 0, "wall_s": 2.2538826270001664, "decision_wall_s": []}
+{"scenario": "connected", "mode": "central_online", "seed": 1, "wall_s": 2.3148413799999616, "decision_wall_s": []}
+{"scenario": "connected", "mode": "central_online", "seed": 2, "wall_s": 2.185946665000074, "decision_wall_s": []}
+{"scenario": "connected", "mode": "ctde", "seed": 0, "wall_s": 3.1980819580001025, "decision_wall_s": []}
+{"scenario": "connected", "mode": "ctde", "seed": 1, "wall_s": 2.902303978999953, "decision_wall_s": []}
+{"scenario": "connected", "mode": "ctde", "seed": 2, "wall_s": 3.0802623340000537, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "rule", "seed": 0, "wall_s": 0.2708843649998016, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "rule", "seed": 1, "wall_s": 0.25473238399990805, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "rule", "seed": 2, "wall_s": 0.21911326700001155, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "idle", "seed": 0, "wall_s": 0.24764507999998386, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "idle", "seed": 1, "wall_s": 0.2471787360000235, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "idle", "seed": 2, "wall_s": 0.24728684100000464, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "independent", "seed": 0, "wall_s": 2.1563128770001185, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "independent", "seed": 1, "wall_s": 2.23107522600003, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "independent", "seed": 2, "wall_s": 2.2595039789998737, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "info_only", "seed": 0, "wall_s": 2.578400297000144, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "info_only", "seed": 1, "wall_s": 2.3508231319999595, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "info_only", "seed": 2, "wall_s": 2.43897906899997, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "p2p", "seed": 0, "wall_s": 3.5576983569999356, "decision_wall_s": [0.2145907909998641, 0.21313250400021388, 0.20444033900002978, 0.19841450300009456, 0.2058580009997968, 0.20427598400010538]}
+{"scenario": "partition_reconnect", "mode": "p2p", "seed": 1, "wall_s": 3.5669859570000426, "decision_wall_s": [0.2128065190001962, 0.2483024860000569, 0.20146433100012473, 0.20060661600018648, 0.20811355199998616, 0.2074342539999634]}
+{"scenario": "partition_reconnect", "mode": "p2p", "seed": 2, "wall_s": 3.7671836489998896, "decision_wall_s": [0.22679135699991093, 0.20457278800017775, 0.2665894350000144, 0.2412536589999945, 0.22557137099988722, 0.21069349900017187]}
+{"scenario": "partition_reconnect", "mode": "replay_sharing", "seed": 0, "wall_s": 2.3697502679999616, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "replay_sharing", "seed": 1, "wall_s": 2.4456828320001023, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "replay_sharing", "seed": 2, "wall_s": 2.343961570999909, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "central_online", "seed": 0, "wall_s": 2.0116689480000787, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "central_online", "seed": 1, "wall_s": 2.029814105000014, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "central_online", "seed": 2, "wall_s": 2.284905885999933, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "ctde", "seed": 0, "wall_s": 3.428807255000038, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "ctde", "seed": 1, "wall_s": 3.111243482999953, "decision_wall_s": []}
+{"scenario": "partition_reconnect", "mode": "ctde", "seed": 2, "wall_s": 3.073373482999841, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "rule", "seed": 0, "wall_s": 0.16725374700013163, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "rule", "seed": 1, "wall_s": 0.17304183200008083, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "rule", "seed": 2, "wall_s": 0.1837803589999112, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "idle", "seed": 0, "wall_s": 0.1763734700000441, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "idle", "seed": 1, "wall_s": 0.1487605849999909, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "idle", "seed": 2, "wall_s": 0.15074756900003194, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "independent", "seed": 0, "wall_s": 1.6283940820001135, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "independent", "seed": 1, "wall_s": 1.8308456980000756, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "independent", "seed": 2, "wall_s": 1.6792154299998856, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "info_only", "seed": 0, "wall_s": 1.7019095929999821, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "info_only", "seed": 1, "wall_s": 1.7691612489998079, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "info_only", "seed": 2, "wall_s": 1.7314345449999564, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "p2p", "seed": 0, "wall_s": 2.6181249639998896, "decision_wall_s": [0.20758931999989727, 0.2134602820001419, 0.19590716500010785, 0.19436153100014053]}
+{"scenario": "node_failure", "mode": "p2p", "seed": 1, "wall_s": 2.5973102529999323, "decision_wall_s": [0.20627605599997878, 0.20259010399990984, 0.2616026429998328, 0.21120376099997884]}
+{"scenario": "node_failure", "mode": "p2p", "seed": 2, "wall_s": 2.8216716189999715, "decision_wall_s": [0.1992364089999228, 0.22125918400001865, 0.2932986359999177, 0.27091197000004286]}
+{"scenario": "node_failure", "mode": "replay_sharing", "seed": 0, "wall_s": 1.7126984550000088, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "replay_sharing", "seed": 1, "wall_s": 1.5791433880001478, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "replay_sharing", "seed": 2, "wall_s": 1.6183025109999107, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "central_online", "seed": 0, "wall_s": 1.5807477450000533, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "central_online", "seed": 1, "wall_s": 1.6710749390001638, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "central_online", "seed": 2, "wall_s": 1.751641404000111, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "ctde", "seed": 0, "wall_s": 2.619572744999914, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "ctde", "seed": 1, "wall_s": 2.249499943000046, "decision_wall_s": []}
+{"scenario": "node_failure", "mode": "ctde", "seed": 2, "wall_s": 2.5936349260000497, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "rule", "seed": 0, "wall_s": 0.22632293400010894, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "rule", "seed": 1, "wall_s": 0.2424440869999671, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "rule", "seed": 2, "wall_s": 0.2498691210000743, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "idle", "seed": 0, "wall_s": 0.2946593120000216, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "idle", "seed": 1, "wall_s": 0.2559413339999992, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "idle", "seed": 2, "wall_s": 0.25503650900009234, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "independent", "seed": 0, "wall_s": 2.2740081609999834, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "independent", "seed": 1, "wall_s": 2.3300564280000344, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "independent", "seed": 2, "wall_s": 2.4224185240000224, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "info_only", "seed": 0, "wall_s": 2.3342115860000376, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "info_only", "seed": 1, "wall_s": 2.3833245539999552, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "info_only", "seed": 2, "wall_s": 2.2994816469999932, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "p2p", "seed": 0, "wall_s": 4.57187567699998, "decision_wall_s": [0.255468922999853, 0.23909026199999062, 0.33243875599987405, 0.2340276840000115, 0.23996717199997875, 0.2452336369999557, 0.21049638900012724, 0.3178320720001011]}
+{"scenario": "telemetry_outage", "mode": "p2p", "seed": 1, "wall_s": 4.690084580999837, "decision_wall_s": [0.2862738769999851, 0.23238502800018068, 0.22419259799994506, 0.30309975099999065, 0.2137266530000943, 0.3180661669998699, 0.25484350400006406, 0.22252235999985714]}
+{"scenario": "telemetry_outage", "mode": "p2p", "seed": 2, "wall_s": 4.003962148000028, "decision_wall_s": [0.2116718199999923, 0.19796849599993038, 0.20438251799987484, 0.22046792099990853, 0.20064346499998464, 0.20619577699994807, 0.2060086040000897, 0.20993882600009783]}
+{"scenario": "telemetry_outage", "mode": "replay_sharing", "seed": 0, "wall_s": 2.3380772380000963, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "replay_sharing", "seed": 1, "wall_s": 2.2411215399999946, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "replay_sharing", "seed": 2, "wall_s": 2.24518107699987, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "central_online", "seed": 0, "wall_s": 2.097737079000126, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "central_online", "seed": 1, "wall_s": 2.213715933000003, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "central_online", "seed": 2, "wall_s": 2.244324355000117, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "ctde", "seed": 0, "wall_s": 3.075167715000134, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "ctde", "seed": 1, "wall_s": 2.9877422150000257, "decision_wall_s": []}
+{"scenario": "telemetry_outage", "mode": "ctde", "seed": 2, "wall_s": 2.938798262999626, "decision_wall_s": []}

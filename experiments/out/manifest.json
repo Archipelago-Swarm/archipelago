@@ -1,43 +1,144 @@
 {
+ "protocol": "exp-protocol-v1",
+ "commit": "6aab2b861f2d9cab19401cab5240251507deed4e",
+ "worktree_dirty": true,
+ "start_utc": "2026-10-10T19:36:22+00:00",
+ "end_utc": "2026-10-10T19:39:31+00:00",
+ "exit_status": 0,
+ "commands": {
+  "env": {
+   "PYTHONPATH": "packages/learning:packages/sim:experiments"
+  },
+  "argv": [
+   "python3",
+   "experiments/run.py",
+   "--seeds",
+   "3",
+   "--episodes",
+   "20",
+   "--mode",
+   "all",
+   "--out",
+   "experiments/out",
+   "--report"
+  ]
+ },
  "args": {
   "seeds": 3,
   "episodes": 20,
   "modes": [
-   "rule",
-   "independent",
-   "information_only",
-   "p2p",
-   "central_online",
-   "ctde"
+   "all"
   ],
   "scenarios": [
    "connected",
-   "split",
-   "rejoin",
-   "node_failure"
+   "partition_reconnect",
+   "node_failure",
+   "telemetry_outage"
   ],
-  "out": "experiments/out"
+  "backend": "numpy",
+  "obs": "grid-flat-v0",
+  "exchange_every": 5,
+  "margin": 0.0,
+  "test_seeds": 20,
+  "out": "experiments/out",
+  "report": true
  },
- "val": [
-  900,
-  901,
-  902,
-  903
+ "resolved_modes": [
+  "rule",
+  "idle",
+  "independent",
+  "info_only",
+  "p2p",
+  "replay_sharing",
+  "central_online",
+  "ctde"
  ],
- "test": [
-  950,
-  951,
-  952,
-  953,
-  954,
-  955
+ "mode_labels": {
+  "rule": "required: rule-based explorer (visit memory, no learning)",
+  "idle": "required: idle control (all drones stay)",
+  "independent": "required: independent DQN",
+  "info_only": "required: independent DQN + map/status sharing (no model transfer)",
+  "p2p": "required: info_only + validated peer model candidates",
+  "replay_sharing": "secondary: independent DQN + raw replay-row sharing (not in evaluation.md)",
+  "central_online": "secondary: ONE shared learner stands in for a controller; not a validated central-controller comparison",
+  "ctde": "secondary: per-node actors + joint-critic reward shaping; an approximation, not a validated CTDE algorithm"
+ },
+ "backend": "numpy",
+ "seeds": {
+  "experiment_seeds": [
+   0,
+   1,
+   2
+  ],
+  "train_world_seeds": [
+   1000,
+   1059
+  ],
+  "train_formula": "1000 + seed*episodes + episode",
+  "validation": [
+   100,
+   101,
+   102,
+   103,
+   104
+  ],
+  "test": [
+   200,
+   201,
+   202,
+   203,
+   204,
+   205,
+   206,
+   207,
+   208,
+   209,
+   210,
+   211,
+   212,
+   213,
+   214,
+   215,
+   216,
+   217,
+   218,
+   219
+  ]
+ },
+ "config_hash": "3c7ea2689aff773aae77e5fee0c6c1007dc70ca6d7074fa855f5db3d62773a5b",
+ "reward_id": "rew-v0",
+ "reward_hash": "9ca6ac3871d2fe6ee7edc58ea8eb6241cd7095863ec454319897059e58295904",
+ "observation_id": "grid-flat-v0",
+ "scenario_hashes": {
+  "connected": "d688f70f1a15c133d10808023fb0052bf5b828071404696186f8c2e84baeaf87",
+  "partition_reconnect": "07273144639df6ec7d744b8a38d76048d0ea68bd939d7954ab90f57c00e82439",
+  "node_failure": "6ef5646f98ef3443bddd88003b8a3b21819db5268d8429b67868b1a26f4e9661",
+  "telemetry_outage": "3baa8eddf1964c8e4b36b458e62ae2384f086443aeb260d106a5de86fcb874a1"
+ },
+ "env": {
+  "size": 16,
+  "n_agents": 2,
+  "n_targets": 8,
+  "max_ticks": 150
+ },
+ "container_image": null,
+ "host": {
+  "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+  "python": "3.13.16",
+  "numpy": "2.5.3",
+  "cpus": 4
+ },
+ "wall_s": 187.6416447810002,
+ "cpu_s": 188.114825047,
+ "evidence_bytes": 378379,
+ "unhashed_files": [
+  "timing.jsonl",
+  "manifest.json",
+  "REPORT.md"
  ],
- "rerun": "python experiments/run.py --seeds 3 --episodes 20 --out experiments/out",
- "train_env_steps": 50466,
- "wall_s": 7.955262599991329,
- "note": "n=3 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0.",
  "sha256": {
-  "raw.jsonl": "2a4b4b33ab8d7c0a512d63359ef18275c8e8a222d4b543e33acd3051c4eb8282",
-  "summary.json": "dda855a6c18817d706d763be7046444394a2d4b457735fc5ec1322cb649cbee9"
+  "raw.jsonl": "2ab0138d31409953b5e6278cf4ddced88a7b08b9c87b78cf5195785d1f8893c0",
+  "per_seed.csv": "54f957c1b003d52ae1c616788e14c048dd3258d4efb3eaab709745d332b55572",
+  "summary.json": "dcac6d7329752f412ccfaeb24e3ec04a1751de771562f9bda822a2b39b14622d"
  }
 }
