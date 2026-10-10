@@ -223,6 +223,11 @@ def test_start_detaches_reports_status_and_stops_on_no_progress(
             break
         time.sleep(0.2)
     assert "no progress twice" in state["stop_reason"]
+    for _ in range(50):  # the stop reason is written just before the process exits
+        if lch.liveness("A")[0] == "DEAD":
+            break
+        time.sleep(0.1)
+    capsys.readouterr()
     assert lch.main(["status", "--machine", "A"]) == 1
     assert "DEAD" in capsys.readouterr().out
     assert remote_task(a, "T01")["state"] == "CLAIMED"  # the loop's claim is published, not local
