@@ -93,6 +93,24 @@ class Sim2DAdapter:
         )
         return StepResult({n: self._obs(n, o) for n, o in obs.items()}, rew, term, trunc, info)
 
+    def remove_node(self, node: str) -> None:
+        """Remove a live drone from the world entirely (no body, no wreck).
+
+        Same semantics as `archipelago_learning.rollout.reset(drop=...)` (the drone leaves
+        `drones` and `agents`, so it neither acts, collides nor blocks a cell), but usable
+        mid-episode for the coordinator's kill_node scenario. It differs from battery death,
+        where the wreck stays in `drones` and blocks its cell. The removal is recorded in the
+        replay (record with a `removed` key and no `actions`) so re-execution reproduces it.
+        """
+        w = self.world
+        if w is None:
+            raise RuntimeError("reset() first")
+        if node not in w.agents:
+            raise ValueError(f"{node!r} is not a live node")
+        del w.drones[node]
+        w.agents.remove(node)
+        self.replay.append({"tick": w.tick, "removed": node, "state_hash": w.trace_hash()})
+
     def snapshot(self) -> WorldSnapshot:
         s = self.world.world_state()  # type: ignore[union-attr]
         poses = {n: Pose(x=p[0] + 0.5, y=p[1] + 0.5) for n, p in s["poses"].items()}
@@ -115,7 +133,9 @@ class Sim2DAdapter:
             "seed": self._cfg.seeds["env"],
             "simulator_version": self._cfg.simulator_version,
             "world_kwargs": self.kw,
-            "ticks": len(self.replay),
+            "ticks": sum("actions" in r for r in self.replay),
+            "removed_nodes": [r["removed"] for r in self.replay if "removed" in r],
+            "run_config": self._cfg.model_dump(mode="json"),
             "final_state_hash": self.world.trace_hash(),  # type: ignore[union-attr]
             "replay_sha256": hashlib.sha256(body.encode()).hexdigest(),
             "config_hash": hashlib.sha256(self._cfg.model_dump_json().encode()).hexdigest(),
@@ -134,5 +154,16 @@ def replay_final_hash(config: RunConfig, records: list[dict], **world_kwargs) ->
     ad = Sim2DAdapter(**world_kwargs)
     ad.reset(config)
     for r in records:
+        if "removed" in r:
+            ad.remove_node(r["removed"])
+            continue
         ad.step({n: make_action(n, r["tick"], c) for n, c in r["actions"].items() if c})
     return ad.world.trace_hash()  # type: ignore[union-attr]
+
+
+def replay_final_hash_from_dir(out: Path) -> str:
+    """Re-execute a written replay (replay.jsonl + manifest.json) and return its final hash."""
+    manifest = json.loads((out / "manifest.json").read_text())
+    records = [json.loads(x) for x in (out / "replay.jsonl").read_text().splitlines()]
+    cfg = RunConfig.model_validate(manifest["run_config"])
+    return replay_final_hash(cfg, records, **manifest["world_kwargs"])
