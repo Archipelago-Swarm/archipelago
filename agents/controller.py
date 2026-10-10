@@ -664,7 +664,7 @@ def cmd_stalls(a: argparse.Namespace) -> int:
     oversized = [
         t
         for t in data["tasks"]
-        if t["state"] not in {"COMPLETE", "FAILED"}
+        if t["state"] == "QUEUED"
         and (
             len(t["owned_paths"]) > OVERSIZED_PATTERNS
             or len(t["acceptance"]["assertions"]) > OVERSIZED_ASSERTIONS
