@@ -79,3 +79,24 @@ def test_rerun_bundle_byte_identical(tmp_path):
         got.append([(tmp_path / f).read_bytes() for f in ("raw.jsonl", "summary.json")])
     assert got[0] == got[1]
     assert "wall_s" in (tmp_path / "manifest.json").read_text()
+
+
+def test_share_obs_copies_only_replay_rows_and_bytes_match():
+    a, b = run.make_learner("a", 1), run.make_learner("b", 2)
+    env = run.make_env()
+    run.episode(env, {x: a for x in env.possible_agents}, 0, 0.2)
+    before_params, n0 = copy_params(b), b.n
+    k = min(7, a.n)
+    run.share_obs(a, b, k)
+    assert b.n == n0 + k  # exactly k rows copied
+    assert copy_params(b) == before_params  # no parameters leak
+    cell = run.run_cell("information_only", "connected", 0, 10, [0])
+    row = 4 * (2 * a.obs_dim + 3)
+    assert cell["exchange_bytes"] > 0 and cell["exchange_bytes"] % row == 0
+
+
+def copy_params(learner):
+    import hashlib
+    import pickle
+
+    return hashlib.sha256(pickle.dumps(learner.snapshot())).hexdigest()
