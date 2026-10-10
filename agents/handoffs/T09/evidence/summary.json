@@ -34,7 +34,7 @@
    200005
   ],
   "rerun": "PYTHONPATH=packages/learning:packages/sim python experiments/run.py --seeds 12 --episodes 150 --out agents/handoffs/T09/evidence",
-  "train_env_steps": 1591668,
+  "train_env_steps": 1650636,
   "note": "n=12 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0."
  },
  "paired_vs_independent": [
@@ -48,8 +48,7 @@
     -2.019444444444448,
     7.996388888888897
    ],
-   "wins": 7,
-   "stub": false
+   "wins": 7
   },
   {
    "scenario": "connected",
@@ -61,21 +60,19 @@
     -2.019444444444448,
     7.996388888888897
    ],
-   "wins": 7,
-   "stub": false
+   "wins": 7
   },
   {
    "scenario": "connected",
    "mode": "information_only",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 0.0,
+   "mean_diff": 1.90027777777778,
    "ci95": [
-    0.0,
-    0.0
+    -1.8274999999999988,
+    5.922916666666674
    ],
-   "wins": 0,
-   "stub": true
+   "wins": 7
   },
   {
    "scenario": "connected",
@@ -87,8 +84,7 @@
     1.948333333333334,
     8.89319444444445
    ],
-   "wins": 10,
-   "stub": false
+   "wins": 10
   },
   {
    "scenario": "connected",
@@ -100,73 +96,67 @@
     10.75444444444445,
     17.94069444444445
    ],
-   "wins": 12,
-   "stub": false
+   "wins": 12
   },
   {
    "scenario": "node_failure",
    "mode": "central_online",
    "vs": "independent",
    "n": 12,
-   "mean_diff": -1.3737500000000005,
+   "mean_diff": -0.9283333333333337,
    "ci95": [
-    -3.472222222222227,
-    0.5555555555555566
+    -3.460138888888894,
+    1.538750000000001
    ],
-   "wins": 4,
-   "stub": false
+   "wins": 7
   },
   {
    "scenario": "node_failure",
    "mode": "ctde",
    "vs": "independent",
    "n": 12,
-   "mean_diff": -0.9638888888888911,
+   "mean_diff": 0.16347222222222327,
    "ci95": [
-    -2.784722222222228,
-    0.7411111111111088
+    -3.2900000000000014,
+    3.4248611111111136
    ],
-   "wins": 4,
-   "stub": false
+   "wins": 7
   },
   {
    "scenario": "node_failure",
    "mode": "information_only",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 0.0,
+   "mean_diff": -1.0712500000000003,
    "ci95": [
-    0.0,
-    0.0
+    -3.257777777777777,
+    1.1831944444444444
    ],
-   "wins": 0,
-   "stub": true
+   "wins": 6
   },
   {
    "scenario": "node_failure",
    "mode": "p2p",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 0.6193055555555551,
+   "mean_diff": 0.8551388888888897,
    "ci95": [
-    -0.8494444444444462,
-    2.050555555555556
+    -1.7601388888888894,
+    3.493333333333337
    ],
-   "wins": 6,
-   "stub": false
+   "wins": 6
   },
   {
    "scenario": "node_failure",
    "mode": "rule",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 11.496527777777779,
+   "mean_diff": 11.941944444444445,
    "ci95": [
-    9.561527777777775,
-    13.420694444444448
+    9.422222222222222,
+    14.604027777777782
    ],
-   "wins": 12,
-   "stub": false
+   "wins": 12
   },
   {
    "scenario": "rejoin",
@@ -178,8 +168,7 @@
     -4.1405555555555535,
     4.762916666666669
    ],
-   "wins": 5,
-   "stub": false
+   "wins": 5
   },
   {
    "scenario": "rejoin",
@@ -191,21 +180,19 @@
     -2.019444444444448,
     7.996388888888897
    ],
-   "wins": 7,
-   "stub": false
+   "wins": 7
   },
   {
    "scenario": "rejoin",
    "mode": "information_only",
    "vs": "independent",
    "n": 12,
-   "mean_diff": 0.0,
+   "mean_diff": 4.332083333333338,
    "ci95": [
-    0.0,
-    0.0
+    0.3013888888888921,
+    8.917222222222229
    ],
-   "wins": 0,
-   "stub": true
+   "wins": 7
   },
   {
    "scenario": "rejoin",
@@ -217,8 +204,7 @@
     0.5973611111111172,
     8.441666666666672
    ],
-   "wins": 9,
-   "stub": false
+   "wins": 9
   },
   {
    "scenario": "rejoin",
@@ -230,8 +216,7 @@
     10.75444444444445,
     17.94069444444445
    ],
-   "wins": 12,
-   "stub": false
+   "wins": 12
   },
   {
    "scenario": "split",
@@ -243,8 +228,7 @@
     -10.965694444444452,
     0.09013888888889499
    ],
-   "wins": 5,
-   "stub": false
+   "wins": 5
   },
   {
    "scenario": "split",
@@ -256,8 +240,7 @@
     -2.019444444444448,
     7.996388888888897
    ],
-   "wins": 7,
-   "stub": false
+   "wins": 7
   },
   {
    "scenario": "split",
@@ -269,8 +252,7 @@
     0.0,
     0.0
    ],
-   "wins": 0,
-   "stub": true
+   "wins": 0
   },
   {
    "scenario": "split",
@@ -282,8 +264,7 @@
     0.0,
     0.0
    ],
-   "wins": 0,
-   "stub": false
+   "wins": 0
   },
   {
    "scenario": "split",
@@ -295,8 +276,7 @@
     10.75444444444445,
     17.94069444444445
    ],
-   "wins": 12,
-   "stub": false
+   "wins": 12
   }
  ]
 }

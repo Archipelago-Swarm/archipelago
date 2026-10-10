@@ -36,7 +36,6 @@ def test_matched_budget_and_paired_summary():
     assert {(r["episodes"], len(r["returns"])) for r in rows} == {(5, len(run.TEST))}
     summ = {r["mode"]: r for r in run.summarise(rows)}
     assert summ["p2p"]["n"] == 2 and summ["p2p"]["ci95"][0] <= summ["p2p"]["ci95"][1]
-    assert all(r["rejected_exchanges"] > 0 for r in rows if r["mode"] == "information_only")
     assert not set(run.TEST) & set(run.VAL)
 
 
@@ -46,15 +45,19 @@ def test_node_failure_changes_test_outcome():
     assert a["replay_hashes"] != b["replay_hashes"]
 
 
-def test_information_only_flagged_stub_and_bytes_counted():
-    rows = [
-        run.run_cell(m, "connected", 0, 5, [0]) for m in ("independent", "information_only", "p2p")
-    ]
-    assert rows[1]["exchange_bytes"] > 0 and rows[0]["exchange_bytes"] == 0
-    assert {r["mode"]: r["stub"] for r in run.summarise(rows)} == {
-        "information_only": True,
-        "p2p": False,
+def test_information_only_shares_data_not_parameters():
+    rows = {
+        m: run.run_cell(m, "connected", 0, 10, [0]) for m in ("independent", "information_only")
     }
+    io = rows["information_only"]
+    assert io["exchange_bytes"] > 0 and rows["independent"]["exchange_bytes"] == 0
+    assert io["rejected_exchanges"] == 0
+    assert io["replay_hashes"] != rows["independent"]["replay_hashes"]  # no longer a stub
+
+
+def test_down_node_is_inert():
+    d = run.Down()
+    assert d.act(None, 0.2) == 0 and d.observe(1) is None and d.train_step() is None
 
 
 def test_committed_evidence_hashes_match():

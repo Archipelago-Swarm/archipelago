@@ -39,6 +39,26 @@ def alive1(scenario, i, episodes):
     return not (scenario == "node_failure" and i >= episodes // 2)  # node-1 stops training
 
 
+class Down:
+    """A failed node: stays put (action 0), stores nothing, learns nothing."""
+
+    def act(self, _o, _eps=0.0, _snap=None):
+        return 0
+
+    def observe(self, *_a):
+        pass
+
+    def train_step(self):
+        pass
+
+
+def share_obs(src, dst, k):
+    """information_only: copy src's newest k raw transitions into dst's replay (no parameters)."""
+    for i in range(src.n - min(k, src.capacity), src.n):
+        j = i % src.capacity
+        dst.observe(*(src.replay[f][j] for f in ("o", "a", "r", "o2", "d")))
+
+
 def rollout(env, act, seed):
     """Greedy eval episode. Returns (mean per-agent return, action-replay sha256)."""
     obs, _ = env.reset(seed=seed)
@@ -70,16 +90,14 @@ def run_cell(mode, scenario, seed, episodes, steps):
         L = {a: make_learner(a, seed * 10 + k, **kw) for k, a in enumerate(agents)}
         if shared:
             L = dict.fromkeys(agents, L[agents[0]])
+        shared_n = {}
         for i in range(episodes):
             s = TRAIN0 + seed * episodes + i
             up = link_up(scenario, i, episodes)
             if shared and mode == "central_online" and not up:
                 continue  # online central learner only sees data while the link is up
-            if not shared:
-                L[agents[1]].paused = not alive1(
-                    scenario, i, episodes
-                )  # failed node stops learning
-            episode(env, L, s, 0.2)
+            live = L if alive1(scenario, i, episodes) else {**L, agents[1]: Down()}
+            episode(env, live, s, 0.2)
             steps[0] += env.world.tick * len(agents)
             if (
                 mode in ("p2p", "information_only")
@@ -87,11 +105,17 @@ def run_cell(mode, scenario, seed, episodes, steps):
                 and alive1(scenario, i, episodes)
                 and i % 5 == 4
             ):
+                new = {a: L[a].n - shared_n.get(a, 0) for a in agents}  # own data since last swap
                 for a, b in ((agents[0], agents[1]), (agents[1], agents[0])):
+                    if mode == "information_only":
+                        share_obs(L[a], L[b], new[a])
+                        sent[0] += new[a] * 4 * (2 * L[a].obs_dim + 3)  # float32 bytes
+                        continue
                     payload = encode(L[a])
                     sent[0] += len(payload)
                     ev = offer(L[b], payload, lambda p: evaluate(p, VAL), sender=a)
-                    rejected[0] += not ev["accepted"]  # information_only never loads parameters
+                    rejected[0] += not ev["accepted"]
+                shared_n = {a: L[a].n for a in agents}  # received rows are not re-sent
         snaps = {
             a: L[a].snapshot() for a in agents
         }  # ctde/central: decentralised copies at inference
@@ -144,8 +168,6 @@ def summarise(rows, baseline="independent"):
                         "mean_diff": float(np.mean(ds)),
                         "ci95": boot_ci(ds),
                         "wins": sum(d > 0 for d in ds),
-                        # shortcut: no observation sharing exists yet, so this mode is a stub
-                        "stub": mode == "information_only",
                     }
                 )
     return out
