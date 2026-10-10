@@ -7,18 +7,18 @@
       "paths": [
         "apps/web/",
         "tests/web/"
-      ],
-      "source_branch": "agent/B/T06/carry1"
+      ]
     },
     {
       "id": "T12",
       "machine": "A",
       "paths": [
         "packages/adapters/pybullet3d/",
+        "packages/adapters/pybullet/",
         "infra/3d/",
         "tests/adapters3d/"
       ],
-      "source_branch": "agent/A/T12/carry1"
+      "source_branch": "agent/A/T12/carry2"
     }
   ]
 }

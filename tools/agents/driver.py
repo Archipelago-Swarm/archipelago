@@ -38,7 +38,11 @@ def log(msg):
 
 
 def active():
-    if sh("git", "fetch", "-q", "origin", COORD, check=False).returncode:
+    for _ in range(4):  # a concurrent fetch (mail watcher) can lose the ref lock
+        if sh("git", "fetch", "-q", "origin", COORD, check=False).returncode == 0:
+            break
+        time.sleep(3)
+    else:
         return None
     r = sh("git", "show", f"FETCH_HEAD:agents/coordination/active.json", check=False)
     return json.loads(r.stdout) if r.returncode == 0 else None
@@ -162,8 +166,10 @@ def driver_a(a):
     s = load()
     sh("npm", "ci", check=False, shell=True)
     cur = active()
-    last_run = cur["run_id"] if cur else None
+    last_run = a.resume_run or (cur["run_id"] if cur else None)
     plan = {t["id"]: t["machine"] for t in (cur or {}).get("tasks", [])}
+    if a.resume_run:  # integrate that run from its own report only; its peer never joined
+        plan = {t: "A" for t in (report(a.resume_run, "A") or {})}
     started = now()
     while True:
         try:
@@ -201,7 +207,8 @@ def driver_a(a):
                  "--hours", f"{remaining:.2f}", "--max-rounds", str(a.max_rounds)],
                 cwd=ROOT,
             )
-            cur = active()
+            saved = RT / "active-plan.json"  # written by night.py; independent of any fetch
+            cur = json.loads(saved.read_text()) if saved.exists() else active()
             last_run = cur["run_id"] if cur else None
             plan = {t["id"]: t["machine"] for t in (cur or {}).get("tasks", [])}
             prior = {}
@@ -231,6 +238,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--machine", choices=["A", "B"], required=True)
     p.add_argument("--until-utc", default="2026-10-10T13:00:00Z")
+    p.add_argument("--resume-run", default=None)
     p.add_argument("--max-rounds", type=int, default=10)
     a = p.parse_args()
     (driver_a if a.machine == "A" else driver_b)(a)
