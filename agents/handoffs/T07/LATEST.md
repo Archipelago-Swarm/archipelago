@@ -41,3 +41,8 @@
 - Independent review: {"pass": true, "issues": ["Non-blocking: the round-3 work is uncommitted and unpushed in the working tree, so the supervisor must commit and push it (the contract requires a pushed handoff). The task card T07.md still says waiting/unclaimed, and the integrator must update it.", "Non-blocking: the grid transfer experiment only shows a benefit with one shared policy. Per-node decentralized exchange on the grid is demonstrated only in the partition test, not measured. The assertion permits regression and the handoff reports this honestly.", "Non-blocking: source, hash and version are not contract fields. They are carried in the `reason` string of accepted LearningEvent records, and the full dict stays in learner.events.", "Non-blocking: the restart test covers Learner.save/load only, not a LearnerNode-level restart."]}
 - Next issue: none
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Review fixes 2026-10-10 (agent/A/T07/review-fixes)
+
+- Fixed: decode() non-dict meta and inflation bomb (zip header size check); peer source must match transport sender; mixing mode requires alpha; non-finite eval scores rejected; checkpoint save writes temp+rename and load restores previous/events/paused and checks shapes; time-limit truncation no longer stored as terminal; tautological transfer tests now assert behavior.
+- Skipped (contract change needed): LearningEvent has no source/hash/version/current_score fields, so they stay in `reason`. Status drift in T07.md is left to the integrator. Partition test still uses forced-accept lambdas.
