@@ -53,6 +53,13 @@ COMMON = (
     "`python agents/controller.py --remote <command>`. Use your own git worktree for the task branch; "
     "never force-push; stay inside the task's owned_paths. Do the work, update the handoff, push, "
     "and stop at the state PROTOCOL names for your role. "
+    "EXECUTION REQUIREMENT (PROTOCOL 4a): you are an execution agent, not an advisor. Analysis must "
+    "end in an action within your first cycle: run the reproducing/acceptance command, edit code, or "
+    "name an external blocker. A failed validation means the next repair iteration, not a report; "
+    "never end a session with diagnosis only. Never wait on another task: work against the agreed "
+    "interface (stub or fake it behind the contract) and say so in the handoff, or record "
+    "`blocked_by` and stop. Finish only with a pushed, evidenced commit at your role's state, or a "
+    "complete BLOCKER.md. "
 )
 
 
@@ -67,23 +74,42 @@ def iso(moment: datetime) -> str:
 # ------------------------------------------------------------------ work selection
 
 
-def pick_work(data: dict[str, Any], machine: str) -> tuple[str, dict[str, Any]] | None:
-    """Deterministic: finish own work first, then verify, integrate, and only then start new work."""
+def holds(roles: dict[str, Any], role: str, machine: str) -> bool:
+    holder = roles.get(role)
+    return machine in holder if isinstance(holder, list) else holder in (machine, "*")
+
+
+def pick_work(
+    data: dict[str, Any], machine: str, slot: str | None = None
+) -> tuple[str, dict[str, Any]] | None:
+    """Deterministic: finish own work first, then verify, integrate, and only then start new work.
+
+    With `slot` (w1, w2) the tick is one of up to MAX_WORKERS_PER_MACHINE parallel workers: it only
+    resumes a task owned by that slot, or claims a new one while a slot is free. Verification and
+    integration stay on the slot-less tick so two sessions never review the same task.
+    """
     roles = ctl.load_ownership().get("roles", {})
     tasks = sorted(data["tasks"], key=lambda t: (t["priority"], t["id"]))
-    for t in tasks:
-        if t["state"] in {"CLAIMED", "ACTIVE"} and t["machine"] == machine:
-            return "worker", t
-    if roles.get("integrator") == machine:
-        for t in tasks:
-            if t["state"] == "INTEGRATION":
-                return "integrator", t
-    if roles.get("verifier") == machine:
-        for t in tasks:
-            if t["state"] == "REVIEW":
-                return "verifier", t
-    if roles.get("orchestrator") == machine:
-        found = ctl.runnable(data)
+    mine = [t for t in tasks if t["state"] in {"CLAIMED", "ACTIVE"} and t["machine"] == machine]
+    if slot:
+        for t in mine:
+            if t["owner"] == f"{machine}/{slot}":
+                return "worker", t
+    else:
+        for t in mine:
+            if not t["owner"] or not t["owner"].endswith(("/w1", "/w2")):
+                return "worker", t
+    if not slot:
+        if holds(roles, "integrator", machine):
+            for t in tasks:
+                if t["state"] == "INTEGRATION":
+                    return "integrator", t
+        if holds(roles, "verifier", machine):
+            for t in tasks:
+                if t["state"] == "REVIEW":
+                    return "verifier", t
+    if holds(roles, "orchestrator", machine) and len(mine) < ctl.MAX_WORKERS_PER_MACHINE:
+        found = ctl.plan_batch(data, machine, 1)
         if found:
             return "claim", found[0]
     return None
@@ -95,6 +121,8 @@ def prompt_for(role: str, task: dict[str, Any], machine: str) -> str:
         return (
             f"{COMMON}You are the WORKER for {tid} ({task['name']}) on machine {machine}; branch {branch}. "
             f"Resume from the remote branch and its handoff if they exist. Follow PROTOCOL section 4. "
+            f"Within your first 10 minutes create/push the branch with the handoff and run "
+            f"`controller.py --remote start {tid}`: an unpushed claim is reaped as abandoned. "
             f"End with `controller.py --remote review {tid} --commit <sha>` or, if blocked, a complete "
             f"BLOCKER.md and `controller.py --remote block`."
         )
@@ -143,10 +171,10 @@ def pid_identity(pid: int) -> str | None:
 
 
 @contextlib.contextmanager
-def tick_lock(machine: str) -> Iterator[bool]:
+def tick_lock(machine: str, slot: str | None = None) -> Iterator[bool]:
     """OS lock held for one tick; overlapping scheduler firings get False and exit."""
     RUNTIME.mkdir(exist_ok=True)
-    with (RUNTIME / f"launch-{machine}.lock").open("a+b") as handle:
+    with (RUNTIME / f"launch-{machine}{'-' + slot if slot else ''}.lock").open("a+b") as handle:
         try:
             if sys.platform == "win32":
                 import msvcrt
@@ -266,24 +294,36 @@ def run_session(prompt: str, minutes: int, log: Path, extra: list[str]) -> tuple
 
 
 def tick(
-    machine: str, remote: str, minutes: int, extra: list[str], dry_run: bool = False
+    machine: str,
+    remote: str,
+    minutes: int,
+    extra: list[str],
+    dry_run: bool = False,
+    slot: str | None = None,
 ) -> tuple[str, str]:
     previous, ctl.REMOTE = ctl.REMOTE, remote
     try:
-        return _tick(machine, remote, minutes, extra, dry_run)
+        return _tick(machine, remote, minutes, extra, dry_run, slot)
     finally:
         ctl.REMOTE = previous
 
 
 def _tick(
-    machine: str, remote: str, minutes: int, extra: list[str], dry_run: bool
+    machine: str,
+    remote: str,
+    minutes: int,
+    extra: list[str],
+    dry_run: bool,
+    slot: str | None = None,
 ) -> tuple[str, str]:
     """One step. Returns (status, detail); status in idle|claimed|progress|no_progress|limit|error|stop|busy."""
     if reason := stop_requested(machine):
         return "stop", f"{reason} file present"
     try:
         ctl.git_out("fetch", "-q", "origin", remote)
-        picked = pick_work(ctl.load_ledger(), machine)
+        if not dry_run and ctl.load_ownership().get("roles", {}).get("orchestrator") == machine:
+            ctl.main(["--remote", "--ledger-branch", remote, "reap"])  # free abandoned claims
+        picked = pick_work(ctl.load_ledger(), machine, slot)
     except ctl.ControllerError as error:
         return "error", str(error)
     if not picked:
@@ -301,7 +341,7 @@ def _tick(
                 "claim",
                 task["id"],
                 "--owner",
-                f"{machine}/launcher",
+                f"{machine}/{slot or 'launcher'}",
                 "--machine",
                 target,
             ]
@@ -314,7 +354,10 @@ def _tick(
     before = fingerprint(task["id"], remote)
     RUNTIME.mkdir(exist_ok=True)
     code, text = run_session(
-        prompt_for(role, task, machine), minutes, RUNTIME / f"launch-{machine}.log", extra
+        prompt_for(role, task, machine),
+        minutes,
+        RUNTIME / f"launch-{machine}{'-' + slot if slot else ''}.log",
+        extra,
     )
     if any(m in text.lower() for m in LIMIT_MARKERS):
         return (
@@ -485,17 +528,17 @@ def cmd_stop(a: argparse.Namespace) -> int:
 def cmd_pick(a: argparse.Namespace) -> int:
     ctl.REMOTE = a.remote
     ctl.git_out("fetch", "-q", "origin", a.remote)
-    picked = pick_work(ctl.load_ledger(), a.machine)
+    picked = pick_work(ctl.load_ledger(), a.machine, getattr(a, "slot", None))
     print("nothing to do" if not picked else f"{picked[0]} {picked[1]['id']} {picked[1]['name']}")
     return 0 if picked else 2
 
 
 def cmd_tick(a: argparse.Namespace) -> int:
-    with tick_lock(a.machine) as got:
+    with tick_lock(a.machine, a.slot) as got:
         if not got:
             print("busy: another tick is running")
             return 3
-        status, detail = tick(a.machine, a.remote, a.slice_minutes, a.claude_arg, a.dry_run)
+        status, detail = tick(a.machine, a.remote, a.slice_minutes, a.claude_arg, a.dry_run, a.slot)
     print(f"{status}: {detail}")
     return 0 if status in {"idle", "claimed", "progress"} else 1
 
@@ -536,6 +579,7 @@ def main(argv: list[str] | None = None) -> int:
     t = sub.add_parser("tick")
     common(t)
     t.add_argument("--slice-minutes", type=int, default=30)
+    t.add_argument("--slot", choices=["w1", "w2"], help="parallel worker slot (worker/claim only)")
     t.add_argument("--claude-arg", action="append", default=[])
     t.add_argument("--dry-run", action="store_true")
     s = sub.add_parser("start")

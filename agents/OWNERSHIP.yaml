@@ -4,7 +4,8 @@
 roles:
   orchestrator: A    # claims tasks, edits the ledger on the integration branch
   integrator: A      # the only machine that merges and runs 'controller.py complete'
-  verifier: B        # writes VERIFICATION.yaml; does not modify implementation code
+  verifier: [B, A]   # any listed machine may verify, never the session that owns the task (a verifier
+                     # role that only exists on an absent machine strands every task in REVIEW)
   reviewer: B        # process/reliability review
 default_allocation:
   A: [simulation, runtime, networking, adapters3d, agents, coordinator, e2e]

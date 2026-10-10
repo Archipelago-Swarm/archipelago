@@ -64,6 +64,16 @@ TRANSITIONS: dict[str, set[str]] = {
     "FAILED": set(),
 }
 IN_FLIGHT = {"CLAIMED", "ACTIVE", "REVIEW", "INTEGRATION"}
+# Only tasks being written hold paths. A task in REVIEW/INTEGRATION is frozen on its branch; the
+# integrator serializes merges, so waiting on review must not stall unrelated work (LESSONS L-013).
+RESERVING = {"CLAIMED", "ACTIVE"}
+# Edited only through this controller, never by a worker, so it can never be a path conflict.
+LEDGER_ONLY_PATHS = {"agents/TASKS.yaml"}
+CLAIM_TTL_MINUTES = 60
+ACTIVE_TTL_MINUTES = 180
+MAX_WORKERS_PER_MACHINE = 2
+OVERSIZED_PATTERNS = 6
+OVERSIZED_ASSERTIONS = 7
 FAILURE_KINDS = ["test_failure", "build_failure", "integration_failure"]
 BLOCKER_HEADINGS = [
     "Failing command",
@@ -144,6 +154,8 @@ def stem(pattern: str) -> str:
 def paths_overlap(a: list[str], b: list[str]) -> bool:
     for pa in a:
         for pb in b:
+            if pa in LEDGER_ONLY_PATHS or pb in LEDGER_ONLY_PATHS:
+                continue
             sa, sb = stem(pa), stem(pb)
             if sa == sb or sa.startswith(sb + "/") or sb.startswith(sa + "/") or not sa or not sb:
                 return True
@@ -226,13 +238,15 @@ def cycle_errors(data: dict[str, Any]) -> list[str]:
 
 
 def ownership_errors(data: dict[str, Any]) -> list[str]:
-    """In-flight tasks must not own overlapping paths."""
-    flight = [t for t in data["tasks"] if t["state"] in IN_FLIGHT]
+    """Tasks that are being written must not own overlapping paths."""
+    flight = [t for t in data["tasks"] if t["state"] in RESERVING]
     errors = []
     for i, a in enumerate(flight):
         for b in flight[i + 1 :]:
             if paths_overlap(a["owned_paths"], b["owned_paths"]):
-                errors.append(f"{a['id']} and {b['id']} are in flight with overlapping owned_paths")
+                errors.append(
+                    f"{a['id']} and {b['id']} are being written with overlapping owned_paths"
+                )
     return errors
 
 
@@ -256,18 +270,48 @@ def unmet_dependencies(data: dict[str, Any], task: dict[str, Any]) -> list[str]:
     return [d for d in task["dependencies"] if tasks[d]["state"] != "COMPLETE"]
 
 
+def reserved_paths(data: dict[str, Any]) -> list[str]:
+    return [p for t in data["tasks"] if t["state"] in RESERVING for p in t["owned_paths"]]
+
+
+def downstream(data: dict[str, Any], task_id: str) -> set[str]:
+    """Unfinished tasks that transitively wait on task_id."""
+    out: set[str] = set()
+    frontier = {task_id}
+    while frontier:
+        nxt = {
+            t["id"]
+            for t in data["tasks"]
+            if t["state"] != "COMPLETE" and t["id"] not in out and frontier & set(t["dependencies"])
+        }
+        out |= nxt
+        frontier = nxt
+    return out
+
+
 def runnable(data: dict[str, Any], machine: str | None = None) -> list[dict[str, Any]]:
-    flight_paths = [p for t in data["tasks"] if t["state"] in IN_FLIGHT for p in t["owned_paths"]]
+    held = reserved_paths(data)
     out = []
     for task in data["tasks"]:
         if task["state"] != "QUEUED" or task["blocked_by"] or unmet_dependencies(data, task):
             continue
         if machine and task["machine"] not in (None, machine):
             continue
-        if paths_overlap(task["owned_paths"], flight_paths):
+        if paths_overlap(task["owned_paths"], held):
             continue
         out.append(task)
-    return sorted(out, key=lambda t: (t["priority"], t["id"]))
+    # Most-unlocking first inside a priority band: finish what the rest of the plan waits on.
+    return sorted(out, key=lambda t: (t["priority"], -len(downstream(data, t["id"])), t["id"]))
+
+
+def path_holders(data: dict[str, Any], task: dict[str, Any]) -> list[str]:
+    return [
+        t["id"]
+        for t in data["tasks"]
+        if t["state"] in RESERVING
+        and t["id"] != task["id"]
+        and paths_overlap(task["owned_paths"], t["owned_paths"])
+    ]
 
 
 def why_not_runnable(data: dict[str, Any], task: dict[str, Any]) -> str:
@@ -279,9 +323,8 @@ def why_not_runnable(data: dict[str, Any], task: dict[str, Any]) -> str:
     unmet = unmet_dependencies(data, task)
     if unmet:
         reasons.append("waiting on " + ", ".join(unmet))
-    flight_paths = [p for t in data["tasks"] if t["state"] in IN_FLIGHT for p in t["owned_paths"]]
-    if paths_overlap(task["owned_paths"], flight_paths):
-        reasons.append("owned_paths overlap an in-flight task")
+    if holders := path_holders(data, task):
+        reasons.append("owned_paths held by " + ", ".join(holders))
     return "; ".join(reasons) or "runnable"
 
 
@@ -346,8 +389,11 @@ def auto_block(task: dict[str, Any], reason: str, by: str) -> None:
 
 def machine_may(role: str, machine: str) -> None:
     holder = load_ownership().get("roles", {}).get(role)
-    if holder and holder != machine:
-        raise ControllerError(f"role '{role}' belongs to machine {holder}, not {machine}")
+    allowed = holder if isinstance(holder, list) else [holder]
+    if holder and "*" not in allowed and machine not in allowed:
+        raise ControllerError(
+            f"role '{role}' belongs to machine {', '.join(allowed)}, not {machine}"
+        )
 
 
 # ---------------------------------------------------------------- reports
@@ -478,8 +524,194 @@ def cmd_next(a: argparse.Namespace) -> int:
     if not found:
         print("NONE: no runnable task (run 'status' to see why)")
         return 2
+    data = load_ledger()
     for task in found:
-        print(f"{task['id']}\tp{task['priority']}\t{task['machine'] or 'any'}\t{task['name']}")
+        print(
+            f"{task['id']}\tp{task['priority']}\t{task['machine'] or 'any'}\t"
+            f"unlocks {len(downstream(data, task['id']))}\t{task['name']}"
+        )
+    return 0
+
+
+def minutes_since(stamp: str | None) -> float | None:
+    if not stamp:
+        return None
+    then = datetime.strptime(str(stamp), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+    return (datetime.now(UTC) - then).total_seconds() / 60
+
+
+def idle_minutes(task: dict[str, Any]) -> float:
+    """Minutes since the ledger entry or the task branch on origin last moved."""
+    ages = [minutes_since(task.get("updated_at"))]
+    if task.get("branch"):
+        stamp = git_out(
+            "log", "-1", "--format=%ct", f"origin/{task['branch']}", check=False
+        ).stdout.strip()
+        if stamp.isdigit():
+            ages.append((datetime.now(UTC).timestamp() - int(stamp)) / 60)
+    return min(a for a in ages if a is not None)
+
+
+def stale_claims(
+    data: dict[str, Any], claimed_ttl: float, active_ttl: float
+) -> list[dict[str, Any]]:
+    limits = {"CLAIMED": claimed_ttl, "ACTIVE": active_ttl}
+    return [
+        t for t in data["tasks"] if t["state"] in limits and idle_minutes(t) > limits[t["state"]]
+    ]
+
+
+def cmd_reap(a: argparse.Namespace) -> int:
+    """Return abandoned CLAIMED/ACTIVE tasks to QUEUED so their paths and slot are free again."""
+
+    def run(data: dict[str, Any]) -> None:
+        for task in stale_claims(data, a.claimed_ttl, a.active_ttl):
+            idle = int(idle_minutes(task))
+            print(
+                f"{'would reap' if a.dry_run else 'reaped'} {task['id']} ({task['state']}, idle {idle} min)"
+            )
+            if not a.dry_run:
+                add_event(
+                    task,
+                    "claim_expired",
+                    "controller",
+                    f"no ledger or branch activity for {idle} min",
+                )
+                task["owner"] = None
+                transition(task, "QUEUED", by="controller", note="stale claim", event="requeue")
+
+    if a.dry_run:
+        run(load_ledger())
+        return 0
+    return mutate(run)
+
+
+def stall_reason(
+    data: dict[str, Any], task: dict[str, Any], claimed_ttl: float, active_ttl: float
+) -> tuple[str, str]:
+    """(category, detail) for why a non-COMPLETE task is not moving. Category names who must act."""
+    tasks = task_map(data)
+    state = task["state"]
+    if state == "BLOCKED":
+        return "HUMAN" if any(
+            b.startswith(("human:", "env:")) for b in task["blocked_by"]
+        ) else "BLOCKED", "; ".join(task["blocked_by"]) or "see BLOCKER.md"
+    if state in {"CLAIMED", "ACTIVE"}:
+        limit = claimed_ttl if state == "CLAIMED" else active_ttl
+        idle = int(idle_minutes(task))
+        return (
+            ("STALE_CLAIM", f"{state} by {task['owner']}, idle {idle} min")
+            if idle > limit
+            else ("WORKING", f"{state} by {task['owner']}, idle {idle} min")
+        )
+    if state == "REVIEW":
+        return (
+            "NEEDS_VERIFIER",
+            f"verifier role {load_ownership().get('roles', {}).get('verifier')}; run a verifier tick",
+        )
+    if state == "INTEGRATION":
+        return "NEEDS_INTEGRATOR", "integrator tick: merge, check-integration, complete"
+    human = [b for b in task["blocked_by"] if b.startswith(("human:", "env:"))]
+    if human:
+        return "HUMAN", "; ".join(human)
+    if task["blocked_by"]:
+        return "BLOCKED", "; ".join(task["blocked_by"])
+    unmet = unmet_dependencies(data, task)
+    if unmet:
+        roots = []
+        for dep in unmet:
+            cat, _ = (
+                stall_reason(data, tasks[dep], claimed_ttl, active_ttl)
+                if tasks[dep]["state"] != "QUEUED"
+                else ("QUEUED", "")
+            )
+            roots.append(
+                f"{dep}[{tasks[dep]['state']}{'/' + cat if cat != tasks[dep]['state'] else ''}]"
+            )
+        return "DEPENDENCY", "waits on " + ", ".join(roots)
+    if holders := path_holders(data, task):
+        return "PATH_LOCK", "paths held by " + ", ".join(holders)
+    return "READY", "runnable now"
+
+
+def cmd_stalls(a: argparse.Namespace) -> int:
+    """Explain, per unfinished task, what blocks it and who must act. Read-only."""
+    data = load_ledger()
+    rows = [
+        (t, *stall_reason(data, t, a.claimed_ttl, a.active_ttl))
+        for t in data["tasks"]
+        if t["state"] != "COMPLETE"
+    ]
+    order = [
+        "READY",
+        "NEEDS_INTEGRATOR",
+        "NEEDS_VERIFIER",
+        "STALE_CLAIM",
+        "PATH_LOCK",
+        "HUMAN",
+        "BLOCKED",
+        "DEPENDENCY",
+        "WORKING",
+    ]
+    for category in order:
+        group = [r for r in rows if r[1] == category]
+        if group:
+            print(f"== {category} ({len(group)})")
+            for task, _, detail in group:
+                print(
+                    f"  {task['id']:4} p{task['priority']} unlocks {len(downstream(data, task['id'])):2}  {task['name'][:48]:48}  {detail}"
+                )
+    oversized = [
+        t
+        for t in data["tasks"]
+        if t["state"] not in {"COMPLETE", "FAILED"}
+        and (
+            len(t["owned_paths"]) > OVERSIZED_PATTERNS
+            or len(t["acceptance"]["assertions"]) > OVERSIZED_ASSERTIONS
+        )
+    ]
+    if oversized:
+        print("== OVERSIZED (split into slice-sized tasks)")
+        for t in oversized:
+            print(
+                f"  {t['id']:4} {len(t['owned_paths'])} path patterns, {len(t['acceptance']['assertions'])} assertions"
+            )
+    machine_load: dict[str, int] = {}
+    for t in data["tasks"]:
+        if t["state"] in RESERVING and t["machine"]:
+            machine_load[t["machine"]] = machine_load.get(t["machine"], 0) + 1
+    print(
+        "== SLOTS "
+        + ", ".join(
+            f"{m}: {n}/{MAX_WORKERS_PER_MACHINE} workers" for m, n in sorted(machine_load.items())
+        )
+        if machine_load
+        else "== SLOTS none in use"
+    )
+    return 0
+
+
+def plan_batch(data: dict[str, Any], machine: str | None, slots: int) -> list[dict[str, Any]]:
+    """A conflict-free set of runnable tasks to start together, best unlock value first."""
+    chosen: list[dict[str, Any]] = []
+    for task in runnable(data, machine):
+        if len(chosen) >= slots:
+            break
+        if all(not paths_overlap(task["owned_paths"], c["owned_paths"]) for c in chosen):
+            chosen.append(task)
+    return chosen
+
+
+def cmd_plan(a: argparse.Namespace) -> int:
+    data = load_ledger()
+    busy = sum(1 for t in data["tasks"] if t["state"] in RESERVING and t["machine"] == a.machine)
+    free = max(0, min(a.slots, MAX_WORKERS_PER_MACHINE) - busy)
+    batch = plan_batch(data, a.machine, free)
+    print(f"machine {a.machine}: {busy} worker(s) active, {free} free slot(s)")
+    for task in batch:
+        print(f"  claim {task['id']} unlocks {len(downstream(data, task['id']))}  {task['name']}")
+    if not batch:
+        print("  nothing conflict-free to start; run 'stalls'")
     return 0
 
 
@@ -584,6 +816,17 @@ def cmd_claim(a: argparse.Namespace) -> int:
             handoff_file=task["handoff_file"] or f"agents/handoffs/{a.task}/LATEST.md",
         )
         transition(task, "CLAIMED", by=a.owner)
+        waiting = [
+            t["id"]
+            for t in data["tasks"]
+            if t["state"] in {"REVIEW", "INTEGRATION"}
+            and paths_overlap(task["owned_paths"], t["owned_paths"])
+        ]
+        if waiting:
+            print(
+                f"note: {', '.join(waiting)} touch the same paths and are not merged yet; "
+                f"merge origin/main into your branch before sending {a.task} to REVIEW"
+            )
         print(
             f"claimed {a.task} on {task['branch']}; "
             f"create the handoff {task['handoff_file']} before starting"
@@ -692,6 +935,8 @@ def cmd_verify(a: argparse.Namespace) -> int:
             )
         if verdict["task"] != task["id"]:
             raise ControllerError(f"verdict is for {verdict['task']}, not {task['id']}")
+        if verdict["verifier"] == task["owner"]:
+            raise ControllerError("the verifier must not be the worker that owns the task")
         if task["last_good_commit"] and not (
             task["last_good_commit"].startswith(verdict["verified_commit"])
             or verdict["verified_commit"].startswith(task["last_good_commit"])
@@ -838,6 +1083,17 @@ def build_parser() -> argparse.ArgumentParser:
     n.add_argument("--machine", choices=["A", "B"])
     n.add_argument("--limit", type=int, default=3)
     n.set_defaults(fn=cmd_next)
+    for name, fn in (("reap", cmd_reap), ("stalls", cmd_stalls)):
+        sp = sub.add_parser(name)
+        sp.add_argument("--claimed-ttl", type=float, default=CLAIM_TTL_MINUTES)
+        sp.add_argument("--active-ttl", type=float, default=ACTIVE_TTL_MINUTES)
+        if name == "reap":
+            sp.add_argument("--dry-run", action="store_true")
+        sp.set_defaults(fn=fn)
+    pl = sub.add_parser("plan")
+    pl.add_argument("--machine", required=True, choices=["A", "B"])
+    pl.add_argument("--slots", type=int, default=MAX_WORKERS_PER_MACHINE)
+    pl.set_defaults(fn=cmd_plan)
     d = sub.add_parser("deps")
     d.add_argument("task")
     d.set_defaults(fn=cmd_deps)

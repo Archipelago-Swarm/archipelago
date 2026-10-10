@@ -257,3 +257,30 @@ def test_stalled_heartbeat_is_not_reported_alive(
     assert lch.liveness("A")[0] == "STALLED"
     lch.write_state("A", pid=2**22 + 12345)
     assert lch.liveness("A")[0] == "DEAD"
+
+
+def test_slots_run_two_workers_and_leave_review_to_the_slotless_tick() -> None:
+    inflight = {"branch": "agent/x", "handoff_file": "h"}
+    w1 = make_task(
+        "T01", state="ACTIVE", machine="A", owner="A/w1", owned_paths=["a/**"], **inflight
+    )
+    review = make_task(
+        "T02", state="REVIEW", machine="A", owner="A/w2", owned_paths=["b/**"], **inflight
+    )
+    queued = make_task("T03", owned_paths=["c/**"])
+    roles = {"roles": {"orchestrator": "A", "integrator": "A", "verifier": ["B", "A"]}}
+    orig = c.load_ownership
+    c.load_ownership = lambda: roles  # type: ignore[assignment]
+    try:
+        data = {"tasks": [w1, review, queued]}
+        assert lch.pick_work(data, "A", "w1")[1]["id"] == "T01"  # type: ignore[index]
+        assert lch.pick_work(data, "A", "w2")[0] == "claim"  # a free slot claims new work
+        assert lch.pick_work(data, "A")[0] == "verifier"  # type: ignore[index]  # A may verify
+        w2 = make_task(
+            "T04", state="CLAIMED", machine="A", owner="A/w2", owned_paths=["d/**"], **inflight
+        )
+        full = {"tasks": [w1, w2, queued]}
+        assert lch.pick_work(full, "A", "w1")[1]["id"] == "T01"  # type: ignore[index]
+        assert lch.pick_work(full, "A") is None  # slot-owned work is not stolen; machine is full
+    finally:
+        c.load_ownership = orig  # type: ignore[method-assign]

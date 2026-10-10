@@ -278,3 +278,73 @@ def test_events_feed_process_review_and_run_summary(
 
 def test_real_ledger_is_valid() -> None:
     assert c.validate_ledger(c.load_ledger()) == []
+
+
+def test_review_releases_paths_but_writing_holds_them(repo: Path) -> None:
+    ledger = c.load_ledger()
+    ledger["tasks"].append(make_task("T05", owned_paths=["src/t01/**"]))
+    c.save_ledger(ledger)
+    assert run("claim", "T01", "--owner", "A/w1", "--machine", "A") == 0
+    assert "T05" not in [t["id"] for t in c.runnable(c.load_ledger())]  # T01 is being written
+    handoff(repo, "T01")
+    assert run("start", "T01") == 0
+    assert run("review", "T01", "--commit", "abc1234") == 0
+    assert "T05" in [t["id"] for t in c.runnable(c.load_ledger())]  # frozen in REVIEW: lock freed
+
+
+def test_ledger_file_is_never_a_path_conflict() -> None:
+    assert not c.paths_overlap(["agents/TASKS.yaml", "a/**"], ["agents/TASKS.yaml", "b/**"])
+    assert c.paths_overlap(["a/**"], ["a/x/**"])
+
+
+def test_runnable_prefers_the_task_that_unlocks_most(repo: Path) -> None:
+    ledger = c.load_ledger()
+    ledger["tasks"] = [
+        make_task("T01", priority=3),
+        make_task("T09", priority=3),
+        make_task("T10", priority=3, dependencies=["T09"]),
+        make_task("T11", priority=3, dependencies=["T10"]),
+    ]
+    assert [t["id"] for t in c.runnable(ledger)] == ["T09", "T01"]
+
+
+def test_reap_returns_abandoned_claims_to_queue(repo: Path) -> None:
+    assert run("claim", "T01", "--owner", "A/w1", "--machine", "A") == 0
+    assert run("reap") == 0 and state("T01") == "CLAIMED"  # fresh claim survives
+    ledger = c.load_ledger()
+    c.get_task(ledger, "T01")["updated_at"] = "2026-01-01T00:00:00Z"
+    c.save_ledger(ledger)
+    assert run("reap", "--dry-run") == 0 and state("T01") == "CLAIMED"
+    assert run("reap") == 0
+    task = c.get_task(c.load_ledger(), "T01")
+    assert task["state"] == "QUEUED" and task["owner"] is None
+    assert any(h["event"] == "claim_expired" for h in task["history"])
+
+
+def test_stalls_names_who_must_act(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    ledger = c.load_ledger()
+    ledger["tasks"].append(make_task("T05", blocked_by=["human:approve spend"]))
+    c.save_ledger(ledger)
+    to_review(repo)
+    assert run("stalls") == 0
+    out = capsys.readouterr().out
+    assert "NEEDS_VERIFIER" in out and "HUMAN" in out and "T02" in out and "waits on T01" in out
+
+
+def test_plan_starts_only_conflict_free_tasks_within_slots(repo: Path) -> None:
+    ledger = c.load_ledger()
+    ledger["tasks"] = [
+        make_task("T01", owned_paths=["x/**"]),
+        make_task("T02", owned_paths=["x/sub/**"]),
+        make_task("T03", owned_paths=["y/**"]),
+        make_task("T04", owned_paths=["z/**"]),
+    ]
+    assert [t["id"] for t in c.plan_batch(ledger, "A", 2)] == ["T01", "T03"]
+
+
+def test_verifier_cannot_be_the_worker_but_may_share_a_machine(repo: Path) -> None:
+    to_review(repo)
+    verdict(repo, "T01", "PASS", verifier="B/w1")
+    assert run("verify", "T01") == 1 and state("T01") == "REVIEW"
+    verdict(repo, "T01", "PASS", verifier="B/verifier")
+    assert run("verify", "T01") == 0 and state("T01") == "INTEGRATION"
