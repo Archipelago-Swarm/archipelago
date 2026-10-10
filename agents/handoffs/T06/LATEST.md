@@ -349,3 +349,20 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update, run 20261010T142246Z (uncommitted)
+- No code change; slice already complete. Re-verified: tsc clean, vitest 21/21. Browser smoke not re-run.
+- Open: smoke is opt-in (npm run smoke); learning_event wire shape assumed; task card status is outside my paths. Blocker is the missing independent review, not code.
+
+## Supervisor checkpoint 2026-10-10T14:23:16Z
+
+- Run: 20261010T142246Z
+- Machine: B
+- Task/branch: T06 / agent/B/20261010T142246Z/T06
+- Base: b0d30ac3acb68efbaf6243d332cd60566f11fe62
+- Round: 1
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
