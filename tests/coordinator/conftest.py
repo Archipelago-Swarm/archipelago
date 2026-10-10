@@ -14,7 +14,7 @@ for p in (
 ):
     sys.path.insert(0, str(root / p))
 
-from harness import FakeNode, Live, make_nodes  # noqa: E402
+from coord_harness import FakeNode, Live, make_nodes  # noqa: E402
 
 
 @pytest.fixture

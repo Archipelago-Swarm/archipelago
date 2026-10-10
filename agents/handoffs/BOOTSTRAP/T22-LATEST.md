@@ -18,3 +18,11 @@
 
 ## Not run
 Live `claude -p` session (fake binary only), Docker tests, GitHub CI.
+
+## Repair round (on 1244cf1)
+- Moved this file from agents/handoffs/T22/LATEST.md (outside T22 owned_paths) to agents/handoffs/BOOTSTRAP/.
+- Renamed tests/coordinator/harness.py to coord_harness.py (it shadowed experiments/harness.py, breaking collection of tests/experiments/test_run.py); `SKIP_DOCKER=1 make check-integration` now exits 0.
+- `verify` now requires `--machine`, which must hold the `verifier` role; it must differ from the machine that ran the task, and the verdict's `verifier` prefix must equal `--machine`. Callers (launch.py prompt updated) must pass `--machine`.
+- DENIED adds `git push origin HEAD*`, `* *:main*`, `* *:master*`, `--delete`, `-d`, `* :*`, `git -C * push*`. Still a prefix list; `sh -c` chains stay uncovered, so keep branch protection on main. `--permission-prompts host|none` confirmed in `claude --help`; live behavior still unverified.
+- Still for the integrator: set same_failure_signature to 3 (task.schema.json, TASKS.yaml T22), add `assertions` to verification.schema.json, add `--by` / `--machine` to scripts/docs callers, record a green first ci.yml run (no GitHub CI access here).
+- impl:T27: no run state in this worktree (no .agent-runtime); not investigated here.

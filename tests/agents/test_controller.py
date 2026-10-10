@@ -111,11 +111,11 @@ def handoff(repo: Path, tid: str) -> None:
     (p / "LATEST.md").write_text("# handoff\n", encoding="utf-8")
 
 
-OWNER = "B/w1"
+OWNER = "A/w1"
 
 
 def to_active(repo: Path, tid: str = "T01") -> None:
-    assert run("claim", tid, "--owner", OWNER, "--machine", "B") == 0
+    assert run("claim", tid, "--owner", OWNER, "--machine", "A") == 0
     handoff(repo, tid)
     assert run("start", tid, "--by", OWNER) == 0
 
@@ -186,7 +186,7 @@ def test_worker_cannot_skip_verification_or_complete(repo: Path) -> None:
 
 
 def test_start_requires_handoff_and_review_requires_commit(repo: Path) -> None:
-    assert run("claim", "T01", "--owner", OWNER, "--machine", "B") == 0
+    assert run("claim", "T01", "--owner", OWNER, "--machine", "A") == 0
     assert run("start", "T01", "--by", OWNER) == 1  # no handoff yet
     handoff(repo, "T01")
     assert run("start", "T01", "--by", OWNER) == 0
@@ -197,7 +197,7 @@ def test_start_requires_handoff_and_review_requires_commit(repo: Path) -> None:
 def test_verifier_pass_then_integrator_completes_and_unblocks_dependents(repo: Path) -> None:
     work = to_review(repo)
     verdict(repo, "T01", "PASS")
-    assert run("verify", "T01") == 0 and state("T01") == "INTEGRATION"
+    assert run("verify", "T01", "--machine", "B") == 0 and state("T01") == "INTEGRATION"
     merge = integrate(repo, work)
     assert run("complete", "T01", "--commit", merge, "--machine", "B") == 1  # B is not integrator
     assert run("complete", "T01", "--commit", merge, "--machine", "A") == 0
@@ -217,76 +217,76 @@ def integrate(repo: Path, work: str) -> str:
 def test_pass_verdict_must_run_every_declared_command_at_the_right_commit(repo: Path) -> None:
     work = to_review(repo)
     verdict(repo, "T01", "PASS", commands=[])
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     verdict(repo, "T01", "PASS", verified_commit=git(repo, "rev-parse", "HEAD~1"))
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     verdict(repo, "T01", "PASS", verified_commit="fffffff")  # unresolvable
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     verdict(
         repo,
         "T01",
         "PASS",
         commands=[{"command": "true", "expected_exit_code": 0, "actual_exit_code": 1}],
     )
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     assert state("T01") == "REVIEW"
     verdict(repo, "T01", "PASS", verified_commit=work[:9])  # a short sha is normalized
-    assert run("verify", "T01") == 0
+    assert run("verify", "T01", "--machine", "B") == 0
 
 
 def test_verify_judges_exit_codes_by_the_ledger_not_the_verdict(repo: Path) -> None:
     to_review(repo)
     lying = [{"command": "true", "expected_exit_code": 1, "actual_exit_code": 1}]
     verdict(repo, "T01", "PASS", commands=lying)  # verdict agrees with itself, not the ledger
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     extra = [
         {"command": "true", "expected_exit_code": 0, "actual_exit_code": 0},
         {"command": "echo hi", "expected_exit_code": 0, "actual_exit_code": 0},
     ]
     verdict(repo, "T01", "PASS", commands=extra)  # unknown command
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     assert state("T01") == "REVIEW"
 
 
 def test_pass_requires_every_assertion_met(repo: Path) -> None:
     to_review(repo)
     verdict(repo, "T01", "PASS", assertions=[])
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     verdict(repo, "T01", "PASS", assertions=[{"description": "other", "result": "met"}])
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     verdict(
         repo,
         "T01",
         "PASS",
         assertions=[{"description": "It works as described.", "result": "unmet"}],
     )
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     verdict(repo, "T01", "PASS", assertions=[{"description": "It works", "result": "maybe"}])
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     assert state("T01") == "REVIEW"
     verdict(repo, "T01", "PASS")
-    assert run("verify", "T01") == 0
+    assert run("verify", "T01", "--machine", "B") == 0
 
 
 def test_verify_needs_a_commit_and_an_independent_verifier(repo: Path) -> None:
     to_review(repo)
     verdict(repo, "T01", "PASS", verifier=OWNER)  # the owner cannot verify own work
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     verdict(repo, "T01", "PASS")
     task = ledger_task()
     task["last_good_commit"] = None
     ledger = c.load_ledger()
     ledger["tasks"][0] = task
     c.save_ledger(ledger)
-    assert run("verify", "T01") == 1  # null last_good_commit never verifies
+    assert run("verify", "T01", "--machine", "B") == 1  # null last_good_commit never verifies
     assert state("T01") == "REVIEW"
 
 
 def test_missing_or_invalid_verdict_is_infrastructure_failure_not_task_failure(repo: Path) -> None:
     to_review(repo)
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     verdict(repo, "T01", "FAIL", failures=[])
-    assert run("verify", "T01") == 1
+    assert run("verify", "T01", "--machine", "B") == 1
     task = c.get_task(c.load_ledger(), "T01")
     assert task["state"] == "REVIEW"
     assert task.get("attempts", {}).get("test_failure", 0) == 0
@@ -308,7 +308,7 @@ def test_fail_verdict_returns_to_worker_then_same_signature_blocks(repo: Path) -
                 }
             ],
         )
-        assert run("verify", "T01") == 0
+        assert run("verify", "T01", "--machine", "B") == 0
         if i < 2:
             assert state("T01") == "ACTIVE"  # one and two attempts do not block
             work = commit(repo, f"retry{i}")
@@ -377,7 +377,7 @@ def test_block_requires_complete_report(repo: Path) -> None:
 
 
 def test_only_the_owner_moves_a_task(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert run("claim", "T01", "--owner", OWNER, "--machine", "B") == 0
+    assert run("claim", "T01", "--owner", OWNER, "--machine", "A") == 0
     handoff(repo, "T01")
     assert run("start", "T01", "--by", "A/other") == 1
     assert "refused" in capsys.readouterr().err
@@ -423,7 +423,7 @@ def test_unblock_cycles_are_capped_then_the_task_fails(repo: Path) -> None:
     for _ in range(c.UNBLOCK_CAP):
         assert run("unblock", "T01", "--by", "A") == 0
         assert state("T01") == "QUEUED"
-        assert run("claim", "T01", "--owner", OWNER, "--machine", "B") == 0
+        assert run("claim", "T01", "--owner", OWNER, "--machine", "A") == 0
         assert run("start", "T01", "--by", OWNER) == 0
         assert run("block", "T01", "--by", OWNER, "--reason", "env:docker") == 0
     assert run("unblock", "T01", "--by", "A") == 0
@@ -463,7 +463,7 @@ def test_complete_requires_integration_state(repo: Path) -> None:
 def to_integration(repo: Path) -> str:
     work = to_review(repo)
     verdict(repo, "T01", "PASS")
-    assert run("verify", "T01") == 0
+    assert run("verify", "T01", "--machine", "B") == 0
     return work
 
 
@@ -525,3 +525,14 @@ def test_events_feed_process_review_and_run_summary(
 
 def test_real_ledger_is_valid() -> None:
     assert c.validate_ledger(c.load_ledger()) == []
+
+
+def test_verify_is_gated_to_the_verifier_machine_and_not_the_worker_machine(repo: Path) -> None:
+    to_review(repo)
+    verdict(repo, "T01", "PASS")
+    assert run("verify", "T01", "--machine", "A") == 1  # A holds no verifier role and ran the task
+    verdict(repo, "T01", "PASS", verifier="A/spoof")  # self-declared name on the wrong machine
+    assert run("verify", "T01", "--machine", "B") == 1
+    assert state("T01") == "REVIEW"
+    verdict(repo, "T01", "PASS")
+    assert run("verify", "T01", "--machine", "B") == 0

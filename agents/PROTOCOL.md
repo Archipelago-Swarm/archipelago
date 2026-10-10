@@ -48,7 +48,7 @@ Coding agents are Claude sessions. They are not the simulated drone nodes in the
 | Integrator (machine A) | merges verified branches, resolves conflicts, runs `check-integration` on the merged head, calls `complete` or `integrate-fail` | integrate unverified work; let B also integrate |
 | Reviewer (machine B) | process review (section 8); proposes KEEP/SIMPLIFY/REMOVE/REPLACE/NEW RULE | add infrastructure when deleting some would do |
 
-Machine roles are in `OWNERSHIP.yaml`. The controller enforces [implemented]: the integrator role for `complete` and `integrate-fail`; `--by` equal to the task owner for `start`, `review`, `record-failure`, `block` (and for `requeue`/`unblock`, or a machine holding the integrator role); a verifier identity different from the task owner for `verify`. Other role boundaries are [convention].
+Machine roles are in `OWNERSHIP.yaml`. The controller enforces [implemented]: the integrator role for `complete` and `integrate-fail`; `--by` equal to the task owner for `start`, `review`, `record-failure`, `block` (and for `requeue`/`unblock`, or a machine holding the integrator role); for `verify`, `--machine` holding the verifier role, a machine other than the one that ran the task, and a verdict verifier on that machine. Other role boundaries are [convention].
 
 ## 4. Worker loop [convention; steps 7, 12, 13 call the controller]
 
@@ -86,7 +86,7 @@ The verifier checks out `last_good_commit` in a clean worktree and:
 1. Runs every `acceptance.commands` entry; records actual exit codes.
 2. Checks every assertion by test or inspection.
 3. Reviews contracts (`contracts` in the task), regressions, TODO/stub/fake implementations, error handling, scope against `owned_paths`, affected integration boundaries.
-4. Writes `agents/handoffs/<ID>/VERIFICATION.yaml` (schema `agents/schemas/verification.schema.json`), then `controller.py verify <ID>`.
+4. Writes `agents/handoffs/<ID>/VERIFICATION.yaml` (schema `agents/schemas/verification.schema.json`), then `controller.py verify <ID> --machine <verifier machine>`.
 
 PASS moves to INTEGRATION. The controller judges the verdict against the **ledger**, not the verdict's own claims, and refuses PASS when: a ledger command is missing, the verdict has a command the ledger does not declare, an `actual_exit_code` differs from the ledger's `expected_exit_code`, a ledger assertion has no result or its result is not `met` (verdict key `assertions: [{description, result: met|unmet|not_checked}]`), the verifier is the task owner, or `verified_commit` (resolved with `git rev-parse` to a full sha; unresolvable is refused) differs from the task's `last_good_commit` (null is refused). FAIL returns to ACTIVE with required actions and counts toward the retry budget. **A missing or malformed verdict is a verifier-infrastructure failure: the task keeps its state and no budget is consumed** (L-004). Example FAIL:
 

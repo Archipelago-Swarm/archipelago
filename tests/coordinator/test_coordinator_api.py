@@ -8,7 +8,7 @@ import pytest
 from archipelago_coordinator import Coordinator, Settings
 from archipelago_coordinator.settings import ConfigError
 from archipelago_coordinator.sim import SimulatorUnavailable
-from harness import ADMIN_TOKEN, COORD_TOKEN, NODE_TOKEN, run_body
+from coord_harness import ADMIN_TOKEN, COORD_TOKEN, NODE_TOKEN, run_body
 
 
 def test_every_route_but_healthz_requires_the_right_token(live: Any, nodes: Any) -> None:
@@ -334,7 +334,7 @@ def test_simulator_missing_is_a_visible_failure_without_fixture_fallback(
     import threading
 
     from archipelago_coordinator.httpd import make_server
-    from harness import http, run_body
+    from coord_harness import http, run_body
 
     svc = Coordinator(Settings(production=False, **cfg), sim_check=broken)
     srv = make_server(svc)

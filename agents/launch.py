@@ -64,6 +64,15 @@ DENIED = [
     "Bash(git push origin HEAD:main*)",
     "Bash(git push origin HEAD:master*)",
     "Bash(git push origin HEAD:refs/heads/main*)",
+    "Bash(git push origin HEAD*)",
+    "Bash(git push * *:main*)",
+    "Bash(git push * *:master*)",
+    "Bash(git push * *:refs/heads/main*)",
+    "Bash(git push --delete*)",
+    "Bash(git push * --delete*)",
+    "Bash(git push -d*)",
+    "Bash(git push * :*)",
+    "Bash(git -C * push*)",
     "Bash(git reset --hard*)",
     "Bash(git checkout main*)",
     "Bash(git checkout master*)",
@@ -128,7 +137,7 @@ def prompt_for(role: str, task: dict[str, Any], machine: str) -> str:
             f"{COMMON}You are the VERIFIER for {tid}. Do not modify implementation code. Follow PROTOCOL "
             f"section 7 at commit {task['last_good_commit']}: run every acceptance command, write "
             f"agents/handoffs/{tid}/VERIFICATION.yaml on the task branch, push it, then run "
-            f"`controller.py --remote verify {tid}`."
+            f"`controller.py --remote verify {tid} --machine {machine}`."
         )
     return (
         f"{COMMON}You are the INTEGRATOR for {tid} (branch {task['branch']}). Follow PROTOCOL section 8: merge "
