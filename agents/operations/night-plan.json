@@ -7,8 +7,7 @@
       "paths": [
         "apps/web/",
         "tests/web/"
-      ],
-      "source_branch": "agent/B/T06/carry-20261010T072103Z"
+      ]
     },
     {
       "id": "T09",
@@ -17,7 +16,7 @@
         "experiments/",
         "tests/experiments/"
       ],
-      "source_branch": "agent/A/T09/carry1"
+      "source_branch": "agent/A/T09/carry2"
     },
     {
       "id": "T12",
@@ -28,7 +27,7 @@
         "infra/3d/",
         "tests/adapters3d/"
       ],
-      "source_branch": "agent/A/T12/carry-20261010T072103Z"
+      "source_branch": "agent/A/T12/carry1"
     }
   ]
 }
