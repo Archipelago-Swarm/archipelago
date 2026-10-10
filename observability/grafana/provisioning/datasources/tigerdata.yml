@@ -1,0 +1,15 @@
+apiVersion: 1
+datasources:
+  - name: TigerData
+    uid: tigerdata
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: ${TIGERDATA_GRAFANA_HOST}
+    user: ${TIGERDATA_GRAFANA_USER}
+    isDefault: true
+    jsonData:
+      database: archipelago
+      sslmode: ${TIGERDATA_GRAFANA_SSLMODE}
+      timescaledb: true
+    secureJsonData:
+      password: ${TIGERDATA_GRAFANA_PASSWORD}

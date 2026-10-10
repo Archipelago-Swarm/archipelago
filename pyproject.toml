@@ -13,6 +13,7 @@ dev = [
     "mypy>=1.11",
     "pettingzoo>=1.27.0",
     "gymnasium>=1.4.0",
+    "psycopg[binary]>=3.2",
 ]
 
 [tool.uv]
@@ -35,7 +36,8 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["packages/contracts/src", "tests/contracts", "services/api/src", "tests/api"]
+files = ["packages/contracts/src", "tests/contracts", "services/api/src", "tests/api",
+         "packages/storage/archipelago_storage"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

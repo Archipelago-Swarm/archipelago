@@ -32,15 +32,37 @@ def test_reconnect_sends_only_latest():
         net.send(mk("a", "b", s))
     net.set_links({("a", "b")})
     net.tick()
-    assert [net.receive("b").seq, net.receive("b")][0] == 5 and net.receive("b") is None
+    assert net.receive("b").seq == 5
+    assert net.receive("b") is None
 
 
-def test_seeded_loss_reproducible_and_send_nonblocking():
-    def run():
-        n = Network({("a", "b")}, seed=7, loss=0.5)
+def test_seeded_loss_reproducible_and_seed_dependent():
+    def run(seed):
+        n = Network({("a", "b")}, seed=seed, loss=0.5)
         return [n.send(mk("a", "b", i)) for i in range(20)]
 
-    assert run() == run()
+    r = run(7)
+    assert r == run(7) and False in r and True in r  # loss actually applied
+    assert r != run(8)
+
+
+def test_oversized_for_bandwidth_is_delivered_alone_in_order():
+    net = Network({("a", "b")}, bandwidth=3)
+    net.send(mk("a", "b", 1, b"x" * 10))
+    net.send(mk("a", "b", 2, b"y"))
+    net.tick()
+    assert net.receive("b").seq == 1 and net.receive("b") is None
+    net.tick()
+    assert net.receive("b").seq == 2 and not net.stats.rejected
+
+
+def test_bad_hash_never_becomes_catchup_source():
+    net = Network(set())
+    net.send(mk("a", "b", 1))
+    net.send(Envelope("a", "b", 2, b"evil", 1, "bogus"))
+    net.set_links({("a", "b")})
+    net.tick()
+    assert net.receive("b").payload == b"x" and not net.stats.rejected.get("hash")
 
 
 def test_delay_bandwidth_and_byte_stats():
@@ -73,7 +95,7 @@ def test_timeout_retry_recovers_after_reconnect_and_gives_up():
     assert dead.stats.rejected["timeout"] == 1 and not dead._pending
 
 
-def test_telemetry_separate_and_partition_never_blocks():
+def test_telemetry_bounded_and_unaffected_by_partitioned_sends():
     net, tele = Network(set()), Telemetry(maxlen=2)
     for i in range(3):
         assert not net.send(mk("a", "b", i))  # returns immediately, nothing delivered

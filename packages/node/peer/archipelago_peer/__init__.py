@@ -33,7 +33,12 @@ class PeerServer:
 
         class H(BaseHTTPRequestHandler):
             def do_POST(self):
-                n = int(self.headers.get("Content-Length", 0))
+                try:
+                    n = int(self.headers.get("Content-Length", 0))
+                except ValueError:
+                    n = -1
+                if n < 0:
+                    return self._reply(400)
                 # Always consume the request body before replying: closing with unread bytes
                 # makes Windows reset the socket, so the client sees WinError 10053 instead
                 # of the status. Oversized bodies are drained in bounded chunks and dropped.
@@ -57,6 +62,13 @@ class PeerServer:
                     env = Envelope(
                         d["src"], outer.node, d["seq"], payload, d["version"], d["digest"]
                     )
+                    if not (
+                        isinstance(env.src, str)
+                        and isinstance(env.digest, str)
+                        and type(env.seq) is int
+                        and type(env.version) is int
+                    ):
+                        raise TypeError("bad field type")
                 except (ValueError, KeyError, TypeError):
                     return self._reply(400)
                 self._reply(outer.accept(env))
@@ -174,4 +186,6 @@ class PeerClient:
 
     def catch_up(self, dst: str) -> int:
         """On reconnect, resend only the newest update (never a backlog)."""
+        if dst not in self.latest:
+            return 0  # nothing sent yet, nothing to catch up
         return post(self.urls[dst], self.latest[dst], self.timeout, self.retries)

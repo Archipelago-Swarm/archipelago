@@ -1,6 +1,6 @@
 # Handoff: T04 / 20261010 checkpoint 2 (UTC)
 
-- State: in_progress (provisional; unmerged until T01 passes CI and merges)
+- State: done (merged to main as 84d2c80 in run 20261010T063026Z; the text below is the historical bootstrap record)
 - Run / machine / worker: no RUN_ID / B / B-lead (bootstrap exception, manual assignment from A)
 - Assignment generation: bootstrap, 0
 - Branch / worktree: agent/B/T04/run-api / C:\archipelago-T04

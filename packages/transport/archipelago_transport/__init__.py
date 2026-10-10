@@ -92,7 +92,9 @@ class Network:
 
     def send(self, env: Envelope) -> bool:
         n = len(env.payload)
-        if env.src not in self._latest or env.seq >= self._latest[env.src].seq:
+        valid = n <= MAX_PAYLOAD and hashlib.sha256(env.payload).hexdigest() == env.digest
+        # only well-formed updates may become the catch-up source (set_links re-signs them)
+        if valid and (env.src not in self._latest or env.seq >= self._latest[env.src].seq):
             self._latest[env.src] = env
         if (env.src, env.dst) not in self.links:
             self._reject("cut", n)
@@ -128,13 +130,17 @@ class Network:
         due = [e for t, e in self._flight if t <= self.now]
         self._flight = [(t, e) for t, e in self._flight if t > self.now]
         budget = self.bandwidth
+        blocked = False
         for e in due:
             n = len(e.payload)
             if budget is not None:
-                if n > budget:
+                # FIFO: once one is deferred, later ones wait too. A payload bigger than the
+                # whole per-tick budget takes a tick to itself instead of starving forever.
+                if blocked or (n > budget and budget < self.bandwidth):
+                    blocked = True
                     self._flight.append((self.now + 1, e))  # defer to next tick
                     continue
-                budget -= n
+                budget = max(0, budget - n)
             self._pending.pop((e.src, e.dst, e.seq), None)  # any verdict acks
             self._deliver(e)
         self._retry()

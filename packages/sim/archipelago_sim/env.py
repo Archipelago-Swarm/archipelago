@@ -146,11 +146,13 @@ class GridWorld:
             cmds[a] = c
         pos = {a: self.drones[a].pos for a in self.agents}
         want = {a: (pos[a][0] + DELTA[c][0], pos[a][1] + DELTA[c][1]) for a, c in cmds.items()}
+        dead = {d.pos for n, d in self.drones.items() if n not in self.agents}  # wrecks block
         for a in self.agents:
-            if self._cell(want[a]) == WALL:
+            if self._cell(want[a]) == WALL or want[a] in dead:
+                hit = "wall_collision" if self._cell(want[a]) == WALL else "agent_collision"
                 want[a] = pos[a]
                 rewards[a] += self.r_collision
-                ev.append({"tick": self.tick, "node": a, "event": "wall_collision"})
+                ev.append({"tick": self.tick, "node": a, "event": hit})
         # Fixpoint: shared destination, swap, or moving into a node that stays -> mover stays.
         while True:
             blocked = set()

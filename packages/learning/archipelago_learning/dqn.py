@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -120,29 +121,51 @@ class Learner:
         return loss
 
     # Checkpoints: model/optimizer, replay and RNG are separate files so each can be restored alone.
+    # Each file is written to a temp name then renamed; meta.json goes last as the commit marker.
     def save(self, d):
         d = Path(d)
         d.mkdir(parents=True, exist_ok=True)
-        meta = {"steps": self.steps, "version": self.version, "n": self.n}
-        np.savez(
-            d / "model.npz",
+        meta = {
+            "steps": self.steps,
+            "version": self.version,
+            "n": self.n,
+            "paused": self.paused,
+            "events": self.events,
+        }
+        prev = {f"q_{k}": v for k, v in (self.previous or {}).items()}
+        model = {
             **{f"p_{k}": v for k, v in self.params.items()},
             **{f"t_{k}": v for k, v in self.target.items()},
             **{f"o_{k}": v for k, v in self.opt.items()},
-        )
-        np.savez(d / "replay.npz", **self.replay)
-        (d / "rng.json").write_text(json.dumps(self.rng.bit_generator.state))
-        (d / "meta.json").write_text(json.dumps(meta))
+            **prev,
+        }
+        files = {
+            "model.npz": lambda f: np.savez(f, **model),
+            "replay.npz": lambda f: np.savez(f, **self.replay),
+            "rng.json": lambda f: f.write(json.dumps(self.rng.bit_generator.state).encode()),
+            "meta.json": lambda f: f.write(json.dumps(meta, default=float).encode()),
+        }
+        for name, write in files.items():
+            with open(d / (name + ".tmp"), "wb") as f:
+                write(f)
+            os.replace(d / (name + ".tmp"), d / name)
 
     def load(self, d):
         d = Path(d)
         m = np.load(d / "model.npz", allow_pickle=False)
+        r = np.load(d / "replay.npz", allow_pickle=False)
+        for k, v in self.params.items():
+            if m[f"p_{k}"].shape != v.shape:
+                raise ValueError(f"checkpoint shape mismatch for {k}")
+        if any(r[k].shape != v.shape for k, v in self.replay.items()):
+            raise ValueError("checkpoint replay shape mismatch")
         self.params = {k: m[f"p_{k}"].copy() for k in self.params}
         self.target = {k: m[f"t_{k}"].copy() for k in self.params}
         self.opt = {k: m[f"o_{k}"].copy() for k in self.opt}
         self.opt["t"] = int(self.opt["t"])
-        r = np.load(d / "replay.npz", allow_pickle=False)
+        self.previous = {k: m[f"q_{k}"].copy() for k in self.params} if "q_w1" in m else None
         self.replay = {k: r[k].copy() for k in self.replay}
         self.rng.bit_generator.state = json.loads((d / "rng.json").read_text())
         meta = json.loads((d / "meta.json").read_text())
         self.steps, self.version, self.n = meta["steps"], meta["version"], meta["n"]
+        self.paused, self.events = meta["paused"], meta["events"]

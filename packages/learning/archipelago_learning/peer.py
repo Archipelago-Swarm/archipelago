@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import zipfile
 
 import numpy as np
 
@@ -35,8 +36,13 @@ def decode(payload: bytes, learner):
     if len(payload) > MAX_BYTES:
         raise PeerError("payload too large")
     try:
+        # Bound inflated size from zip headers before any member is materialised.
+        if sum(i.file_size for i in zipfile.ZipFile(io.BytesIO(payload)).infolist()) > MAX_BYTES:
+            raise ValueError("payload inflates too large")
         z = np.load(io.BytesIO(payload), allow_pickle=False)
         meta = json.loads(bytes(z["_meta"]))
+        if not isinstance(meta, dict):
+            raise ValueError("meta is not an object")
         tensors = {k: z[k] for k in KEYS}
     except Exception as e:
         raise PeerError(f"malformed payload: {e}") from e
@@ -51,10 +57,12 @@ def decode(payload: bytes, learner):
     return meta, tensors
 
 
-def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None):
+def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None, sender=None):
     """Accept the candidate only if eval_fn(params) beats the current policy by > margin.
 
-    alpha (mixing mode only, <=0.5) blends instead of replacing. Returns the logged event.
+    alpha (mixing mode only, <=0.5) blends instead of replacing; mixing mode requires it.
+    sender (transport source), if given, must match the node id the payload claims.
+    Returns the logged event.
     """
     ev = {
         "type": "peer_offer",
@@ -67,6 +75,10 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None):
             raise PeerError("information_only mode never loads parameters")
         meta, cand = decode(payload, learner)
         ev.update(source=meta.get("node"), source_version=meta.get("version"))
+        if sender is not None and meta.get("node") != sender:
+            raise PeerError(f"claimed node {meta.get('node')!r} != sender {sender!r}")
+        if learner.mode == "mixing" and alpha is None:
+            raise PeerError("mixing mode needs 0<alpha<=0.5")
         if alpha is not None:
             if learner.mode != "mixing" or not 0 < alpha <= 0.5:
                 raise PeerError("mixing needs mode=mixing and 0<alpha<=0.5")
@@ -75,6 +87,8 @@ def offer(learner, payload: bytes, eval_fn, margin=0.0, alpha=None):
                 for k in KEYS
             }
         cur, new = eval_fn(learner.params), eval_fn(cand)
+        if not (np.isfinite(cur) and np.isfinite(new)):
+            raise PeerError("nonfinite eval score")
         ev.update(current_score=cur, candidate_score=new)
         if not new > cur + margin:
             raise PeerError("candidate not better than current policy")
