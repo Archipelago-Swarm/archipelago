@@ -133,3 +133,33 @@ def test_run_completes_with_dead_database(tmp_path: Path) -> None:
             assert c.post("/v1/runs/run-a/commands", json=body).status_code == 200
         assert c.get("/v1/runs/run-a").json()["status"] == "completed"
     assert p.dropped > 0 and p.queued <= 8
+
+
+def test_remote_url_without_sslmode_disables_persistence_loudly(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.ERROR, logger="archipelago.persistence"):
+        assert Persister.from_env({"TIGERDATA_URL": "postgresql://u@db.example.com/x"}) is None
+    assert "sslmode" in caplog.text and "disabled" in caplog.text
+
+
+@pytest.mark.parametrize("url", ["postgresql://u@localhost/x", "postgresql://u@timescaledb:5432/x"])
+def test_local_url_enables_persistence(url: str) -> None:
+    assert Persister.from_env({"TIGERDATA_URL": url}) is not None
+
+
+def test_migration_runs_once_before_writes_and_retries_with_counter() -> None:
+    sink, calls = FakeSink(), {"n": 0}
+
+    def migrate() -> None:
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise OSError("db starting")
+
+    p = Persister(sink, migrate=migrate)
+    p.record_run("r1")
+    assert asyncio.run(p.flush()) is False and asyncio.run(p.flush()) is False
+    assert p.migration_failures == 2 and sink.rows == []  # no writes before the schema exists
+    assert asyncio.run(p.flush()) is True
+    assert asyncio.run(p.flush()) is True
+    assert calls["n"] == 3 and len(sink.rows) == 1  # applied once after success
