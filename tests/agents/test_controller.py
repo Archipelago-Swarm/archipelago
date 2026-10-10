@@ -527,12 +527,17 @@ def test_real_ledger_is_valid() -> None:
     assert c.validate_ledger(c.load_ledger()) == []
 
 
-def test_verify_is_gated_to_the_verifier_machine_and_not_the_worker_machine(repo: Path) -> None:
+def test_verify_requires_a_verifier_different_from_the_task_owner(repo: Path) -> None:
+    """Single computer: independence is by agent identity, not by machine."""
     to_review(repo)
-    verdict(repo, "T01", "PASS")
-    assert run("verify", "T01", "--machine", "A") == 1  # A holds no verifier role and ran the task
-    verdict(repo, "T01", "PASS", verifier="A/spoof")  # self-declared name on the wrong machine
-    assert run("verify", "T01", "--machine", "B") == 1
+    verdict(repo, "T01", "PASS", verifier=OWNER)  # the worker verifying its own work
+    assert run("verify", "T01") == 1
     assert state("T01") == "REVIEW"
-    verdict(repo, "T01", "PASS")
-    assert run("verify", "T01", "--machine", "B") == 0
+    verdict(
+        repo, "T01", "PASS", verifier=f"  {OWNER.upper()} "
+    )  # same identity, different spelling
+    assert run("verify", "T01") == 1
+    assert state("T01") == "REVIEW"
+    verdict(repo, "T01", "PASS", verifier="A/independent-reviewer")
+    assert run("verify", "T01") == 0
+    assert state("T01") == "INTEGRATION"

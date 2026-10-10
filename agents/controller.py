@@ -793,13 +793,7 @@ def check_pass_verdict(
 
 def cmd_verify(a: argparse.Namespace) -> int:
     def run(data: dict[str, Any]) -> None:
-        machine_may("verifier", a.machine)
         task = get_task(data, a.task)
-        worker = (task.get("machine") or (task.get("owner") or "").split("/")[0]).strip()
-        if worker and a.machine == worker:
-            raise ControllerError(
-                f"machine {a.machine} ran {a.task}; verification must come from another machine"
-            )
         path = ROOT / (
             a.verdict or str(Path(task["handoff_file"] or "").parent / "VERIFICATION.yaml")
         )
@@ -825,15 +819,10 @@ def cmd_verify(a: argparse.Namespace) -> int:
             )
         if verdict["task"] != task["id"]:
             raise ControllerError(f"verdict is for {verdict['task']}, not {task['id']}")
-        verifier_machine = str(verdict["verifier"]).split("/")[0].strip()
-        if (
-            norm(verdict["verifier"]) == norm(task["owner"] or "")
-            or verifier_machine == worker
-            or verifier_machine != a.machine
-        ):
+        if norm(verdict["verifier"]) == norm(task["owner"] or ""):
             raise ControllerError(
-                f"verifier {verdict['verifier']!r} must be on the verifying machine {a.machine}, "
-                f"not the machine that did the work ({worker}); verification must be independent"
+                f"verifier {verdict['verifier']!r} is the task owner; "
+                "verification must come from a different agent"
             )
         if not task["last_good_commit"]:
             raise ControllerError(f"{task['id']} has no last_good_commit to verify against")
@@ -998,7 +987,7 @@ def build_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("claim")
     c.add_argument("task")
     c.add_argument("--owner", required=True)
-    c.add_argument("--machine", required=True, choices=["A", "B"])
+    c.add_argument("--machine", default="A", choices=["A", "B"])
     c.add_argument("--branch")
     c.set_defaults(fn=cmd_claim)
 
@@ -1040,13 +1029,13 @@ def build_parser() -> argparse.ArgumentParser:
     v = sub.add_parser("verify")
     v.add_argument("task")
     v.add_argument("--verdict")
-    v.add_argument("--machine", required=True, choices=["A", "B"], help="the verifier machine")
+    v.add_argument("--machine", default="A", choices=["A", "B"], help="the verifier machine")
     v.set_defaults(fn=cmd_verify)
 
     i = sub.add_parser("integrate-fail")
     i.add_argument("task")
     i.add_argument("--signature", required=True)
-    i.add_argument("--machine", required=True, choices=["A", "B"])
+    i.add_argument("--machine", default="A", choices=["A", "B"])
     i.set_defaults(fn=cmd_integrate_fail)
 
     k = sub.add_parser("complete")
@@ -1054,7 +1043,7 @@ def build_parser() -> argparse.ArgumentParser:
     k.add_argument(
         "--commit", required=True, help="integration (merge) commit on the integration branch"
     )
-    k.add_argument("--machine", required=True, choices=["A", "B"])
+    k.add_argument("--machine", default="A", choices=["A", "B"])
     k.set_defaults(fn=cmd_complete)
 
     e = sub.add_parser("log-event")

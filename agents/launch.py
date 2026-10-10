@@ -3,7 +3,6 @@
     python agents/launch.py pick  --machine A            # what would run next (no side effects)
     python agents/launch.py tick  --machine A            # ONE idempotent step; a scheduler calls this
     python agents/launch.py start --machine A [--hours 8] [--dry-run]       # detached loop of ticks
-    python agents/launch.py start --machine A --runner night -- --billing subscription --hours 8
     python agents/launch.py status --machine A
     python agents/launch.py stop  --machine A
     python agents/launch.py schedule --machine A --every 30   # print cron/routine recipes
@@ -509,14 +508,6 @@ def cmd_start(a: argparse.Namespace) -> int:
             str(a.max_ticks),
             *[x for e in a.claude_arg for x in ("--claude-arg", e)],
         ]
-    else:
-        argv = [
-            sys.executable,
-            str(ROOT / "tools" / "agents" / "night.py"),
-            "--machine",
-            a.machine,
-            *a.rest,
-        ]
     if a.dry_run:
         print("dry run; would spawn: " + " ".join(argv))
         return 0
@@ -559,8 +550,6 @@ def cmd_status(a: argparse.Namespace) -> int:
     print(f"{live}: {detail}")
     if st.get("last_tick"):
         print(f"last tick: {st['last_tick']}")
-    if st.get("runner") == "night":
-        print("note: legacy night.py runner (CONDITIONALLY_RELIABLE); no heartbeat, pid check only")
     if stop_requested(a.machine):
         print(f"stop requested via {stop_requested(a.machine)}")
     return 0 if live == "ALIVE" else 1
@@ -634,14 +623,13 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--dry-run", action="store_true")
     s = sub.add_parser("start")
     common(s)
-    s.add_argument("--runner", choices=["loop", "night"], default="loop")
+    s.add_argument("--runner", choices=["loop"], default="loop")
     s.add_argument("--hours", type=float, default=8.0)
     s.add_argument("--slice-minutes", type=int, default=30)
     s.add_argument("--max-ticks", type=int, default=40)
     s.add_argument("--claude-arg", action="append", default=[])
     s.add_argument("--dry-run", action="store_true")
     s.add_argument("--force", action="store_true")
-    s.add_argument("rest", nargs=argparse.REMAINDER, help="after --, arguments for night.py")
     lp = sub.add_parser("_loop")
     common(lp)
     lp.add_argument("--hours", type=float, default=8.0)

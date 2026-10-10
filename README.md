@@ -8,7 +8,7 @@ Decentralized learning for simulated drone swarms: each node observes, acts, lea
 
 1. Read [the vision and roadmap](agents/vision/roadmap.md).
 2. Give Claude [the initialization prompt](agents/START_HERE.md).
-3. Follow [the two-computer runbook](agents/operations/overnight.md).
+3. Follow [the agent operating rules](docs/AGENT_OPERATIONS.md) (single computer).
 4. Track work through [the task board](agents/tasks/BOARD.md) and individual task files.
 
 The complete agent contract is in [agents/CONTRACT.md](agents/CONTRACT.md), loaded by the root `CLAUDE.md` and `AGENTS.md` entrypoints.
@@ -26,10 +26,10 @@ See [architecture](agents/architecture/core.md) for boundaries, [contracts](agen
 
 ## First operator actions
 
-Both developers clone this repository and authenticate their own Claude/GitHub accounts. Assign your computer `A` and your friend's `B`. Fill out [the run configuration](agents/operations/run-config.example.json) together, agree on cloud and model budgets, then have computer A perform bootstrap task T01. Once A has pushed a validated T01 review commit, B can start T04 provisionally against that commit while A completes CI and merges it.
+One computer runs every agent. Authenticate Claude/GitHub on it; there is no computer A/B split. Budgets and cloud limits are in [token-budget](agents/operations/token-budget.md) and `infra/vultr`.
 
 No credentials belong in Git. No cloud resources or paid agent runs have been created by this initialization. License choice remains an owner decision before a public open-source release.
 
 Validate this planning foundation with `python tools/check_foundation.py`. Application install/run commands will be established and documented by T01.
 
-For an unattended two-computer coding run after T01 and T02 merge, use the [executable night-runner instructions](agents/operations/night-runner.md). It publishes a fixed task plan, runs one worker per computer, verifies each slice, and leaves review branches and morning reports.
+Agents are coordinated by the task ledger `agents/TASKS.yaml` and `agents/controller.py` (see `agents/PROTOCOL.md`); the legacy two-computer night runner was removed.

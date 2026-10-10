@@ -5,24 +5,60 @@
   "description": "Written by the verifier to agents/handoffs/<TASK>/VERIFICATION.yaml. A missing or invalid file is a verifier-infrastructure failure, never a task failure.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["task", "status", "verified_commit", "verifier", "checked_at", "commands", "failures", "required_actions"],
+  "required": [
+    "task",
+    "status",
+    "verified_commit",
+    "verifier",
+    "checked_at",
+    "commands",
+    "failures",
+    "required_actions"
+  ],
   "properties": {
-    "task": {"type": "string", "pattern": "^T[0-9]{2,3}$"},
-    "status": {"enum": ["PASS", "FAIL"]},
-    "verified_commit": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
-    "verifier": {"type": "string"},
-    "checked_at": {"type": "string"},
+    "task": {
+      "type": "string",
+      "pattern": "^T[0-9]{2,3}$"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "verified_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,40}$"
+    },
+    "verifier": {
+      "type": "string"
+    },
+    "checked_at": {
+      "type": "string"
+    },
     "commands": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["command", "expected_exit_code", "actual_exit_code"],
+        "required": [
+          "command",
+          "expected_exit_code",
+          "actual_exit_code"
+        ],
         "properties": {
-          "command": {"type": "string"},
-          "expected_exit_code": {"type": "integer"},
-          "actual_exit_code": {"type": "integer"},
-          "log": {"type": "string"}
+          "command": {
+            "type": "string"
+          },
+          "expected_exit_code": {
+            "type": "integer"
+          },
+          "actual_exit_code": {
+            "type": "integer"
+          },
+          "log": {
+            "type": "string"
+          }
         }
       }
     },
@@ -31,19 +67,95 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["type", "description"],
+        "required": [
+          "type",
+          "description"
+        ],
         "properties": {
-          "type": {"enum": ["acceptance_command", "assertion_unmet", "contract_violation", "regression", "stub_or_todo", "missing_test", "error_handling", "scope_creep", "integration_boundary", "other"]},
-          "file": {"type": "string"},
-          "description": {"type": "string", "minLength": 5},
-          "kind": {"enum": ["test_failure", "build_failure", "integration_failure"]}
+          "type": {
+            "enum": [
+              "acceptance_command",
+              "assertion_unmet",
+              "contract_violation",
+              "regression",
+              "stub_or_todo",
+              "missing_test",
+              "error_handling",
+              "scope_creep",
+              "integration_boundary",
+              "other"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 5
+          },
+          "kind": {
+            "enum": [
+              "test_failure",
+              "build_failure",
+              "integration_failure"
+            ]
+          }
         }
       }
     },
-    "required_actions": {"type": "array", "items": {"type": "string"}}
+    "required_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assertions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "description",
+          "result"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 3
+          },
+          "result": {
+            "enum": [
+              "met",
+              "unmet",
+              "not_run"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        }
+      }
+    }
   },
   "allOf": [
-    {"if": {"properties": {"status": {"const": "FAIL"}}},
-     "then": {"properties": {"failures": {"minItems": 1}, "required_actions": {"minItems": 1}}}}
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "FAIL"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "failures": {
+            "minItems": 1
+          },
+          "required_actions": {
+            "minItems": 1
+          }
+        }
+      }
+    }
   ]
 }

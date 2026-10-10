@@ -44,9 +44,9 @@ Coding agents are Claude sessions. They are not the simulated drone nodes in the
 |---|---|---|
 | Orchestrator (machine A) | reads roadmap, LESSONS, ledger, OWNERSHIP; `next`, `claim`; dispatches verification, repair, integration; triggers process review | write feature code; claim overlapping paths |
 | Worker | satisfies acceptance of one claimed task on its branch (section 4) | edit outside `owned_paths`; mark REVIEW without passing commands; touch another branch |
-| Verifier (machine B) | independently runs acceptance commands and reviews the diff; writes `VERIFICATION.yaml` | modify implementation code |
+| Verifier (separate agent) | independently runs acceptance commands and reviews the diff; writes `VERIFICATION.yaml` | modify implementation code |
 | Integrator (machine A) | merges verified branches, resolves conflicts, runs `check-integration` on the merged head, calls `complete` or `integrate-fail` | integrate unverified work; let B also integrate |
-| Reviewer (machine B) | process review (section 8); proposes KEEP/SIMPLIFY/REMOVE/REPLACE/NEW RULE | add infrastructure when deleting some would do |
+| Reviewer (separate agent) | process review (section 8); proposes KEEP/SIMPLIFY/REMOVE/REPLACE/NEW RULE | add infrastructure when deleting some would do |
 
 Machine roles are in `OWNERSHIP.yaml`. The controller enforces [implemented]: the integrator role for `complete` and `integrate-fail`; `--by` equal to the task owner for `start`, `review`, `record-failure`, `block` (and for `requeue`/`unblock`, or a machine holding the integrator role); for `verify`, `--machine` holding the verifier role, a machine other than the one that ran the task, and a verdict verifier on that machine. Other role boundaries are [convention].
 

@@ -39,7 +39,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: cdaba4d
   artifacts: []
   handoff_file: agents/handoffs/T01/LATEST.md
@@ -73,7 +73,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 602124f
   artifacts: []
   handoff_file: agents/handoffs/T02/LATEST.md
@@ -107,7 +107,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: fca6210
   artifacts: []
   handoff_file: agents/handoffs/T03/LATEST.md
@@ -140,7 +140,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 84d2c80
   artifacts: []
   handoff_file: agents/handoffs/T04/LATEST.md
@@ -174,7 +174,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: bbd1864
   artifacts: []
   handoff_file: agents/handoffs/T05/LATEST.md
@@ -207,7 +207,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: a81a192
   artifacts: []
   handoff_file: agents/handoffs/T06/LATEST.md
@@ -242,7 +242,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 3ce76f8
   artifacts: []
   handoff_file: agents/handoffs/T07/LATEST.md
@@ -276,7 +276,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 1fc53ce
   artifacts: []
   handoff_file: agents/handoffs/T08/LATEST.md
@@ -311,7 +311,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 7f32388
   artifacts: []
   handoff_file: agents/handoffs/T09/LATEST.md
@@ -353,7 +353,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: fdee33e
   artifacts: []
   handoff_file: agents/handoffs/T10/LATEST.md
@@ -389,7 +389,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: agents/handoffs/T11/LATEST.md
@@ -423,7 +423,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: eb76a6f
   artifacts: []
   handoff_file: agents/handoffs/T12/LATEST.md
@@ -459,7 +459,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 78aa05d
   artifacts: []
   handoff_file: agents/handoffs/T13/LATEST.md
@@ -503,7 +503,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -546,7 +546,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -581,7 +581,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -629,7 +629,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -672,7 +672,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -705,7 +705,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -748,7 +748,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -785,7 +785,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -843,7 +843,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 41c334f
   artifacts:
   - agents/reports/LAST_RUN_RETROSPECTIVE.md
@@ -917,7 +917,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -956,7 +956,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1002,7 +1002,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1053,7 +1053,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 252232429c
   artifacts: []
   handoff_file: agents/handoffs/T26/LATEST.md
@@ -1137,7 +1137,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1188,7 +1188,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: e79d2d7722
   artifacts: []
   handoff_file: agents/handoffs/T28/LATEST.md
@@ -1274,7 +1274,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1331,7 +1331,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1384,7 +1384,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1436,7 +1436,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 525df5c509
   artifacts: []
   handoff_file: agents/handoffs/T32/LATEST.md
@@ -1516,7 +1516,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 455a21b4b9
   artifacts: []
   handoff_file: agents/handoffs/T33/LATEST.md
@@ -1590,7 +1590,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: 06d2a85abf
   artifacts: []
   handoff_file: agents/handoffs/T34/LATEST.md
@@ -1659,7 +1659,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: d453b91eef
   artifacts: []
   handoff_file: agents/handoffs/T35/LATEST.md
@@ -1726,7 +1726,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: d453b91eef
   artifacts: []
   handoff_file: agents/handoffs/T36/LATEST.md
@@ -1804,7 +1804,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1852,7 +1852,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1898,7 +1898,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1942,7 +1942,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
@@ -1994,7 +1994,7 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
+    same_failure_signature: 3
   last_good_commit: null
   artifacts: []
   handoff_file: null
