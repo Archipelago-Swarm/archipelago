@@ -1,0 +1,2 @@
+# Heavy simulator deps live here only; core 2D CI never installs them.
+pybullet>=3.2.6
