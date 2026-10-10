@@ -1,10 +1,11 @@
 # Handoff: T42 Owner C (Infra / Demo)
 
-- State: integrated on main (PR #12, #22). Local Docker validation done for each docker test individually (a Docker daemon was available in the integrator session); the full docker slice is checked by CI on PR #22.
-- Last updated at PR #22 head after commit `b36f454` (plan name in body, stop with latest revision, API command reply no longer terminates a run). Branch: `claude/elegant-pascal-a8a3hp`.
-- Owned paths touched: `infra/**`, `tests/infra/**`, `tests/e2e/**`, `Makefile` demo-* targets only; PR #22 also fixed `infra/docker/api.Dockerfile` (coordinator package in the API image) and `infra/demo/artifacts.py`.
-- Resolved since the first handoff: control-message and telemetry mismatches (items 1-3 below) are fixed by T39/T27/T29 amendments; `tests/e2e` (16 tests, ~80 s, no Docker) passes without the control shim; the plan name travels in the request body (`"plan": "<name>"`), not a query parameter.
-- Still open: CPU-wheel node memory (only the CUDA wheel was measurable: ~390-400 MiB per node, limit stays 1g provisional), real Vultr/TigerData runs, `make demo` end-to-end on a clean machine, a regression test for the artifact generator fixes.
+- State: REVIEW-quality, NOT yet verified or completed in the ledger. Open PR: Archipelago-Swarm/archipelago#22 (Docker follow-up to merged #12). The ledger still shows T42 QUEUED and T28 INTEGRATION; reconciling that is integrator housekeeping, not done here.
+- Branch: `claude/elegant-pascal-a8a3hp`. Cross-owner edits in #22 (integrator-authorized repairs): `services/api/src/archipelago_api/live.py` (a command reply no longer terminates a run) and `tests/api/test_live_mode.py`.
+- Validation (local, with a Docker daemon in the integrator session): every docker-marked test passed in separate runs; the full docker slice did not fit the sandbox disk in one run. CI `docker` slice on #22 is the single-run check. `tests/e2e` (16 tests, ~80 s, no Docker) pass; `tests/infra -m "not docker"` + `tests/api` pass (133).
+- Plan selection: Compose mounts ONE raw plan file (`/plans/${DEMO_PLAN}.json`); both loaders name a raw plan `default`; the driver and smoke test send no plan name. Regression: `tests/infra/test_plans.py::test_the_mounted_raw_plan_loads_in_both_services_as_the_default_plan` loads the real files.
+- Fixed since the first handoff: control-message and telemetry mismatches (items 1-3 below were resolved by the T39/T27/T29 amendments), the stale docker tests, the API image missing the coordinator package, the artifact generator on live events.
+- Not done: CPU-wheel node memory (CUDA wheel measured ~390-400 MiB per node; limit 1g stays provisional), clean-machine `make demo`, artifact-generator regression test, real Vultr/TigerData runs.
 
 ## Invariant
 

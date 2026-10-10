@@ -80,3 +80,14 @@ def test_battery_scale_for_the_demo_horizon_is_at_least_four():
     for name in ("smoke", "demo"):
         data = json.loads((ROOT / f"infra/demo/plans/{name}.json").read_text())
         assert data.get("battery_scale", 0) >= 4
+
+
+@pytest.mark.parametrize("name", ["smoke", "demo"])
+def test_the_mounted_raw_plan_loads_in_both_services_as_the_default_plan(name):
+    """Compose mounts one raw plan file; the API and the coordinator must both name it `default`."""
+    from archipelago_api.live import load_plans
+    from archipelago_coordinator.models import DEFAULT_PLAN, load_plan
+
+    path = ROOT / f"infra/demo/plans/{name}.json"
+    assert set(load_plans(path)) == {"default"}
+    assert load_plan(path, None).name == DEFAULT_PLAN

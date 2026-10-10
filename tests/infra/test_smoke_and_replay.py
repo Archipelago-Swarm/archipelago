@@ -131,8 +131,8 @@ def wait_grafana(timeout: float = 120) -> None:
 def new_run(run_id: str) -> dict[str, Any]:
     # The live coordinator needs one pose per plan node: use the demo driver config.
     cfg = run_demo.build_run_config("smoke", run_demo.load_plan("smoke"), run_id)
-    # Live mode: the Plan is a server-side file selected by the body's `plan` NAME (A9).
-    return call("POST", "/v1/runs", {**cfg, "plan": "smoke"}, {"Idempotency-Key": f"key-{run_id}"})
+    # Live mode: the Plan is the mounted server-side file (one raw plan is "default", A9).
+    return call("POST", "/v1/runs", cfg, {"Idempotency-Key": f"key-{run_id}"})
 
 
 def wait_status(run_id: str, want: str, timeout: float = 60) -> dict[str, Any]:

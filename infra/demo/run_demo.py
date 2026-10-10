@@ -153,11 +153,11 @@ class Api:
             raise DemoError(f"login failed: {code} {body}")
 
     def start_run(self, plan_name: str, run_config: dict[str, Any]) -> dict[str, Any]:
-        # The plan is selected server-side (COORDINATOR_PLAN_FILE, A9); the body's `plan` is the allow-listed name.
+        # The plan is selected server-side (COORDINATOR_PLAN_FILE, A9); the mounted file is the only plan, so no name is sent.
         code, body = self.request(
             "POST",
             "/v1/runs",
-            {**run_config, "plan": plan_name},
+            run_config,  # no plan name: the mounted plan file (one raw plan = "default") is the plan
             {"Idempotency-Key": uuid.uuid4().hex},
         )
         if code not in (200, 201):

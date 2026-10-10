@@ -131,7 +131,7 @@ def test_driver_uses_login_idempotency_key_and_plan_name(fake, tmp_path):
     start = next(h for p, h in posts.items() if p.startswith("/v1/runs"))
     assert len(start["Idempotency-Key"]) >= 16
     cfg = start["_body"]
-    assert cfg["plan"] == "demo"  # selected by body NAME; the API ignores a query parameter
+    assert "plan" not in cfg  # the mounted plan file is the plan; no name is sent
     assert cfg["budgets"]["max_ticks"] == 900 and cfg["fault_schedule"][0]["start_tick"] == 300
     assert start["Authorization"] == f"Bearer {TOKEN}"
 
