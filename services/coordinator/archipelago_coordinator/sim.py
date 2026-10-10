@@ -28,3 +28,15 @@ def reward_ids() -> set[str]:
     from archipelago_sim.env import REWARD_SPECS
 
     return set(REWARD_SPECS)
+
+
+def min_survival_ticks(battery_scale: float) -> int:
+    """Ticks a drone that moves every tick survives (the shortest battery life), computed with the
+    world's own arithmetic. Faults scheduled beyond it can never be reached by a moving fleet."""
+    from archipelago_sim.env import MOVE_COST
+
+    battery, ticks = battery_scale, 0
+    while battery > 1e-9:
+        battery -= MOVE_COST
+        ticks += 1
+    return ticks

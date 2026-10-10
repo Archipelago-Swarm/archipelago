@@ -4,9 +4,15 @@ Privacy: a node is only ever sent its own contract Observation (built by the ada
 node's private buffer). The privileged snapshot is never put in a node request.
 
 Decisions (see README):
-- Feedback is only sent to nodes whose action was actually applied this tick (a node that missed
-  the deadline had `stay` applied, so pairing its cached action with the reward would be wrong)
-  and never in eval episodes (nodes answer 409 there).
+- Feedback (A2) goes to every node that was asked to act this tick and carries what was executed:
+  a node that missed the deadline had `stay` applied, so its feedback says `stay`,
+  `action_index` 0 and `deadline_missed: true`. All acknowledgements are awaited (bounded by
+  2 * deadline) before the next tick's act round. Never sent in eval episodes (nodes answer 409).
+- `configure` (A5) is sent once per run to each node before its first `reset`; `reset` carries
+  the fault schedule; `episode_end` (A4) goes to every non-killed node and is acknowledged with
+  202 while the node runs its exchange window in the background.
+- Every record the coordinator emits carries the global simulation tick
+  `episode * max_ticks + tick` (A7); each episode runs under its own derived RunConfig (A14).
 - A node marked unavailable is not called again within the episode; it is retried at the next
   episode reset and returns to `ready` if its reset succeeds.
 - The coordinator's pause/resume gate the tick loop; they are not forwarded to nodes (node
@@ -46,6 +52,8 @@ log = logging.getLogger("archipelago.coordinator")
 
 MAX_CONSECUTIVE_MISSES = 5
 CHECKPOINT_TIMEOUT_S = 10.0  # a node checkpoint writes a generation to disk
+RESET_TIMEOUT_S = 8.0  # a node's reset may wait up to 5 s for a running exchange window (A4)
+ACTION_INDEX = {name: i for i, name in enumerate(("stay", "north", "east", "south", "west"))}
 ACTIVE = frozenset({"created", "starting", "running", "paused", "stopping"})
 TERMINAL = frozenset({"completed", "failed", "interrupted"})
 
@@ -64,6 +72,11 @@ class NodeHealth:
     consecutive_misses: int = 0
     deadline_misses: int = 0
     feedback_failures: int = 0
+
+
+def adapter_kwargs(settings: Settings, plan: Plan) -> dict[str, Any]:
+    """World parameters for the adapter: operator kwargs plus the plan's battery scale (A13)."""
+    return {**settings.world_kwargs, "battery_scale": plan.battery_scale}
 
 
 def _stay(node: str, run_id: str, tick: int) -> Action:
@@ -92,8 +105,11 @@ class Run:
         client: NodeClient,
         adapter_factory: Callable[[dict[str, Any]], Any],
         on_state: Callable[[Run], None],
+        plan_name: str = "default",
+        plan_file_sha256: str = "",
     ) -> None:
         self.cfg, self.plan, self.settings = cfg, plan, settings
+        self.plan_name, self.plan_file_sha256 = plan_name, plan_file_sha256
         self.spool, self.client, self.adapter_factory = spool, client, adapter_factory
         self.on_state = on_state
         self.run_id = cfg.run_id
@@ -102,6 +118,7 @@ class Run:
         self.config_hash = canonical_hash(
             {"run_config": cfg.model_dump(mode="json"), "plan": plan.model_dump(mode="json")}
         )
+        self.max_ticks = cfg.budgets.max_ticks
         self.schedule = schedule_json(plan)
         self.schedule_hash = canonical_hash(self.schedule)
         self.cond = threading.Condition(threading.RLock())
@@ -121,6 +138,9 @@ class Run:
         self.stop_requested = False
         self.crashed = False
         self.adapter: Any = None
+        self.configured: dict[str, str] = {}  # node -> config_hash it acknowledged
+        self.configure_body: dict[str, Any] | None = None
+        self.priv_seq = 0
         self.summaries: list[dict[str, Any]] = []
         self.max_tick_ms = 0.0
         self.last_tick_ms = 0.0
@@ -157,6 +177,9 @@ class Run:
                     for n, h in self.health.items()
                 },
                 "config_hash": self.config_hash,
+                "plan_name": self.plan_name,
+                "plan_file_sha256": self.plan_file_sha256,
+                "node_config_hashes": dict(self.configured),
                 "fault_schedule_hash": self.schedule_hash,
                 "commit": self.settings.commit,
                 "events_dropped": self.spool.dropped(self.run_id),
@@ -252,10 +275,14 @@ class Run:
     ) -> None:
         self.spool.emit(
             self.run_id,
-            tick,
+            self._global_tick(tick),
             node,
             lambda b: MetricSample(**b, metric=name, value=value, unit=unit, phase=phase),
         )
+
+    def _global_tick(self, tick: int) -> int:
+        """A7: simulation time across the run is `episode * max_ticks + tick`."""
+        return max(self.episode_index, 0) * self.max_ticks + tick
 
     def _allowed_links(self, tick: int) -> list[tuple[str, str]]:
         cut: set[frozenset[str]] = set()
@@ -266,12 +293,12 @@ class Run:
         return [(a, b) for a, b in combinations(alive, 2) if frozenset((a, b)) not in cut]
 
     def _emit_snapshot(self, tick: int) -> None:
-        with self.world_lock:
-            snap = self.adapter.snapshot()
         links = self._allowed_links(tick)
+        with self.world_lock:
+            snap = self.adapter.public_snapshot(links)  # A10: only discovered obstacles
         self.spool.emit(
             self.run_id,
-            tick,
+            self._global_tick(tick),
             None,
             lambda b: WorldSnapshot(
                 **b,
@@ -283,18 +310,26 @@ class Run:
             ),
         )
 
-    def privileged_snapshot(self) -> WorldSnapshot | None:
+    def privileged_snapshot(self) -> dict[str, Any] | None:
+        """Admin view (A10): full obstacles plus targets, found targets and battery."""
         with self.world_lock:
             if self.adapter is None or self.adapter.world is None:
                 return None
-            snap: WorldSnapshot = self.adapter.snapshot()
-        return snap.model_copy(
+            links = self._allowed_links(self.adapter.world.tick)
+            snap: WorldSnapshot = self.adapter.snapshot(links)
+            extras = self.adapter.privileged_extras()
+        with self.cond:
+            self.priv_seq += 1
+            n = self.priv_seq
+        stamped = snap.model_copy(
             update={
                 "run_id": self.run_id,
                 "run_status": self.status,
-                "topology": Topology(links=self._allowed_links(snap.sim_tick)),
+                "event_id": f"{self.run_id}-priv-{self.spool.boot_id}-{n}",
+                "sequence": n,
             }
         )
+        return {**stamped.model_dump(mode="json"), "privileged": extras}
 
     def _fault_phase_at(self, tick: int) -> tuple[str, int]:
         sched = self.plan.fault_schedule
@@ -346,36 +381,54 @@ class Run:
     def _ctl(self, node: str, body: dict[str, Any], timeout: float) -> Reply:
         return self.client.call(self.plan.node_urls[node], "POST", "/v1/control", body, timeout)
 
+    def _configure_body(self, adapter: Any) -> dict[str, Any]:
+        """The per-run configure message (section 14), from the plan and the live world."""
+        w, nc = adapter.world, self.plan.node_config
+        return {
+            "command": "configure",
+            "run_id": self.run_id,
+            "hyperparameters": nc.hyperparameters.model_dump(),
+            "epsilon_schedule": nc.epsilon_schedule.model_dump(),
+            "margin": nc.margin,
+            "world_config": {
+                "size": w.size,
+                "n_targets": w.n_targets,
+                "obstacle_density": w.density,
+                "sense_radius": w.radius,
+                "max_ticks": self.max_ticks,
+                "battery_scale": self.plan.battery_scale,
+                "reward_id": self.cfg.reward_id,
+            },
+            "gate_seeds": list(nc.gate_seeds),
+            "n_validation_agents": nc.n_validation_agents,
+            "encoder_id": nc.encoder_id or f"grid-flat-v1-s{w.size}-r{w.radius}",
+            "exchange_every_ticks": nc.exchange_every_ticks,
+            "seed": nc.seed,
+        }
+
     def _reset_nodes(self, ep: Episode, timeout: float) -> None:
         def one(node: str) -> Reply:
-            r = self._ctl(
+            if node not in self.configured:  # once per run (retried only if it never succeeded)
+                body = self.configure_body or {}
+                r = self._ctl(node, body, timeout)
+                if not r.ok:
+                    return r
+                self.configured[node] = str(r.body.get("config_hash", ""))
+            return self._ctl(
                 node,
                 {
                     "command": "reset",
                     "run_id": self.run_id,
                     "episode": ep.index,
                     "mode": ep.mode,
-                    "seed": ep.seed,
-                    "episode_kind": ep.kind,
+                    "fault_schedule": self.schedule,
                 },
-                timeout,
-            )
-            if not r.ok:
-                return r
-            # schedule is sent after reset so a reset cannot clear it
-            return self._ctl(
-                node,
-                {
-                    "command": "set_schedule",
-                    "run_id": self.run_id,
-                    "episode": ep.index,
-                    "schedule": self.schedule,
-                    "schedule_sha256": self.schedule_hash,
-                },
-                timeout,
+                max(timeout, RESET_TIMEOUT_S),
             )
 
-        res = self.client.fanout({n: partial(one, n) for n in self.nodes}, timeout)
+        res = self.client.fanout(
+            {n: partial(one, n) for n in self.nodes}, max(timeout, RESET_TIMEOUT_S) + 2
+        )
         reachable = 0
         for n in self.nodes:
             h, r = self.health[n], res[n]
@@ -408,16 +461,24 @@ class Run:
         mode, plan = ep.mode, self.plan
         deadline_s = plan.deadline_ms / 1000
         ctl_timeout = max(2.0, deadline_s)
-        cfg = self.cfg.model_copy(update={"seeds": {**self.cfg.seeds, "env": ep.seed}})
-        adapter = self.adapter_factory(self.settings.world_kwargs)
-        with self.world_lock:
-            obs = adapter.reset(cfg)
-            old, self.adapter = self.adapter, adapter
-        if old is not None:
-            old.close()
+        # A14: a derived RunConfig per episode (own env seed and run id), so ids never repeat
+        cfg = self.cfg.model_copy(
+            update={
+                "run_id": f"{self.run_id}-e{ep.index}",
+                "seeds": {**self.cfg.seeds, "env": ep.seed},
+            }
+        )
+        adapter = self.adapter_factory(adapter_kwargs(self.settings, plan))
         with self.cond:
             self.episode_index, self.episode_kind, self.tick = ep.index, ep.kind, 0
             self.phase, self.fault_phase = mode, "none"
+        with self.world_lock:
+            obs = adapter.reset(cfg, episode=ep.index)
+            old, self.adapter = self.adapter, adapter
+        if old is not None:
+            old.close()
+        if self.configure_body is None:
+            self.configure_body = self._configure_body(adapter)
         self.spool.set_outage(self.run_id, False)
         for h in self.health.values():
             h.state = "ready"
@@ -446,7 +507,7 @@ class Run:
                     and self.health[k.node_id].state != "killed"
                 ):
                     with self.world_lock:
-                        adapter.remove_node(k.node_id)
+                        adapter.kill(k.node_id)
                         live_world = list(adapter.world.agents)
                     self.health[k.node_id].state = "killed"
                     obs.pop(k.node_id, None)
@@ -460,12 +521,12 @@ class Run:
                     self.fault_phase = fp
                     if fp != "none":
                         self._metric("fault_phase", float(ncut), "links", fp, t)
-                actions, applied, missed = self._act(ep, t, live_world, obs, deadline_s)
+                actions, called, missed = self._act(ep, t, live_world, obs, deadline_s)
                 with self.world_lock:
                     result: StepResult = adapter.step(actions)
                 self._record_tick(ep, t, result, missed, returns)
                 if mode == "train":
-                    self._feedback(ep, t, result, applied, deadline_s)
+                    self._feedback(ep, t, result, actions, called, missed, deadline_s)
                 with self.world_lock:
                     still = set(adapter.world.agents)
                 obs = {n: o2 for n, o2 in result.observations.items() if n in still}
@@ -489,6 +550,7 @@ class Run:
         obs: dict[str, Any],
         deadline_s: float,
     ) -> tuple[dict[str, Action], list[str], list[str]]:
+        """Returns (actions to apply, nodes that were asked, nodes that missed the deadline)."""
         called = [n for n in live_world if self.health[n].state == "ready" and n in obs]
         ms = int(deadline_s * 1000)
 
@@ -505,14 +567,12 @@ class Run:
 
         replies = self.client.fanout({n: mk(n) for n in called}, deadline_s)
         actions: dict[str, Action] = {}
-        applied: list[str] = []
         missed: list[str] = []
         for n in live_world:
             a = self._parse_action(replies.get(n), n, t) if n in called else None
             h = self.health[n]
             if a is not None:
                 actions[n] = a
-                applied.append(n)
                 h.consecutive_misses = 0
                 continue
             actions[n] = _stay(n, self.run_id, t)
@@ -524,7 +584,7 @@ class Run:
                 if h.consecutive_misses >= MAX_CONSECUTIVE_MISSES:
                     h.state = "unavailable"
                     self._metric("node_unavailable", 1.0, "count", ep.mode, t, n)
-        return actions, applied, missed
+        return actions, called, missed
 
     def _record_tick(
         self,
@@ -542,9 +602,20 @@ class Run:
         self._emit_snapshot(t + 1)
 
     def _feedback(
-        self, ep: Episode, t: int, result: StepResult, applied: list[str], deadline_s: float
+        self,
+        ep: Episode,
+        t: int,
+        result: StepResult,
+        actions: dict[str, Action],
+        called: list[str],
+        missed: list[str],
+        deadline_s: float,
     ) -> None:
+        """A2: tell every asked node what was executed; wait for all acks (<= 2 * deadline)."""
+        timeout = 2 * deadline_s
+
         def mk(n: str) -> Callable[[], Reply]:
+            cmd = actions[n].command
             body = {
                 "run_id": self.run_id,
                 "episode": ep.index,
@@ -553,12 +624,15 @@ class Run:
                 "next_observation": result.observations[n].model_dump(mode="json"),
                 "terminated": result.terminations[n],
                 "truncated": result.truncations[n],
+                "executed_command": cmd,
+                "action_index": ACTION_INDEX[cmd],
+                "deadline_missed": n in missed,
             }
             url = self.plan.node_urls[n]
-            return lambda: self.client.call(url, "POST", "/v1/feedback", body, deadline_s + 0.05)
+            return lambda: self.client.call(url, "POST", "/v1/feedback", body, timeout)
 
-        targets = [n for n in applied if n in result.rewards and self.health[n].state == "ready"]
-        replies = self.client.fanout({n: mk(n) for n in targets}, deadline_s)
+        targets = [n for n in called if n in result.rewards]
+        replies = self.client.fanout({n: mk(n) for n in targets}, timeout)
         for n, r in replies.items():
             if r is None or not r.ok:  # late responses are discarded, never retried
                 self.health[n].feedback_failures += 1
@@ -575,17 +649,13 @@ class Run:
         for n, r in returns.items():
             self._metric("episode_return", r, "reward", ep.mode, ticks, n)
         self._metric("coverage", cov, "fraction", ep.mode, ticks)
+        # A4: every node still in the world (terminated and unavailable ones too, not killed ones)
+        # gets episode_end; the 202 comes back at once while the node's final exchange window runs
+        # in the background, so nothing here waits for the window itself.
+        targets = [n for n in self.nodes if self.health[n].state != "killed"]
+        body = {"command": "episode_end", "run_id": self.run_id, "episode": ep.index, "tick": ticks}
         ends = self.client.fanout(
-            {
-                n: partial(
-                    self._ctl,
-                    n,
-                    {"command": "episode_end", "run_id": self.run_id, "episode": ep.index},
-                    ctl_timeout,
-                )
-                for n in self.nodes
-            },
-            ctl_timeout,
+            {n: partial(self._ctl, n, body, ctl_timeout) for n in targets}, ctl_timeout
         )
         with self.cond:
             self.summaries.append(
@@ -598,9 +668,15 @@ class Run:
                     "coverage": cov,
                     "returns": returns,
                     "replay_manifest": str(Path(manifest)),
+                    "episode_end_sent": targets,
                     "episode_end_failed": sorted(
                         n for n, r in ends.items() if r is None or not r.ok
                     ),
+                    "window_ids": {
+                        n: r.body.get("window_id")
+                        for n, r in ends.items()
+                        if r is not None and r.ok
+                    },
                 }
             )
         self.on_state(self)

@@ -29,6 +29,7 @@ class Settings:
     tick_interval_s: float = 0.0  # optional pacing between ticks
     start_paused: bool = False  # run waits (paused) before its first tick until resumed/stepped
     commit: str = "unknown"
+    plan_file: Path | None = None  # server-side Plan (A9); run requests never carry one
 
     def validate(self) -> None:
         for name in ("coordinator_token", "admin_token", "node_token"):
@@ -36,6 +37,10 @@ class Settings:
                 raise ConfigError(f"{name} must be at least {MIN_TOKEN} characters")
         if self.admin_token == self.coordinator_token:
             raise ConfigError("admin token must differ from the coordinator token")
+        if "battery_scale" in self.world_kwargs:
+            raise ConfigError("battery_scale belongs to the Plan, not COORDINATOR_WORLD_KWARGS")
+        if self.production and self.plan_file is None:
+            raise ConfigError("COORDINATOR_PLAN_FILE is required in production")
         if self.tick_interval_s < 0:
             raise ConfigError("tick_interval_s must be >= 0")
 
@@ -69,6 +74,7 @@ class Settings:
             world_kwargs=kwargs,
             tick_interval_s=float(env.get("COORDINATOR_TICK_INTERVAL_S", "0")),
             commit=env.get("ARCHIPELAGO_COMMIT") or _git_commit(),
+            plan_file=Path(plan_file) if (plan_file := env.get("COORDINATOR_PLAN_FILE")) else None,
         )
         s.validate()
         return s
