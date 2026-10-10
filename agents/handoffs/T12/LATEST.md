@@ -408,3 +408,19 @@ The repo `.venv` is Python 3.13 and has no pybullet, so there the flight test sk
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A (run 20261010T142246Z, round 2)
+- No code changes. `python -m pytest tests/adapters3d -q` -> 4 passed, 3 skipped (pybullet not installed in this env; 7-pass log in packages/adapters/pybullet/evidence/pytest-run.log). Remaining items are integrator-owned (Pose.z ADR-0002, takeoff/land commands, CI job for infra/3d/check.sh, task card sync, independent review).
+
+## Supervisor checkpoint 2026-10-10T14:24:57Z
+
+- Run: 20261010T142246Z
+- Machine: A
+- Task/branch: T12 / agent/A/20261010T142246Z/T12
+- Base: b0d30ac3acb68efbaf6243d332cd60566f11fe62
+- Round: 2
+- State: blocked
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
