@@ -9,7 +9,8 @@
         "tests/api/",
         "apps/web/",
         "tests/web/"
-      ]
+      ],
+      "source_branch": "agent/B/T13/carry-20261010T151923Z-1"
     }
   ]
 }
