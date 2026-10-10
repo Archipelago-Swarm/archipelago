@@ -41,8 +41,8 @@ stage_a:   # successive halving, round 1: one-factor-at-a-time grid around BASE
   episodes: 200
   seeds: 4
   keep: 4          # by mean reference return over the 25 selection worlds and seeds
-stage_b:   # round 2: finalists at 2.5x budget + control
-  episodes: 500
+stage_b:   # round 2: finalists at 2x budget + control
+  episodes: 400   # AMENDMENT 1 (was 500), see `amendments`
   seeds: 10
   checkpoints: 10  # greedy eval on VAL (100-104) at 10 points for learning curves (not for selection)
 
@@ -69,7 +69,7 @@ metrics:
   reported: [wall_collisions, revisit_rate, ticks]
 selection_rule: >
   Stage A: rank the 11 candidate configs by mean ref_return over 4 seeds x 25 selection worlds,
-  keep the top 4. Stage B: train the 4 finalists (+ control) with 10 seeds at 500 episodes; select the
+  keep the top 4. Stage B: train the 4 finalists (+ control) with 10 seeds at 400 episodes; select the
   single finalist with the highest mean ref_return over 10 seeds x 25 selection worlds. Ties: higher
   coverage_gain. The control is not selectable. The choice is written to selection.json before the
   test stage runs and is not revisited whatever the test shows.
@@ -90,3 +90,12 @@ decision:
 negative_results: >
   Reported as-is. All Stage A and Stage B runs are kept in the outputs (no run dropped, no re-seeding).
   No tuning on TEST seeds; the TEST stage runs once.
+
+amendments:
+  - id: 1
+    made: "before Stage A finished and before any Stage A/B result was read"
+    change: >
+      stage_b.episodes 500 -> 400. Reason: the guard test found that 10 seeds x 500 episodes use
+      training worlds 1000..5999, which overlap the held-out selection worlds 5000-5019. With 400
+      episodes training worlds are 1000..4999, disjoint. Nothing else changed (grid, seeds,
+      selection rule, decision criteria, statistics).
