@@ -131,8 +131,8 @@ def wait_grafana(timeout: float = 120) -> None:
 def new_run(run_id: str) -> dict[str, Any]:
     # The live coordinator needs one pose per plan node: use the demo driver config.
     cfg = run_demo.build_run_config("smoke", run_demo.load_plan("smoke"), run_id)
-    # Live mode: the Plan comes from the server-side plan file, selected by name (live-runtime A9).
-    return call("POST", "/v1/runs?plan=smoke", cfg, {"Idempotency-Key": f"key-{run_id}"})
+    # Live mode: the Plan is a server-side file selected by the body's `plan` NAME (A9).
+    return call("POST", "/v1/runs", {**cfg, "plan": "smoke"}, {"Idempotency-Key": f"key-{run_id}"})
 
 
 def wait_status(run_id: str, want: str, timeout: float = 60) -> dict[str, Any]:
@@ -192,7 +192,10 @@ def test_smoke_script_passes_and_run_state_survives_api_restart(stack):
     assert smoke.returncode == 0, smoke.stdout + smoke.stderr
 
     # A run that finishes: stopped explicitly so the test does not depend on tick timing.
-    stop(new_run("run-t10-done"))
+    new_run("run-t10-done")
+    stop(
+        wait_status("run-t10-done", "running")
+    )  # stop with the latest revision, not the create view
     done = wait_status("run-t10-done", "completed")
     assert done["status"] == "completed" and done["completion_reason"] == "stopped"
     before = call("GET", "/v1/runs/run-t10-done/events?limit=500")
