@@ -1,4 +1,5 @@
 """Static invariants of infra/compose/compose.yml via `docker compose config` (no containers)."""
+
 import json
 import os
 import shutil
@@ -13,12 +14,19 @@ pytestmark = pytest.mark.skipif(not shutil.which("docker"), reason="docker not i
 
 def config(*profiles):
     env = {**os.environ, "ARCHIPELAGO_API_TOKEN": "x", "GRAFANA_ADMIN_PASSWORD": "x"}
-    args = ["docker", "compose", "-f", str(ROOT / "infra/compose/compose.yml"),
-            "--env-file", str(ROOT / "infra/compose/.env.example")]
+    args = [
+        "docker",
+        "compose",
+        "-f",
+        str(ROOT / "infra/compose/compose.yml"),
+        "--env-file",
+        str(ROOT / "infra/compose/.env.example"),
+    ]
     for p in profiles:
         args += ["--profile", p]
-    out = subprocess.run(args + ["config", "--format", "json"], env=env, check=True,
-                         capture_output=True, text=True).stdout
+    out = subprocess.run(
+        args + ["config", "--format", "json"], env=env, check=True, capture_output=True, text=True
+    ).stdout
     return json.loads(out)
 
 
