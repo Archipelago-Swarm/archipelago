@@ -2,7 +2,7 @@
 
 > `agents/TASKS.yaml` is the canonical task state (ADR-0003); this table is a hand-written summary from before it existed and may lag. Do not parse it. Use `python agents/controller.py status`.
 
-This is the dependency plan. The A/B runner has integrated T01-T09 and T12; T13 repairs the T06 browser issue before T10-T11. The remote `agent-coordination` plan owns live assignments; task branches own detailed progress/handoffs. Only the integrator updates this summary on main after integration. Do not have every worker edit this file.
+This is the dependency plan. The A/B runner has integrated T01-T09 and T12; T13 repairs the T06 browser issue before T10-T11. `agents/TASKS.yaml`, managed through `agents/controller.py`, owns live assignments; task branches own detailed progress/handoffs. Only the integrator updates this summary on main after integration. Do not have every worker edit this file.
 
 | Task | Planned computer | Depends on | Initial state | Scope |
 |---|---|---|---|---|
