@@ -223,3 +223,20 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update (run 20261010T132342Z, worker A)
+- Only change: rewrote `experiments/REPORT.md`, which was stale (called information_only a stub, old rerun command). It now matches the committed 12x150 evidence/summary.json: rerun command, n, per-mode CIs, negative/null results, and open limits. No code, test or evidence change.
+- Open (unchanged): compute-cap approval; ctde/central_online share one Learner (no real actor/critic); node_failure is a Down stub; no template run report. Nothing committed/pushed.
+
+## Supervisor checkpoint 2026-10-10T13:25:04Z
+
+- Run: 20261010T132342Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T132342Z/T09
+- Base: 2368137d1885098c5b1012ed08e2a31484b4f8aa
+- Round: 1
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
