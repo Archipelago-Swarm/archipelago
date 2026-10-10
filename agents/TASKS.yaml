@@ -1007,13 +1007,13 @@ tasks:
   description: 'TorchLearner per agents/architecture/live-runtime.md section 4 and 7: per-instance policy/target/optimizer/replay/RNG,
     snapshot inference, param-map-v1 import/export shared with the NumPy baseline, transactional generation
     checkpoints, thread control. NumPy learner kept and labeled as regression baseline.'
-  state: QUEUED
+  state: CLAIMED
   priority: 1
-  owner: null
-  machine: null
+  owner: cloud/w1
+  machine: cloud
   branch: agent/T26-pytorch-cpu-learner-with-peer-pr
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:32:10Z'
+  updated_at: '2026-10-10T20:44:10Z'
   dependencies:
   - T07
   blocked_by: []
@@ -1069,6 +1069,12 @@ tasks:
     to: QUEUED
     by: controller
     note: stale claim
+  - at: '2026-10-10T20:44:10Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: cloud/w1
+    note: ''
 - id: T27
   name: Node runtime process (act/feedback/control/peer/telemetry)
   description: 'archipelago_noderuntime: the per-container process of agents/architecture/live-runtime.md
