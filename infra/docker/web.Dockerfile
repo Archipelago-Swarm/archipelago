@@ -1,4 +1,4 @@
-# Static dashboard image. Build context: repo root. NOT RUN: never built (Docker daemon unavailable).
+# Static dashboard image. Build context: repo root. Built OK locally (run 20261010T154653Z).
 FROM node:22-slim AS build
 WORKDIR /repo
 COPY package.json package-lock.json ./
