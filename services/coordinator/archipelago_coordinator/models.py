@@ -47,7 +47,7 @@ class CreateRun(Strict):
 
 class CommandBody(Strict):
     command_id: Id
-    command: Literal["pause", "resume", "step", "stop"]
+    command: Literal["pause", "resume", "step", "stop", "checkpoint"]
     expected_revision: int | None = None
 
 

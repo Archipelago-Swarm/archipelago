@@ -62,10 +62,15 @@ class NodeClient:
                     conns[key] = conn
             conn.timeout = timeout
             try:
-                if conn.sock is None:
+                fresh = conn.sock is None
+                if fresh:
                     conn.connect()
-                    conn.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                conn.sock.settimeout(timeout)
+                sock = conn.sock
+                if sock is None:  # connect() either set it or raised
+                    raise OSError("no socket after connect")
+                if fresh:
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                sock.settimeout(timeout)
                 conn.request(method, u.path.rstrip("/") + path, body=data, headers=headers)
                 resp = conn.getresponse()
                 raw = resp.read(1 << 20)

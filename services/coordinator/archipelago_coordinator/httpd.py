@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import logging
 import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -11,6 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from .service import Coordinator
 
+log = logging.getLogger(__name__)
 MAX_BODY = 1 << 20
 _RUN = r"/v1/runs/([A-Za-z0-9_.:-]{1,128})"
 ROUTES: list[tuple[str, re.Pattern[str], str]] = [
@@ -104,7 +106,11 @@ def make_server(svc: Coordinator, host: str = "127.0.0.1", port: int = 0) -> Thr
                 self._drain()
                 self._send(403, {"error": "coordinator_token_required"})
                 return
-            code, body = self._dispatch(name, mo)
+            try:
+                code, body = self._dispatch(name, mo)
+            except Exception:  # never close the socket silently on an internal error
+                log.exception("unhandled error in %s %s", method, name)
+                code, body = 500, {"error": "internal_error"}
             self._send(code, body)
 
         def _drain(self) -> None:

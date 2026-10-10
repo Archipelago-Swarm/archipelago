@@ -31,7 +31,7 @@ needs the admin token and rejects the normal one with 403). See section 12 of th
 |---|---|
 | `POST /v1/runs` `{run_config, plan}` | 201; 409 if a run is active or the `run_id` was used; 422 on unknown reward id, nodes without URL (or extra URLs), non-distinct/out-of-grid starts, bad windows/kill node; 503 if the simulator is unavailable |
 | `GET /v1/runs/{id}` | status, revision, episode, tick, phase, `fault_phase`, per-node health (`ready/unavailable/killed`), deadline-miss counts, config hash, fault-schedule hash, commit, timing, finished episodes (kind, seed, final state hash, replay manifest) |
-| `POST /v1/runs/{id}/commands` `{command_id, command, expected_revision?}` | `pause/resume/step/stop`; duplicate `command_id` returns the first answer (`duplicate: true`) without re-executing; stale revision or invalid transition is 409 |
+| `POST /v1/runs/{id}/commands` `{command_id, command, expected_revision?}` | `pause/resume/step/stop/checkpoint` (checkpoint, valid while running or paused, forwards a node `checkpoint` control once to every non-killed node and reports `checkpoint.requested/failed`; no lifecycle change); duplicate `command_id` returns the first answer (`duplicate: true`) without re-executing; stale revision or invalid transition is 409 |
 | `GET /v1/runs/{id}/events?after_sequence=&limit=` | canonical `WorldSnapshot` and `MetricSample` records only |
 | `GET /v1/runs/{id}/snapshot` | privileged snapshot, admin token only |
 | `GET /readyz` | 503 unless the real simulator imports and at least one node answers `GET /v1/status` |

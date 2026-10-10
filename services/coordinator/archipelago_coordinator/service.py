@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 import uuid
 from collections.abc import Callable
+from functools import partial
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -20,6 +22,8 @@ from .runner import ACTIVE, Run
 from .settings import Settings
 from .sim import SimulatorUnavailable
 from .spool import EventSpool, safe_name
+
+log = logging.getLogger(__name__)
 
 Json = dict[str, Any]
 
@@ -140,6 +144,9 @@ class Coordinator:
             probe.close()
         except (ValueError, TypeError) as e:
             return str(e)
+        except Exception as e:  # any other adapter failure is a rejected request, not a crash
+            log.exception("adapter probe failed")
+            return f"simulator rejected the run_config: {type(e).__name__}: {e}"
         return None
 
     # ----------------------------------------------------------------- API
@@ -224,9 +231,7 @@ class Coordinator:
             urls.update(cur.plan.node_urls)
         replies = self.client.fanout(
             {
-                n: (
-                    lambda u=u: self.client.call(u, "GET", "/v1/status", None, 1.0, keepalive=False)
-                )
+                n: partial(self.client.call, u, "GET", "/v1/status", None, 1.0, keepalive=False)
                 for n, u in urls.items()
             },
             1.5,

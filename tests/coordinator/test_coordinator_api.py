@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from archipelago_coordinator import Coordinator, Settings
 from archipelago_coordinator.settings import ConfigError
@@ -9,7 +11,7 @@ from archipelago_coordinator.sim import SimulatorUnavailable
 from harness import ADMIN_TOKEN, COORD_TOKEN, NODE_TOKEN, run_body
 
 
-def test_every_route_but_healthz_requires_the_right_token(live, nodes):
+def test_every_route_but_healthz_requires_the_right_token(live: Any, nodes: Any) -> None:
     lv, ns = live(), nodes()
     lv.start_run(run_body("auth", ns, ticks=5))
     lv.wait_done("auth")
@@ -31,7 +33,7 @@ def test_every_route_but_healthz_requires_the_right_token(live, nodes):
     assert lv.call("GET", "/v1/nope", token=COORD_TOKEN)[0] == 404
 
 
-def test_privileged_snapshot_is_admin_only_and_never_reaches_nodes(live, nodes):
+def test_privileged_snapshot_is_admin_only_and_never_reaches_nodes(live: Any, nodes: Any) -> None:
     lv, ns = live(start_paused=True), nodes()
     lv.start_run(run_body("snap", ns, ticks=9))
     lv.wait("snap", lambda s: s["status"] == "paused")
@@ -46,7 +48,7 @@ def test_privileged_snapshot_is_admin_only_and_never_reaches_nodes(live, nodes):
     assert all(n.violations == [] for n in ns.values())
 
 
-def test_commands_are_idempotent_validated_and_revisioned(live, nodes):
+def test_commands_are_idempotent_validated_and_revisioned(live: Any, nodes: Any) -> None:
     lv, ns = live(start_paused=True), nodes()
     lv.start_run(run_body("cmd", ns, ticks=12))
     s = lv.wait("cmd", lambda s: s["status"] == "paused")
@@ -73,7 +75,7 @@ def test_commands_are_idempotent_validated_and_revisioned(live, nodes):
     assert lv.command("cmd", "late", "pause")[0] == 409  # run is no longer active
 
 
-def test_stop_ends_run_and_still_writes_the_partial_replay(live, nodes):
+def test_stop_ends_run_and_still_writes_the_partial_replay(live: Any, nodes: Any) -> None:
     lv, ns = live(start_paused=True), nodes()
     lv.start_run(run_body("stop", ns, ticks=50))
     lv.wait("stop", lambda s: s["status"] == "paused")
@@ -87,26 +89,68 @@ def test_stop_ends_run_and_still_writes_the_partial_replay(live, nodes):
     assert lv.command("stop", "again", "resume")[0] == 409
 
 
-def test_pause_halts_ticks_until_resume(live, nodes):
-    lv, ns = live(tick_interval_s=0.02), nodes()
+def test_pause_halts_ticks_and_step_advances_exactly_one_tick(live: Any, nodes: Any) -> None:
+    lv, ns = live(start_paused=True), nodes()
     lv.start_run(run_body("pause", ns, ticks=200))
-    lv.wait("pause", lambda s: s["tick"] >= 3)
-    assert lv.command("pause", "p", "pause")[0] == 200
-    t = lv.wait("pause", lambda s: s["status"] == "paused")["tick"]
-    import time
-
-    time.sleep(0.3)
-    assert lv.status("pause")["tick"] <= t + 1  # at most the tick already in flight
-    frozen = lv.status("pause")["tick"]
-    time.sleep(0.2)
-    assert lv.status("pause")["tick"] == frozen
+    lv.wait("pause", lambda s: s["status"] == "paused")
+    for want in (1, 2):  # each step releases exactly one tick, then the run is paused again
+        assert lv.command("pause", f"s{want}", "step")[0] == 200
+        lv.wait("pause", lambda s, w=want: s["tick"] == w)
+    assert lv.status("pause")["status"] == "paused"
+    for node in ns.values():
+        assert [a["tick"] for a in node.acts] == [0, 1]
     assert lv.command("pause", "r", "resume")[0] == 200
-    lv.wait("pause", lambda s: s["tick"] > frozen + 2)
-    lv.command("pause", "x", "stop")
+    lv.wait("pause", lambda s: s["tick"] > 5)
+    assert lv.command("pause", "p", "pause")[0] == 200
+    lv.wait("pause", lambda s: s["status"] == "paused")
+    assert lv.command("pause", "x", "stop")[0] == 200
     lv.wait("pause", lambda s: s["status"] == "completed")
 
 
-def test_only_one_active_run_and_run_ids_are_not_reused(live, nodes):
+def test_checkpoint_is_forwarded_once_per_command_to_live_nodes(live: Any, nodes: Any) -> None:
+    lv, ns = live(start_paused=True), nodes()
+    lv.start_run(run_body("ckpt", ns, ticks=10, kill_node={"node_id": "node-3", "tick": 0}))
+    lv.wait("ckpt", lambda s: s["status"] == "paused")
+    code, out = lv.command("ckpt", "c1", "checkpoint")
+    assert code == 200 and out["checkpoint"]["failed"] == []
+    assert out["checkpoint"]["requested"] == ["node-0", "node-1", "node-2", "node-3"]
+    code, dup = lv.command("ckpt", "c1", "checkpoint")
+    assert code == 200 and dup["duplicate"] is True
+    for n, node in ns.items():
+        assert [c["command"] for c in node.controls].count("checkpoint") == 1, n
+    assert lv.command("ckpt", "c1", "pause")[0] == 409  # command_id reused for another command
+    lv.command("ckpt", "go", "resume")
+    lv.wait_done("ckpt")
+    # a finished run rejects further transitions
+    assert lv.command("ckpt", "c2", "checkpoint")[0] == 409
+    assert lv.command("ckpt", "c3", "resume")[0] == 409
+
+
+def test_unexpected_adapter_failure_is_a_rejected_request(live: Any, nodes: Any) -> None:
+    lv, ns = live(), nodes()
+
+    def boom(kwargs: Any) -> Any:
+        raise KeyError("adapter exploded")
+
+    lv.svc.adapter_factory = boom
+    code, out = lv.call("POST", "/v1/runs", run_body("boom", ns, ticks=3))
+    assert code == 422 and "KeyError" in out["detail"]
+    assert lv.call("GET", "/v1/runs/boom")[0] == 404  # nothing was registered
+
+
+def test_unhandled_handler_error_returns_500_and_the_server_keeps_serving(live: Any) -> None:
+    lv = live()
+
+    def broken(run_id: str) -> Any:
+        raise RuntimeError("internal detail must not leak")
+
+    lv.svc.get_run = broken
+    code, out = lv.call("GET", "/v1/runs/any")
+    assert code == 500 and out == {"error": "internal_error"}
+    assert lv.call("GET", "/healthz", token=None)[0] == 200
+
+
+def test_only_one_active_run_and_run_ids_are_not_reused(live: Any, nodes: Any) -> None:
     lv, ns = live(start_paused=True), nodes()
     lv.start_run(run_body("one", ns, ticks=5))
     code, out = lv.call("POST", "/v1/runs", run_body("two", ns, ticks=5))
@@ -141,7 +185,9 @@ def test_only_one_active_run_and_run_ids_are_not_reused(live, nodes):
         lambda b: b["plan"].update(surprise=1),
     ],
 )
-def test_invalid_run_requests_are_rejected_without_starting(live, nodes, mutate):
+def test_invalid_run_requests_are_rejected_without_starting(
+    live: Any, nodes: Any, mutate: Any
+) -> None:
     lv, ns = live(), nodes()
     body = run_body("bad", ns, ticks=5)
     mutate(body)
@@ -151,7 +197,7 @@ def test_invalid_run_requests_are_rejected_without_starting(live, nodes, mutate)
     assert lv.call("POST", "/v1/runs", run_body("ok", ns, ticks=3))[0] == 201  # no stuck run
 
 
-def test_episode_order_modes_and_fault_schedule_distribution(live, nodes):
+def test_episode_order_modes_and_fault_schedule_distribution(live: Any, nodes: Any) -> None:
     lv, ns = live(), nodes()
     sched = [
         {"start_tick": 5, "end_tick": 10, "cut_links": [["node-0", "node-1"], ["node-2", "node-3"]]}
@@ -202,7 +248,7 @@ def test_episode_order_modes_and_fault_schedule_distribution(live, nodes):
     assert [(e["sim_tick"], e["phase"]) for e in fp[:2]] == [(5, "partition"), (10, "recovery")]
 
 
-def test_event_ids_are_unique_and_sequences_page_contiguously(live, nodes):
+def test_event_ids_are_unique_and_sequences_page_contiguously(live: Any, nodes: Any) -> None:
     lv, ns = live(), nodes()
     for rid in ("ev-a", "ev-b"):
         lv.start_run(run_body(rid, ns, ticks=6))
@@ -220,7 +266,7 @@ def test_event_ids_are_unique_and_sequences_page_contiguously(live, nodes):
     assert lv.call("GET", "/v1/runs/missing/events")[0] == 404
 
 
-def test_sequences_and_event_ids_continue_after_coordinator_restart(live, nodes):
+def test_sequences_and_event_ids_continue_after_coordinator_restart(live: Any, nodes: Any) -> None:
     lv, ns = live(start_paused=True), nodes()
     lv.start_run(run_body("rs", ns, ticks=30))
     lv.wait("rs", lambda s: s["status"] == "paused")
@@ -251,7 +297,7 @@ def test_sequences_and_event_ids_continue_after_coordinator_restart(live, nodes)
     assert lv2.call("POST", "/v1/runs", run_body("rs", ns, ticks=3))[0] == 409
 
 
-def test_readyz_needs_simulator_and_a_reachable_node(live, nodes, tmp_path):
+def test_readyz_needs_simulator_and_a_reachable_node(live: Any, nodes: Any, tmp_path: Any) -> None:
     ns = nodes(2)
     lv = live()
     code, body = lv.call("GET", "/readyz")
@@ -269,7 +315,9 @@ def test_readyz_needs_simulator_and_a_reachable_node(live, nodes, tmp_path):
     assert bad.call("GET", "/readyz")[0] == 503
 
 
-def test_simulator_missing_is_a_visible_failure_without_fixture_fallback(tmp_path, nodes):
+def test_simulator_missing_is_a_visible_failure_without_fixture_fallback(
+    tmp_path: Any, nodes: Any
+) -> None:
     cfg = {
         "coordinator_token": COORD_TOKEN,
         "admin_token": ADMIN_TOKEN,
@@ -277,7 +325,7 @@ def test_simulator_missing_is_a_visible_failure_without_fixture_fallback(tmp_pat
         "data_dir": tmp_path / "d",
     }
 
-    def broken():
+    def broken() -> Any:
         return False, "ImportError: no module named archipelago_sim2d"
 
     with pytest.raises(SimulatorUnavailable, match="archipelago_sim2d"):
@@ -305,7 +353,7 @@ def test_simulator_missing_is_a_visible_failure_without_fixture_fallback(tmp_pat
         svc.close()
 
 
-def test_settings_reject_weak_or_shared_tokens(tmp_path):
+def test_settings_reject_weak_or_shared_tokens(tmp_path: Any) -> None:
     base = {"data_dir": tmp_path}
     with pytest.raises(ConfigError):
         Settings("short", ADMIN_TOKEN, NODE_TOKEN, **base).validate()

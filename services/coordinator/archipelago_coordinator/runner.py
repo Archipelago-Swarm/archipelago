@@ -22,6 +22,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import partial
 from itertools import combinations
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,7 @@ from .spool import EventSpool, safe_name
 log = logging.getLogger("archipelago.coordinator")
 
 MAX_CONSECUTIVE_MISSES = 5
+CHECKPOINT_TIMEOUT_S = 10.0  # a node checkpoint writes a generation to disk
 ACTIVE = frozenset({"created", "starting", "running", "paused", "stopping"})
 TERMINAL = frozenset({"completed", "failed", "interrupted"})
 
@@ -190,6 +192,8 @@ class Run:
             elif cmd == "stop" and st in ("starting", "running", "paused"):
                 self.stop_requested = True
                 self.set_status("stopping")
+            elif cmd == "checkpoint" and st in ("running", "paused"):
+                pass  # no lifecycle change; forwarded to the nodes below, once per command_id
             else:
                 return 409, {"error": "invalid_transition", "status": st, "command": cmd}
             resp = {
@@ -202,7 +206,28 @@ class Run:
             self.commands[cid] = (identity, self.revision, resp)
             if len(self.commands) > 2000:
                 self.commands.pop(next(iter(self.commands)))
+            targets = [n for n in self.nodes if self.health[n].state != "killed"]
+        if cmd != "checkpoint":
             return 200, resp
+        # Network I/O stays outside the lock. A duplicate command_id replays the stored response
+        # and never re-sends the checkpoint request to the nodes.
+        res = self.client.fanout(
+            {
+                n: partial(
+                    self._ctl,
+                    n,
+                    {"command": "checkpoint", "run_id": self.run_id},
+                    CHECKPOINT_TIMEOUT_S,
+                )
+                for n in targets
+            },
+            CHECKPOINT_TIMEOUT_S,
+        )
+        resp["checkpoint"] = {
+            "requested": targets,
+            "failed": sorted(n for n, r in res.items() if r is None or not r.ok),
+        }
+        return 200, resp
 
     def start(self) -> None:
         self.thread.start()
@@ -229,7 +254,7 @@ class Run:
             self.run_id,
             tick,
             node,
-            lambda b: MetricSample(**b, metric=name, value=value, unit=unit, phase=phase),  # type: ignore[arg-type]
+            lambda b: MetricSample(**b, metric=name, value=value, unit=unit, phase=phase),
         )
 
     def _allowed_links(self, tick: int) -> list[tuple[str, str]]:
@@ -250,7 +275,7 @@ class Run:
             None,
             lambda b: WorldSnapshot(
                 **b,
-                run_status=self.status,  # type: ignore[arg-type]
+                run_status=self.status,
                 poses=snap.poses,
                 obstacles=snap.obstacles,
                 coverage=snap.coverage,
@@ -350,7 +375,7 @@ class Run:
                 timeout,
             )
 
-        res = self.client.fanout({n: (lambda n=n: one(n)) for n in self.nodes}, timeout)
+        res = self.client.fanout({n: partial(one, n) for n in self.nodes}, timeout)
         reachable = 0
         for n in self.nodes:
             h, r = self.health[n], res[n]
@@ -552,12 +577,11 @@ class Run:
         self._metric("coverage", cov, "fraction", ep.mode, ticks)
         ends = self.client.fanout(
             {
-                n: (
-                    lambda n=n: self._ctl(
-                        n,
-                        {"command": "episode_end", "run_id": self.run_id, "episode": ep.index},
-                        ctl_timeout,
-                    )
+                n: partial(
+                    self._ctl,
+                    n,
+                    {"command": "episode_end", "run_id": self.run_id, "episode": ep.index},
+                    ctl_timeout,
                 )
                 for n in self.nodes
             },

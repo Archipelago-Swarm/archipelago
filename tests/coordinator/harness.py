@@ -43,9 +43,11 @@ class FakeNode:
         policy: Callable[[str, int, int, dict[str, Any]], str] = default_policy,
         stall: Callable[[int, int], float] | None = None,
         corrupt: Callable[[int, int], str | None] | None = None,
+        feedback_stall: Callable[[int, int], float] | None = None,
     ) -> None:
         self.node_id, self.others, self.policy = node_id, others, policy
         self.stall, self.corrupt = stall, corrupt
+        self.feedback_stall = feedback_stall
         self.token = NODE_TOKEN
         self.acts: list[dict[str, Any]] = []
         self.feedback: list[dict[str, Any]] = []
@@ -76,7 +78,8 @@ class FakeNode:
 
             def _body(self) -> dict[str, Any]:
                 n = int(self.headers.get("Content-Length", "0"))
-                return json.loads(self.rfile.read(n) or b"{}")
+                out: dict[str, Any] = json.loads(self.rfile.read(n) or b"{}")
+                return out
 
             def do_GET(self) -> None:
                 if self.headers.get("Authorization") != f"Bearer {fake.token}":
@@ -168,6 +171,9 @@ class FakeNode:
             with self.lock:
                 self.feedback.append(body)
                 self.timeline.append("feedback")
+            if self.feedback_stall:
+                time.sleep(self.feedback_stall(body["episode"], body["tick"]))
+            with self.lock:
                 if self.mode == "eval":
                     return 409, {"error": "eval mode"}
             return 200, {"accepted": True, "replay_size": len(self.feedback), "train_steps": 0}
@@ -207,7 +213,9 @@ class Live:
             target=self.server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True
         ).start()
 
-    def call(self, method: str, path: str, body: Any = None, token: str | None = COORD_TOKEN):
+    def call(
+        self, method: str, path: str, body: Any = None, token: str | None = COORD_TOKEN
+    ) -> tuple[int, dict[str, Any]]:
         return http(method, self.url + path, token, body)
 
     def start_run(self, body: dict[str, Any]) -> dict[str, Any]:
@@ -220,7 +228,9 @@ class Live:
         assert code == 200, (code, out)
         return out
 
-    def wait(self, run_id: str, pred: Callable[[dict[str, Any]], bool], timeout: float = 60):
+    def wait(
+        self, run_id: str, pred: Callable[[dict[str, Any]], bool], timeout: float = 60
+    ) -> dict[str, Any]:
         end = time.monotonic() + timeout
         while time.monotonic() < end:
             s = self.status(run_id)
@@ -236,7 +246,9 @@ class Live:
         assert s["status"] == "completed", s
         return s
 
-    def command(self, run_id: str, cid: str, cmd: str, rev: int | None = None):
+    def command(
+        self, run_id: str, cid: str, cmd: str, rev: int | None = None
+    ) -> tuple[int, dict[str, Any]]:
         body: dict[str, Any] = {"command_id": cid, "command": cmd}
         if rev is not None:
             body["expected_revision"] = rev
