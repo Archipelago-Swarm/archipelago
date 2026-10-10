@@ -306,3 +306,21 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update (run 20261010T132342Z, round 5)
+- Verified only: `pytest tests/experiments -q` -> 12 passed. No code changes this round; independent review was unavailable, so no new feedback to act on.
+- Remaining gaps all need work outside reserved paths or integrator decisions: real CTDE actor/critic and real information sharing (packages/learning), real node loss (env), compute-cap approval for a larger sweep, commit/push.
+- Note: manifest `rerun` uses `:` as PYTHONPATH separator (POSIX); on Windows use `;`.
+
+## Supervisor checkpoint 2026-10-10T13:54:26Z
+
+- Run: 20261010T132342Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T132342Z/T09
+- Base: 2368137d1885098c5b1012ed08e2a31484b4f8aa
+- Round: 6
+- State: blocked
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
