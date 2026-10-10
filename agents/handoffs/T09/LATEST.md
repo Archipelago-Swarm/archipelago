@@ -193,3 +193,20 @@
 - Independent review: not run
 - Next issue: External checks failed (exit 1); inspect local check log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Update (run 20261010T130137Z, round 6 fix, worker A)
+- External check failure cause: `ruff format --check` flagged `tests/experiments/test_run.py`. Ran `ruff format`; ruff check clean, `pytest tests/experiments` -> 10 passed. No logic changes.
+- Open items unchanged from the previous update. Nothing committed/pushed by worker.
+
+## Supervisor checkpoint 2026-10-10T13:19:50Z
+
+- Run: 20261010T130137Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T130137Z/T09
+- Base: 110279e3754d67377172ecbd9619fc3ef364ea61
+- Round: 7
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
