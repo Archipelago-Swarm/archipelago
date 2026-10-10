@@ -259,6 +259,93 @@ def test_stalled_heartbeat_is_not_reported_alive(
     assert lch.liveness("A")[0] == "DEAD"
 
 
+def claimed_clone(
+    origin: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, body: str = ""
+) -> tuple[Path, Path]:
+    """A clone whose T01 is claimed by machine A, a fake claude on PATH, and its log file."""
+    a = clone(origin, tmp_path / "a")
+    use(monkeypatch, a)
+    log = tmp_path / "claude.log"
+    fake_claude(tmp_path / "bin", log, body=body)
+    monkeypatch.setenv("PATH", f"{tmp_path / 'bin'}{os.pathsep}{os.environ['PATH']}")
+    assert lch.tick("A", "main", 1, [])[0] == "claimed"
+    return a, log
+
+
+def test_session_runs_in_a_dedicated_worktree_not_the_shared_checkout(
+    origin: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    where = tmp_path / "where.log"
+    body = f"pwd >> {where}; git rev-parse --abbrev-ref HEAD >> {where}"
+    a, _ = claimed_clone(origin, tmp_path, monkeypatch, body=body)
+    for _ in range(2):  # the second tick reuses the same worktree
+        assert lch.tick("A", "main", 1, [])[0] == "no_progress"
+    cwd, branch = where.read_text().split("\n")[:2]
+    expected = a / ".agent-runtime" / "worktrees" / "A-T01"
+    assert Path(cwd).resolve() == expected.resolve()
+    assert branch == "agent/T01-task-t01"
+    assert len(where.read_text().split()) == 4
+    assert (
+        git(a, "rev-parse", "--abbrev-ref", "HEAD").strip() == "main"
+    )  # shared checkout untouched
+    assert git(a, "worktree", "list").count("worktrees/A-T01") == 1
+
+
+def test_denied_tools_block_pushes_to_main_merges_and_destructive_git(
+    origin: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, log = claimed_clone(origin, tmp_path, monkeypatch)
+    lch.tick("A", "main", 1, [])
+    argv = log.read_text()
+    for pattern in (
+        "git push --force*",
+        "git push --force-with-lease*",
+        "git push origin main*",
+        "git push origin HEAD:main*",
+        "git push origin HEAD*",
+        "git push * *:main*",
+        "git push --delete*",
+        "git -C * push*",
+        "git reset --hard*",
+        "git checkout main*",
+        "git merge*",
+        "git branch -D*",
+        "git clean*",
+    ):
+        assert f"Bash({pattern})" in argv
+
+
+def test_tick_refuses_a_dirty_shared_checkout_without_starting_a_session(
+    origin: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    a, log = claimed_clone(origin, tmp_path, monkeypatch)
+    (a / "stray.txt").write_text("untracked", encoding="utf-8")
+    status, detail = lch.tick("A", "main", 1, [])
+    assert status == "error" and "shared checkout" in detail and "stray.txt" in detail
+    (a / "stray.txt").unlink()
+    (a / "agents" / "OWNERSHIP.yaml").write_text("roles: {}\n", encoding="utf-8")  # modified
+    assert lch.tick("A", "main", 1, [])[0] == "error"
+    assert not log.exists()  # claude never ran
+
+
+def test_tick_refuses_a_dirty_worktree_and_a_worktree_on_main(
+    origin: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    a, log = claimed_clone(origin, tmp_path, monkeypatch)
+    assert lch.tick("A", "main", 1, [])[0] == "no_progress"  # creates the worktree
+    tree = a / ".agent-runtime" / "worktrees" / "A-T01"
+    runs = log.read_text().count("session") + log.read_text().count("WORKER")
+    (tree / "leftover.txt").write_text("untracked", encoding="utf-8")
+    status, detail = lch.tick("A", "main", 1, [])
+    assert status == "error" and "session worktree" in detail
+    (tree / "leftover.txt").unlink()
+    git(a, "checkout", "-q", "-b", "elsewhere")  # free main so the worktree could take it
+    git(tree, "checkout", "-q", "main")
+    status, detail = lch.tick("A", "main", 1, [])
+    assert status == "error" and "is on main" in detail
+    assert log.read_text().count("session") + log.read_text().count("WORKER") == runs
+
+
 def test_slots_run_parallel_workers_and_leave_review_to_the_slotless_tick(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

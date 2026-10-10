@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 import hmac
 import json
+import logging
 import os
+import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -26,9 +28,13 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
+from .live import CoordinatorClient, LiveBackend, LiveConfigError, Rejected
 from .persistence import Persister
 from .runs import AdapterFactory, Conflict, NotFound, Run, RunManager, Subscriber
 from .settings import Settings
+from .telemetry import TelemetryIngest, make_router
+
+log = logging.getLogger("archipelago.api")
 
 COOKIE = "archipelago_session"
 
@@ -57,23 +63,55 @@ class LoginBody(BaseModel):
     token: str
 
 
+def no_local_adapter(_: RunConfig) -> SimulatorAdapter:
+    """Live mode owns no simulator: starting a local adapter is a bug, never a fallback."""
+    raise RuntimeError("live mode has no local adapter")
+
+
 def create_app(
-    settings: Settings, factory: AdapterFactory, persister: Persister | None = None
+    settings: Settings,
+    factory: AdapterFactory,
+    persister: Persister | None = None,
+    coordinator: CoordinatorClient | None = None,
 ) -> FastAPI:
+    live_mode = settings.adapter == "live"
+    if live_mode:
+        factory = no_local_adapter  # never FixtureAdapter, whatever the caller passed
+    elif settings.adapter not in ("fixture", "sim2d"):
+        raise LiveConfigError(f"unknown ARCHIPELAGO_ADAPTER {settings.adapter!r}")
     mgr = RunManager(settings, factory)
     mgr.sink = persister
+    ingest: TelemetryIngest | None = None
+    backend: LiveBackend | None = None
+    if settings.telemetry_token or live_mode:
+        # In live mode coordinator events use the same admission path even when node
+        # telemetry is disabled (no token: the ingest route is simply not mounted).
+        ingest = TelemetryIngest(mgr, settings.telemetry_token or secrets.token_urlsafe(32))
+    if live_mode:
+        assert ingest is not None
+        backend = LiveBackend(settings, mgr, ingest, coordinator)
+        if not settings.telemetry_token:
+            log.warning("TELEMETRY_TOKEN not set: node telemetry ingest is disabled")
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         if persister is not None:
             persister.start()
+        if ingest is not None:
+            await asyncio.to_thread(ingest.restore_dedupe)
+            ingest.start()
         yield
         await mgr.shutdown()
+        if ingest is not None:
+            await ingest.stop()
         if persister is not None:
             await persister.stop()
 
     app = FastAPI(title="Archipelago API", lifespan=lifespan)
     app.state.manager = mgr
+    app.state.live = backend
+    if ingest is not None and settings.telemetry_token:
+        app.include_router(make_router(mgr, ingest=ingest))
 
     def token_ok(candidate: str | None) -> bool:
         return candidate is not None and hmac.compare_digest(
@@ -95,12 +133,30 @@ def create_app(
     async def _missing(_: Request, e: NotFound) -> JSONResponse:
         return JSONResponse({"detail": "run not found"}, status_code=404)
 
+    @app.exception_handler(Rejected)
+    async def _rejected(_: Request, e: Rejected) -> JSONResponse:
+        return JSONResponse({"detail": e.detail}, status_code=e.status)
+
     @app.get("/healthz")
     async def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
     @app.get("/readyz")
     async def readyz() -> JSONResponse:
+        if backend is not None:
+            # live: coordinator reachable and a node ready; never depends on run activity
+            ok, detail = await backend.readiness()
+            store = settings.data_dir.is_dir()
+            ready = ok and store
+            return JSONResponse(
+                {
+                    "ready": ready,
+                    "mode": "live",
+                    "active_runs": mgr.active_count(),
+                    "dependencies": {"run_store": "ok" if store else "down", **detail},
+                },
+                status_code=200 if ready else 503,
+            )
         active, store_ok = mgr.active_count(), settings.data_dir.is_dir()
         ready = active < settings.max_active_runs and store_ok
         return JSONResponse(
@@ -123,17 +179,40 @@ def create_app(
         )
         return {"status": "ok"}
 
-    @app.post("/v1/runs", dependencies=[Depends(auth)])
-    async def create_run(
-        config: RunConfig,
-        response: Response,
-        idempotency_key: Annotated[str | None, Header()] = None,
-    ) -> dict[str, Any]:
-        if not idempotency_key or len(idempotency_key) > 128:
-            raise HTTPException(400, "Idempotency-Key header required (<=128 chars)")
-        run, created = mgr.create(idempotency_key, config)
-        response.status_code = 201 if created else 200
-        return run.view()
+    if backend is None:
+
+        @app.post("/v1/runs", dependencies=[Depends(auth)])
+        async def create_run(
+            config: RunConfig,
+            response: Response,
+            idempotency_key: Annotated[str | None, Header()] = None,
+        ) -> dict[str, Any]:
+            if not idempotency_key or len(idempotency_key) > 128:
+                raise HTTPException(400, "Idempotency-Key header required (<=128 chars)")
+            run, created = mgr.create(idempotency_key, config)
+            response.status_code = 201 if created else 200
+            return run.view()
+
+    else:
+        live = backend
+
+        @app.post("/v1/runs", dependencies=[Depends(auth)])
+        async def create_live_run(
+            request: Request,
+            response: Response,
+            idempotency_key: Annotated[str | None, Header()] = None,
+        ) -> dict[str, Any]:
+            """Run config plus an optional plan NAME; node URLs and plan bodies are server-side."""
+            if not idempotency_key or len(idempotency_key) > 128:
+                raise HTTPException(400, "Idempotency-Key header required (<=128 chars)")
+            try:
+                body = await request.json()
+            except ValueError:
+                raise Rejected(400, "body must be JSON") from None
+            config, plan_name = live.resolve_plan(body)
+            run, created = await live.create(idempotency_key, config, plan_name)
+            response.status_code = 201 if created else 200
+            return run.view()
 
     @app.get("/v1/runs/{run_id}", dependencies=[Depends(auth)])
     async def get_run(run_id: str) -> dict[str, Any]:
@@ -141,6 +220,10 @@ def create_app(
 
     @app.post("/v1/runs/{run_id}/commands", dependencies=[Depends(auth)])
     async def command(run_id: str, body: CommandBody) -> dict[str, Any]:
+        if backend is not None:
+            return await backend.command(
+                mgr.get(run_id), body.command, body.command_id, body.expected_revision
+            )
         return mgr.command(mgr.get(run_id), body.command, body.command_id, body.expected_revision)
 
     @app.get("/v1/runs/{run_id}/events", dependencies=[Depends(auth)])
@@ -202,7 +285,14 @@ def sim2d_factory(_: Path | None = None) -> AdapterFactory:
 
 
 def create_app_from_env() -> FastAPI:
-    if os.environ.get("ARCHIPELAGO_ADAPTER") == "sim2d":
-        return create_app(Settings.from_env(), sim2d_factory(), Persister.from_env())
+    settings = Settings.from_env()
+    if settings.adapter == "live":
+        # raises LiveConfigError at startup when the coordinator package, URL, tokens or plan
+        # file are unusable; there is no fixture fallback
+        return create_app(settings, no_local_adapter, Persister.from_env())
+    if settings.adapter == "sim2d":
+        return create_app(settings, sim2d_factory(), Persister.from_env())
+    if settings.adapter != "fixture":
+        raise LiveConfigError(f"unknown ARCHIPELAGO_ADAPTER {settings.adapter!r}")
     fixtures = Path(os.environ.get("ARCHIPELAGO_FIXTURE_DIR", "packages/contracts/fixtures/good"))
-    return create_app(Settings.from_env(), fixture_factory(fixtures), Persister.from_env())
+    return create_app(settings, fixture_factory(fixtures), Persister.from_env())

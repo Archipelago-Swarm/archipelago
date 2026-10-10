@@ -1,0 +1,86 @@
+task: T22
+status: FAIL
+verified_commit: 41c334f
+verifier: A/independent-verifier-agent
+checked_at: '2026-10-10T19:55:48Z'
+commands:
+- command: make check-fast
+  expected_exit_code: 0
+  actual_exit_code: 0
+- command: SKIP_DOCKER=1 make check-integration
+  expected_exit_code: 0
+  actual_exit_code: 0
+- command: uv run python agents/controller.py validate
+  expected_exit_code: 0
+  actual_exit_code: 0
+failures:
+- type: contract_violation
+  file: agents/controller.py
+  kind: test_failure
+  description: 'SAFETY-CRITICAL, agents/launch.py:242-253 and 268-330: run_session
+    starts `claude -p` with cwd=ROOT, the shared checkout, and tick never checks that
+    the checkout is clean or which branch it is on. Only `start --runner loop` checks'
+- type: contract_violation
+  file: agents/controller.py
+  kind: test_failure
+  description: 'SAFETY-CRITICAL, agents/launch.py:42-50: the unattended session runs
+    with --permission-mode auto and --permission-prompts none. DENIED lists only `git
+    push --force*`, `git push -f*` and `git reset --hard*`. It does not deny `git
+    p'
+- type: contract_violation
+  file: agents/controller.py
+  kind: test_failure
+  description: 'agents/controller.py:56-65 and 594-609: start/review/requeue/record-failure/block
+    (:595-651) never check that --by or --owner matches task[''owner''], and CLAIMED/ACTIVE
+    tasks have no per-caller check. Any machine or agent can move,'
+- type: contract_violation
+  file: agents/controller.py
+  kind: test_failure
+  description: 'agents/controller.py:703: the PASS check compares actual_exit_code
+    to the verdict''s own expected_exit_code, not to the expected_exit_code declared
+    in the ledger acceptance.commands (:707 compares only command strings). A verdict
+    c'
+- type: contract_violation
+  file: agents/controller.py
+  kind: test_failure
+  description: 'agents/controller.py:695-701: the commit check is skipped when task[''last_good_commit'']
+    is null. It also uses a bidirectional prefix match, and the schema allows verified_commit
+    as short as 7 hex characters. This is weak but not e'
+- type: contract_violation
+  file: agents/controller.py
+  kind: test_failure
+  description: 'agents/controller.py:750-765: cmd_complete accepts any --commit string
+    and stores it as last_good_commit. It does not check that the commit exists, is
+    a merge commit, is an ancestor of the integration branch, or contains the verif'
+- type: contract_violation
+  file: agents/controller.py
+  kind: test_failure
+  description: 'agents/controller.py:335-338 and agents/PROTOCOL.md:60: the retry
+    rule blocks after the same signature twice (same_failure_signature: 2 in the ledger).
+    agents/CONTRACT.md:48 says three unsuccessful attempts at the same root cause.'
+- type: contract_violation
+  file: agents/controller.py
+  kind: test_failure
+  description: 'agents/controller.py:654-668: unblock resets attempts to {} and blocked_by
+    to [], with no check that human:* blockers were resolved and no cap on cycles.
+    A launcher or agent can loop BLOCKED->QUEUED->retry without end, defeating t'
+required_actions:
+- Have someone with GitHub access confirm that the first ci.yml run passed both the
+  fast and bootstrap jobs, then record it. Until then, treat the T22 assertion as
+  unverified.
+- Run `claude -p` from a dedicated worktree, or fail the tick when the checkout is
+  dirty or on main (launch.py:242-253, tick and cmd_tick). Also check untracked files.
+- Add hard guards for pushes to main, merges on main and branch deletion in DENIED
+  or via hooks, instead of relying on prompt text. Confirm the real claude CLI flags,
+  including --permission-prompts.
+- Make verify compare against the ledger's expected_exit_code, not the verdict's own
+  (controller.py:703). Require every command in the verdict to match a declared command,
+  and require assertion results.
+- 'Enforce ownership and roles: --by must equal task[''owner''] for start, review,
+  record-failure and block. Gate verify to the verifier role and require verifier
+  != worker machine.'
+- Validate that complete --commit exists and is an ancestor of the integration branch
+  and contains the verified commit.
+- Align same_failure_signature with CONTRACT.md (three attempts, or amend CONTRACT).
+  Cap unblock cycles or stop it resetting attempts. Clear machine and branch handling
+  on requeue so a task can be re-claimed.

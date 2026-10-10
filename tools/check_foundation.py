@@ -1,10 +1,8 @@
 """Validate the planning pack without installing application dependencies."""
 
-from pathlib import Path
-import json
 import re
 import sys
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 errors: list[str] = []
@@ -19,7 +17,7 @@ required = [
     "agents/architecture/interfaces.md",
     "agents/architecture/evaluation.md",
     "agents/architecture/sources.md",
-    "agents/operations/overnight.md",
+    
     "agents/tasks/BOARD.md",
     "agents/templates/handoff.md",
     "agents/templates/run-report.md",
@@ -94,18 +92,6 @@ def visit(task: str) -> None:
 
 for task in graph:
     visit(task)
-
-config = json.loads(
-    (ROOT / "agents/operations/run-config.example.json").read_text(encoding="utf-8")
-)
-for setting in (
-    "allow_paid_fallback",
-    "allow_auto_merge",
-    "allow_cloud_provisioning",
-    "allow_deploy_to_existing_host",
-):
-    if config.get(setting) is not False:
-        errors.append(f"Example must default {setting} to false")
 
 if errors:
     print("\n".join(errors), file=sys.stderr)

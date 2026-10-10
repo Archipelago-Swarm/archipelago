@@ -1,6 +1,14 @@
 # Integrated stack. Profile "local" adds TimescaleDB; production (no profile) uses TigerData over TLS.
 #   docker compose -f infra/compose/compose.yml --env-file infra/compose/.env --profile local config -q
-# NOT RUN: validated statically only (YAML parse); `docker compose config` needs Docker.
+# `docker compose config` needs no daemon (tests/infra/test_compose.py runs it); `make demo` runs the stack
+# with the dev-only values in infra/compose/local.env.
+#
+# Networks (agents/architecture/live-runtime.md A12). All but edge/egress are internal (no egress):
+#   peers   node <-> node only
+#   control coordinator <-> nodes, API -> coordinator
+#   ingest  nodes -> API telemetry route
+#   core    api, web, proxy, grafana, db     (nodes are NEVER on core)
+# Only the proxy publishes host ports. Secrets come from the environment: required, no defaults.
 name: archipelago
 
 x-hardening: &hardening
@@ -12,10 +20,12 @@ x-hardening: &hardening
   logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
 
 networks:
-  edge: {}                  # proxy <-> internet only
-  core: { internal: true }  # no egress, no published ports
-  egress: {}                # API and Grafana reach TigerData over TLS
-  peers: { internal: true } # node-to-node HTTP only
+  edge: {}                    # proxy <-> internet only
+  core: { internal: true }    # no egress, no published ports
+  egress: {}                  # API and Grafana reach TigerData over TLS
+  peers: { internal: true }   # node-to-node HTTP only
+  control: { internal: true } # coordinator <-> nodes; API -> coordinator
+  ingest: { internal: true }  # nodes -> API telemetry
 
 volumes:
   api-data: {}
@@ -23,16 +33,43 @@ volumes:
   caddy-data: {}
   caddy-config: {}
   pg-data: {}
+  coordinator-data: {}
   node-01: {}
   node-02: {}
   node-03: {}
   node-04: {}
 
+# Shared node environment. Tokens are required (compose refuses to start without them).
+x-node-env: &node-env
+  NODE_IDS: node-01,node-02,node-03,node-04
+  PEER_URLS: node-01=http://node-01:9000,node-02=http://node-02:9000,node-03=http://node-03:9000,node-04=http://node-04:9000
+  BIND_HOST: 0.0.0.0
+  CONTROL_PORT: "8080"
+  PEER_PORT: "9000"
+  NODE_CHECKPOINT_DIR: /node-data
+  NODE_CONTROL_TOKEN: ${NODE_CONTROL_TOKEN:?set in .env}
+  PEER_TOKEN: ${PEER_TOKEN:?set in .env}
+  TELEMETRY_TOKEN: ${TELEMETRY_TOKEN:?set in .env}
+  TELEMETRY_URL: http://api:8000/v1/telemetry
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  TORCH_THREADS: "1"
+  SEED: ${DEMO_SEED:-0}
+  # Node-private validation world: must equal the coordinator's world (WORLD_* below and
+  # COORDINATOR_WORLD_KWARGS on the coordinator). battery_scale >= 4 is required for the 900-tick demo (A13).
+  WORLD_BATTERY_SCALE: ${DEMO_BATTERY_SCALE:-4}
+  WORLD_MAX_TICKS: ${DEMO_MAX_TICKS:-900}
+  # n_targets 0: an episode ends early once all targets are found, which would end the run before the cut (tick 300)
+  # and rejoin (tick 600). With 0 targets the episode lasts until max_ticks or battery exhaustion (A13); the
+  # return is exploration reward only. Raise DEMO_N_TARGETS only after measuring that episodes still reach tick 600.
+  WORLD_N_TARGETS: ${DEMO_N_TARGETS:-0}
+  GIT_COMMIT: ${ARCHIPELAGO_COMMIT:-unknown}
+
 services:
   proxy:
     <<: *hardening
     image: caddy:2.8-alpine
-    ports: ["80:80", "443:443"]
+    ports: ["${PROXY_HTTP_PORT:-80}:80", "${PROXY_HTTPS_PORT:-443}:443"]
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
       ACME_EMAIL: ${ACME_EMAIL:-admin@example.invalid}
@@ -63,9 +100,45 @@ services:
       ARCHIPELAGO_ALLOWED_ORIGINS: ${ARCHIPELAGO_ALLOWED_ORIGINS:-}
       ARCHIPELAGO_COOKIE_SECURE: ${ARCHIPELAGO_COOKIE_SECURE:-true}
       TIGERDATA_URL: ${TIGERDATA_URL:-}
-    volumes: ["api-data:/data"]
-    networks: [core, egress]
+      # Live mode: the API is a client of the coordinator and never falls back to fixtures (section 9).
+      ARCHIPELAGO_ADAPTER: live
+      COORDINATOR_URL: http://coordinator:8800
+      COORDINATOR_TOKEN: ${COORDINATOR_TOKEN:?set in .env}
+      COORDINATOR_PLAN_FILE: /plans/${DEMO_PLAN:-smoke}.json
+      TELEMETRY_TOKEN: ${TELEMETRY_TOKEN:?set in .env}
+    volumes:
+      - api-data:/data
+      - ../demo/plans:/plans:ro
+    networks: [core, egress, control, ingest]
+    depends_on:
+      coordinator: { condition: service_healthy }
     mem_limit: 512m
+    cpus: 1.0
+
+  coordinator:
+    <<: *hardening
+    image: archipelago/coordinator:${IMAGE_TAG:-dev}
+    build: { context: ../.., dockerfile: infra/docker/coordinator.Dockerfile }
+    environment:
+      ARCHIPELAGO_ENV: production
+      COORDINATOR_TOKEN: ${COORDINATOR_TOKEN:?set in .env}
+      COORDINATOR_ADMIN_TOKEN: ${COORDINATOR_ADMIN_TOKEN:?set in .env}
+      NODE_CONTROL_TOKEN: ${NODE_CONTROL_TOKEN:?set in .env}
+      COORDINATOR_DATA_DIR: /data/coordinator
+      COORDINATOR_NODE_URLS: node-01=http://node-01:8080,node-02=http://node-02:8080,node-03=http://node-03:8080,node-04=http://node-04:8080
+      COORDINATOR_WORLD_KWARGS: '{"n_targets": ${DEMO_N_TARGETS:-0}}'
+      COORDINATOR_PLAN_FILE: /plans/${DEMO_PLAN:-smoke}.json
+      ARCHIPELAGO_COMMIT: ${ARCHIPELAGO_COMMIT:-unknown}
+    volumes:
+      - coordinator-data:/data/coordinator
+      - ../demo/plans:/plans:ro
+    networks: [control]
+    depends_on:
+      node-01: { condition: service_healthy }
+      node-02: { condition: service_healthy }
+      node-03: { condition: service_healthy }
+      node-04: { condition: service_healthy }
+    mem_limit: 256m  # provisional: not yet measured (see infra/demo/measure_mem.sh)
     cpus: 1.0
 
   grafana:
@@ -103,25 +176,28 @@ services:
     mem_limit: 512m
     cpus: 1.0
 
-  # Four isolated nodes: own volume and env; no access to api volume, the DB or other volumes.
+  # Four isolated nodes: own volume and env; no access to the api volume, the DB or other volumes.
+  # PROVISIONAL limits: mem_limit 1g until measured. The CUDA-wheel peak was ~686 MiB; the CPU-wheel image
+  # has not been measured (infra/demo/measure_mem.sh). Rule (A16): limit = 1.5 x peak training RSS, rounded
+  # up to 64 MiB. Replace 1g with the measured value once infra/demo/measure_mem.sh has been run.
   node-01: &node
     <<: *hardening
     image: archipelago/node:${IMAGE_TAG:-dev}
     build: { context: ../.., dockerfile: infra/docker/node.Dockerfile }
-    environment: { NODE_ID: node-01, PEER_PORT: "9000", OMP_NUM_THREADS: "1" }
+    environment: { <<: *node-env, NODE_ID: node-01 }
     volumes: ["node-01:/node-data"]
-    networks: [peers]
-    mem_limit: 512m
+    networks: [peers, control, ingest]
+    mem_limit: 1g
     cpus: 0.5
   node-02:
     <<: *node
-    environment: { NODE_ID: node-02, PEER_PORT: "9000", OMP_NUM_THREADS: "1" }
+    environment: { <<: *node-env, NODE_ID: node-02 }
     volumes: ["node-02:/node-data"]
   node-03:
     <<: *node
-    environment: { NODE_ID: node-03, PEER_PORT: "9000", OMP_NUM_THREADS: "1" }
+    environment: { <<: *node-env, NODE_ID: node-03 }
     volumes: ["node-03:/node-data"]
   node-04:
     <<: *node
-    environment: { NODE_ID: node-04, PEER_PORT: "9000", OMP_NUM_THREADS: "1" }
+    environment: { <<: *node-env, NODE_ID: node-04 }
     volumes: ["node-04:/node-data"]

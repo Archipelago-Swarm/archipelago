@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime, timedelta
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
 
 from archipelago_contracts.adapter import SimulatorCapabilities, StepResult
@@ -17,9 +18,9 @@ from archipelago_contracts.models import (
     Topology,
     WorldSnapshot,
 )
-from archipelago_sim.env import GridWorld
+from archipelago_sim.env import WALL, GridWorld
 
-EPOCH = datetime(2026, 1, 1, tzinfo=UTC)  # deterministic stamps keep replays byte-identical
+EPOCH = datetime(2026, 1, 1, tzinfo=UTC)  # fixture timestamps for hand-built actions (smoke)
 
 
 class Sim2DAdapter:
@@ -29,21 +30,23 @@ class Sim2DAdapter:
         self.replay: list[dict] = []
         self._seq = 0
         self._run_id = ""
-        self._kills: list[str] = []  # applied since the last step; recorded so replay repeats them
+        self._tick_base = 0
+        self._vanished_known: dict[tuple[int, int], int] = {}  # cells known to killed drones
 
     def capabilities(self) -> SimulatorCapabilities:
         return SimulatorCapabilities("sim2d", "2d", "act-v0")
 
     def _meta(self, node: str | None, kind: str) -> dict:
         self._seq += 1
-        t = self.world.tick  # type: ignore[union-attr]
+        # sim_tick is simulation time (global across episodes); emitted_at_utc is wall time and
+        # the two are never mixed. Ids are unique because every episode has its own run_id suffix.
         return {
             "schema_version": SCHEMA_VERSION,
             "event_id": f"{kind}-{self._seq}",
             "run_id": self._run_id,
             "source_node_id": node,
-            "sim_tick": t,
-            "emitted_at_utc": EPOCH + timedelta(seconds=t),
+            "sim_tick": self._tick_base + self.world.tick,  # type: ignore[union-attr]
+            "emitted_at_utc": datetime.now(UTC),
             "sequence": self._seq,
         }
 
@@ -58,7 +61,9 @@ class Sim2DAdapter:
             visible_markers=[(a + 0.5, b + 0.5) for a, b in o["visible_markers"]],
         )
 
-    def reset(self, config: RunConfig) -> dict[str, Observation]:
+    def reset(self, config: RunConfig, episode: int = 0) -> dict[str, Observation]:
+        """Start an episode. `episode` offsets sim_tick so it is the global index
+        `episode * max_ticks + tick`; give each episode its own run_id suffix and env seed."""
         nodes = sorted(n.node_id for n in config.nodes)
         self.world = GridWorld(
             n_agents=len(nodes),
@@ -67,7 +72,8 @@ class Sim2DAdapter:
         )
         self.world.possible_agents = nodes  # contract node ids replace default names
         self._run_id, self._seq, self.replay, self._cfg = config.run_id, 0, [], config
-        self._kills = []
+        self._tick_base = episode * config.budgets.max_ticks
+        self._vanished_known = {}
         starts = {n.node_id: (int(n.start_pose.x), int(n.start_pose.y)) for n in config.nodes}
         if len(set(starts.values())) != len(starts):
             raise ValueError("node start poses must be distinct")
@@ -78,32 +84,16 @@ class Sim2DAdapter:
         raw = self.world.reset(seed=config.seeds["env"], starts=starts)
         return {n: self._obs(n, o) for n, o in raw.items()}
 
-    def kill_node(self, node: str) -> None:
-        """Remove a drone from the world (it stays as a wreck that blocks its cell).
-
-        This models a lost vehicle, distinct from restarting the process that controls it.
-        """
-        w = self.world
-        if w is None:
-            raise RuntimeError("reset() first")
-        if node not in w.agents:
-            raise ValueError(f"{node} is not active in this episode")
-        w.agents.remove(node)
-        w.events.append({"tick": w.tick, "node": node, "event": "node_killed"})
-        self._kills.append(node)
-
     def step(self, actions: dict[str, Action]) -> StepResult:
         w = self.world
         if w is None:
             raise RuntimeError("reset() first")
         cmds = {n: a.command for n, a in actions.items() if n in w.agents}
         n_events = len(w.events)
-        kills, self._kills = self._kills, []
         obs, rew, term, trunc, info = w.step(cmds)
         self.replay.append(
             {
                 "tick": w.tick,
-                **({"kills": kills} if kills else {}),
                 "actions": {n: cmds.get(n) for n in w.possible_agents},
                 "events": w.events[n_events:],
                 "state_hash": w.trace_hash(),
@@ -111,17 +101,65 @@ class Sim2DAdapter:
         )
         return StepResult({n: self._obs(n, o) for n, o in obs.items()}, rew, term, trunc, info)
 
-    def snapshot(self) -> WorldSnapshot:
+    def kill(self, node: str) -> None:
+        """Remove a live drone from the world entirely: it vanishes (no body, no wreck).
+
+        Same semantics as `archipelago_learning.rollout.reset(drop=...)` (the drone leaves
+        `drones` and `agents`, so it neither acts, collides nor blocks a cell, and is absent from
+        snapshot poses), but usable mid-episode for the coordinator's kill_node scenario. It differs
+        from battery death, where the wreck stays in `drones` and blocks its cell. What the drone
+        had discovered stays publicly discovered. The removal is recorded in the replay (record
+        with a `removed` key and no `actions`) so re-execution reproduces it.
+        """
+        w = self.world
+        if w is None:
+            raise RuntimeError("reset() first")
+        if node not in w.agents:
+            raise ValueError(f"{node!r} is not a live node")
+        self._vanished_known.update(w.drones[node].known)
+        del w.drones[node]
+        w.agents.remove(node)
+        self.replay.append({"tick": w.tick, "removed": node, "state_hash": w.trace_hash()})
+
+    def discovered_obstacles(self) -> list[tuple[int, int]]:
+        """Obstacles in the union of the nodes' discovered cells (what the fleet itself knows)."""
+        w = self.world
+        known = dict(self._vanished_known)
+        for d in w.drones.values():  # type: ignore[union-attr]
+            known.update(d.known)
+        return sorted(c for c, v in known.items() if v == WALL and c in w.obstacles)  # type: ignore[union-attr]
+
+    def _snapshot(
+        self, obstacles: list[tuple[int, int]], links: Iterable[tuple[str, str]]
+    ) -> WorldSnapshot:
         s = self.world.world_state()  # type: ignore[union-attr]
         poses = {n: Pose(x=p[0] + 0.5, y=p[1] + 0.5) for n, p in s["poses"].items()}
         return WorldSnapshot(
             **self._meta(None, "snap"),
             run_status="running" if self.world.agents else "completed",  # type: ignore[union-attr]
             poses=poses,
-            obstacles=[tuple(o) for o in s["obstacles"]],
+            obstacles=obstacles,
             coverage=s["coverage"],
-            topology=Topology(links=[]),
+            topology=Topology(links=list(links)),
         )
+
+    def snapshot(self, links: Iterable[tuple[str, str]] = ()) -> WorldSnapshot:
+        """Privileged: every obstacle, hidden ones included. Never publish or send to a node."""
+        s = self.world.world_state()  # type: ignore[union-attr]
+        return self._snapshot([tuple(o) for o in s["obstacles"]], links)  # type: ignore[misc]
+
+    def public_snapshot(self, links: Iterable[tuple[str, str]] = ()) -> WorldSnapshot:
+        """Public view: poses, coverage, links and only the obstacles some node has discovered."""
+        return self._snapshot(self.discovered_obstacles(), links)
+
+    def privileged_extras(self) -> dict:
+        """Hidden state that has no place in the contract snapshot: targets, found, battery."""
+        s = self.world.world_state()  # type: ignore[union-attr]
+        return {
+            "targets": [list(t) for t in s["targets"]],
+            "found": [list(t) for t in s["found"]],
+            "battery": s["battery"],
+        }
 
     def write_replay(self, out: Path) -> Path:
         """Write replay.jsonl + manifest.json (seed, hashes); return the manifest path."""
@@ -133,7 +171,9 @@ class Sim2DAdapter:
             "seed": self._cfg.seeds["env"],
             "simulator_version": self._cfg.simulator_version,
             "world_kwargs": self.kw,
-            "ticks": len(self.replay),
+            "ticks": sum("actions" in r for r in self.replay),
+            "removed_nodes": [r["removed"] for r in self.replay if "removed" in r],
+            "run_config": self._cfg.model_dump(mode="json"),
             "final_state_hash": self.world.trace_hash(),  # type: ignore[union-attr]
             "replay_sha256": hashlib.sha256(body.encode()).hexdigest(),
             "config_hash": hashlib.sha256(self._cfg.model_dump_json().encode()).hexdigest(),
@@ -152,7 +192,16 @@ def replay_final_hash(config: RunConfig, records: list[dict], **world_kwargs) ->
     ad = Sim2DAdapter(**world_kwargs)
     ad.reset(config)
     for r in records:
-        for node in r.get("kills", []):
-            ad.kill_node(node)
+        if "removed" in r:
+            ad.kill(r["removed"])
+            continue
         ad.step({n: make_action(n, r["tick"], c) for n, c in r["actions"].items() if c})
     return ad.world.trace_hash()  # type: ignore[union-attr]
+
+
+def replay_final_hash_from_dir(out: Path) -> str:
+    """Re-execute a written replay (replay.jsonl + manifest.json) and return its final hash."""
+    manifest = json.loads((out / "manifest.json").read_text())
+    records = [json.loads(x) for x in (out / "replay.jsonl").read_text().splitlines()]
+    cfg = RunConfig.model_validate(manifest["run_config"])
+    return replay_final_hash(cfg, records, **manifest["world_kwargs"])

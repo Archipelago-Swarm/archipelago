@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hmac
 import json
 import threading
 import urllib.error
@@ -24,11 +25,20 @@ class PeerServer:
         port: int = 0,
         urls=None,
         on_catchup=None,
+        token: str | None = None,
+        allowed_src=None,
         **faults,
     ):
+        """token: shared PEER_TOKEN bearer (A8); None disables auth (in-process tests only).
+
+        allowed_src: the declared id list of the token holders; an envelope whose ``src`` is not
+        in it is refused (403) even when the bearer is right.
+        """
         # shortcut: binds loopback by default; private-network binding is the caller's choice
         self.node, self.net, self.lock = node, Network(links, **faults), threading.Lock()
         self.urls, self.on_catchup = urls or {}, on_catchup
+        self.token = token.encode() if token else None
+        self.allowed_src = frozenset(allowed_src) if allowed_src is not None else None
         outer = self
 
         class H(BaseHTTPRequestHandler):
@@ -43,11 +53,15 @@ class PeerServer:
                 # makes Windows reset the socket, so the client sees WinError 10053 instead
                 # of the status. Oversized bodies are drained in bounded chunks and dropped.
                 body = self.rfile.read(n) if n <= 2 * MAX_PAYLOAD else self._drain(n)
+                if not self._authorized():
+                    return self._reply(401)
                 if self.path == "/catchup":  # a reconnected peer asks for the newest update
                     try:
                         who = json.loads(body)["node"]
                     except (ValueError, KeyError, TypeError):
                         return self._reply(400)
+                    if outer.allowed_src is not None and who not in outer.allowed_src:
+                        return self._reply(403)
                     if outer.on_catchup is None:
                         return self._reply(404)
                     outer.on_catchup(who)
@@ -71,7 +85,15 @@ class PeerServer:
                         raise TypeError("bad field type")
                 except (ValueError, KeyError, TypeError):
                     return self._reply(400)
+                if outer.allowed_src is not None and env.src not in outer.allowed_src:
+                    return self._reply(403)
                 self._reply(outer.accept(env))
+
+            def _authorized(self):
+                if outer.token is None:
+                    return True
+                scheme, _, given = self.headers.get("Authorization", "").partition(" ")
+                return scheme == "Bearer" and hmac.compare_digest(given.encode(), outer.token)
 
             def _drain(self, n):
                 left = min(n, 8 * MAX_PAYLOAD)
@@ -112,7 +134,7 @@ class PeerServer:
             opened = {s for s, d in set(links) - self.net.links if d == self.node}
             self.net.links = set(links)
         for src in sorted(opened & set(self.urls)):
-            _request_catchup(self.urls[src], self.node)
+            _request_catchup(self.urls[src], self.node, self.token.decode() if self.token else None)
 
     def receive(self):
         with self.lock:
@@ -123,7 +145,16 @@ class PeerServer:
         self.httpd.server_close()
 
 
-def post(url: str, env: Envelope, timeout: float = 1.0, retries: int = 2) -> int:
+def _headers(token: str | None) -> dict[str, str]:
+    h = {"Content-Type": "application/json"}
+    if token:
+        h["Authorization"] = f"Bearer {token}"
+    return h
+
+
+def post(
+    url: str, env: Envelope, timeout: float = 1.0, retries: int = 2, token: str | None = None
+) -> int:
     """POST with timeout+retry on connection failure; returns HTTP status, 0 if unreachable."""
     body = json.dumps(
         {
@@ -136,9 +167,7 @@ def post(url: str, env: Envelope, timeout: float = 1.0, retries: int = 2) -> int
     ).encode()
     for _ in range(retries + 1):
         try:
-            req = urllib.request.Request(
-                url + "/envelope", body, {"Content-Type": "application/json"}
-            )
+            req = urllib.request.Request(url + "/envelope", body, _headers(token))
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return r.status
         except urllib.error.HTTPError as e:
@@ -148,8 +177,10 @@ def post(url: str, env: Envelope, timeout: float = 1.0, retries: int = 2) -> int
     return 0
 
 
-def _request_catchup(url: str, me: str) -> int:
-    req = urllib.request.Request(url + "/catchup", json.dumps({"node": me}).encode())
+def _request_catchup(url: str, me: str, token: str | None = None) -> int:
+    req = urllib.request.Request(
+        url + "/catchup", json.dumps({"node": me}).encode(), _headers(token)
+    )
     try:
         with urllib.request.urlopen(req, timeout=0.5) as r:
             return r.status
@@ -174,18 +205,35 @@ def serve_manifest(text: str, **faults) -> dict[str, PeerServer]:
 class PeerClient:
     """Sends to manifest peers; remembers the latest envelope per peer for bounded catch-up."""
 
-    def __init__(self, node: str, urls: dict[str, str], timeout: float = 1.0, retries: int = 2):
+    def __init__(
+        self,
+        node: str,
+        urls: dict[str, str],
+        timeout: float = 1.0,
+        retries: int = 2,
+        token: str | None = None,
+        seq_source=None,
+    ):
+        """seq_source: object with ``next() -> int`` (e.g. a persisted SequenceAllocator), so the
+        client's ``seq`` keeps rising across restarts; receivers drop seq <= last seen as stale."""
         self.node, self.urls, self.timeout, self.retries = node, urls, timeout, retries
+        self.token, self.seq_source = token, seq_source
         self.seq = 0
         self.latest: dict[str, Envelope] = {}
 
+    def next_seq(self) -> int:
+        if self.seq_source is not None:
+            self.seq = self.seq_source.next()
+        else:
+            self.seq += 1
+        return self.seq
+
     def send(self, dst: str, payload: bytes) -> int:
-        self.seq += 1
-        env = self.latest[dst] = Envelope.make(self.node, dst, self.seq, payload)
-        return post(self.urls[dst], env, self.timeout, self.retries)
+        env = self.latest[dst] = Envelope.make(self.node, dst, self.next_seq(), payload)
+        return post(self.urls[dst], env, self.timeout, self.retries, self.token)
 
     def catch_up(self, dst: str) -> int:
         """On reconnect, resend only the newest update (never a backlog)."""
         if dst not in self.latest:
             return 0  # nothing sent yet, nothing to catch up
-        return post(self.urls[dst], self.latest[dst], self.timeout, self.retries)
+        return post(self.urls[dst], self.latest[dst], self.timeout, self.retries, self.token)

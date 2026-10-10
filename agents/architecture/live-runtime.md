@@ -76,6 +76,10 @@ A generation is a directory `ckpt/gen-<n>/` containing `model.safetensors`-equiv
 
 Nodes and coordinator write JSONL events to a bounded durable spool on their own volume and a background shipper POSTs batches to the API ingest. Outage: spool grows to a cap, then drops oldest with an explicit dropped counter; catch-up after recovery is idempotent (`event_id` unique). Nothing in channels (a) or (b) waits on telemetry. The API persists to TigerData through the existing Persister; TigerData is a durable observability store only, never a coordination dependency. Every record carries `run_id`, `commit`, `config_hash`, `seed`, `node_id`, `host`, `phase`.
 
+### 8.1 Telemetry ingest wire format (fixed for T36 and T27/T28 senders)
+
+`POST /v1/telemetry` on the API, header `Authorization: Bearer <TELEMETRY_TOKEN>` (>=16 chars, separate from user login tokens), body `{"source": "<node-id|coordinator>", "boot_id": "<id>", "events": [<canonical v0 record>, ...]}` with at most 500 events and 256 KiB per request. Records are validated against the canonical contract models (`LearningEvent`, `MetricSample`, `WorldSnapshot`, `Action`); anything else is rejected per item. Response `200 {"accepted": n, "duplicates": n, "rejected": [{"event_id": "...", "reason": "..."}]}`; dedupe by `(run_id, event_id)`; a whole-request failure (auth 401, size 413, malformed JSON 400, ingest overloaded 503 with `Retry-After`) never partially applies. Accepted events are appended to the run's event log (live stream/replay) and passed to the Persister; ingest never blocks the run loop and has a bounded in-memory queue.
+
 ## 9. API and dashboard
 
 `ARCHIPELAGO_ADAPTER=live` makes the API a client of the coordinator (`COORDINATOR_URL`, token). It fails visibly at startup and in `/readyz` if the coordinator is unreachable; it never falls back to `FixtureAdapter`. Run lifecycle commands map to coordinator control. Existing `/v1/runs`, events paging, WebSocket and auth are reused. Dashboard additions are limited to the live panels listed in the assignment (positions/actions, update counts/loss/versions, peer offers and decisions, topology/fault phase, training vs frozen evaluation curves, resources, telemetry freshness/backlog) and must label stale, replay and disconnected states.
@@ -104,3 +108,54 @@ Stdlib server, JSON, bearer token `COORDINATOR_TOKEN` (>=16 chars). Only the API
 | `GET /healthz`, `GET /readyz` | liveness / real-simulator availability and node reachability | `readyz` is false when the sim cannot import or no node is reachable; no fixture fallback exists in this service. |
 
 `Plan` = `{node_urls: {node_id: url}, deadline_ms: 500, episodes: [{kind: train|validation|test, seed: int, count?: 1}], eval_every: int, fault_schedule: [{start_tick, end_tick, cut_links}], kill_node: {node_id, tick} | null, telemetry_outage: {start_tick, end_tick} | null}`. Episode order is explicit and recorded; `test` seeds only ever run in frozen `eval` mode and are excluded from candidate gating. The coordinator distributes `fault_schedule` to nodes at each episode `reset` (section 6) and records its hash in the run manifest.
+
+## 13. Amendments after independent review (A1-A17) - these supersede earlier text
+
+Source: independent review of this agreement against the code (T24 verdict, 2026-10-10). Where a numbered amendment conflicts with sections 1-12, the amendment wins.
+
+**A1 Exchange cadence and partitions.** Peer exchange windows run on a tick cadence inside the episode: each node triggers a window when its own tick counter (learned from `act` requests) reaches a multiple of `exchange_every_ticks` (default 50), in a background thread that never runs in the act path, plus a final window at episode end. Fault decisions use the node's current tick, so windows during a cut see the cut. Within a window candidates are evaluated in arrival order and at most one is accepted; the rest are rejected with reason `window_limit` without spending validation cost. The existing catch-up resend on link reopen counts as an offer in the next window, not outside one.
+
+**A2 Feedback carries what was executed.** `/v1/feedback` adds `executed_command` (stay/north/east/south/west), `action_index` and `deadline_missed`. The node stores `(obs, executed action, reward, next_obs, done)`; a fallback `stay` is trained as `stay`. The coordinator awaits all feedback acknowledgements (bounded by `2 * deadline_ms`) before issuing tick t+1 `act` calls; the node publishes the new inference snapshot at the end of its feedback handler, so `act(t+1)` uses the post-feedback(t) policy deterministically. Staleness is keyed on `(episode, tick)` lexicographically.
+
+**A3 Restart-safe identity.** `boot_id` = 8 hex characters generated at process start. `event_id = "{node}-{boot_id}-{sequence}"`. Sequences are monotonic across boots: the checkpoint stores a reserved ceiling reserved in blocks of 1000 before use, so numbers issued after the last generation can never be reissued. The node's pending `(obs, action)` per step key is part of the checkpointed state. The peer client `seq` is persisted the same way so receivers do not drop post-restart messages as stale.
+
+**A4 `episode_end` semantics.** Sent to every node in the world except killed ones (including terminated and unavailable nodes); returns `202 {window_id}` immediately and runs the final window in the background. A `reset` waits up to 5 s for a running window, then cancels it and records `window_cancelled`.
+
+**A5 Run configuration.** `POST /v1/control {command:"configure", ...}` is sent once per run before the first reset: hyperparameters, epsilon schedule, validation margin, `world_config` (size, n_targets, obstacle density, radius, max_ticks, battery_scale, reward_id), `gate_seeds` (node-private model-selection seeds, disjoint from the Plan episode seeds), `n_validation_agents`, `encoder_id`, `exchange_every_ticks`, `seed`. The node-private validation world is a labeled simulated-oracle model-selection step; it receives no live-world state.
+
+**A6 Encoder identity and ownership.** The encoder lives in `packages/learning` (`archipelago_learning.encoders`), with entry points for a contract `Observation` (pose = floor(x), floor(y)) and for raw `GridWorld` dicts. Ids include geometry: `grid-flat-v1-s{size}-r{radius}`; the header carries the sha256 of the canonical definition. Learners compare ids exactly. The "equals grid-flat-v0" claim holds only for size 8; the NumPy baseline uses matching ids in cross-backend tests.
+
+**A7 Telemetry context and time.** Canonical v0 records are unchanged and cannot carry commit, config hash, seed, host or episode. The ingest request gains a request-level `context` object `{commit, config_hash, seed, host, boot_id, episode?}` stored beside the events. `sim_tick` in records is the global index `episode * max_ticks + tick`. Extra decision evidence (validation seconds, evaluations, margin, payload sha256) is emitted as additional `MetricSample`s with `unit` and `phase` set; the accepted-candidate source and sha256 stay in `LearningEvent.reason` as today.
+
+**A8 Transport and trust facts.** Envelope is `Envelope(src, dst, seq, payload, version, digest)`; effective payload cap is 64 KiB (current model about 4.4 KB). Control port 8080, peer port 9000. `PEER_URLS` format is `node-01=http://node-01:9000,...`. Peer endpoints require a shared `PEER_TOKEN` bearer (private network defense in depth) and the receiver binds `src` to the authenticated token holder's declared id list.
+
+**A9 Plan source.** The coordinator `Plan` comes from a server-side plan file (`COORDINATOR_PLAN_FILE`), whose hash is recorded in the manifest. `POST /v1/runs` on the API takes only the run config plus an optional plan name from an allowlist; request-supplied `node_urls` are forbidden (the coordinator attaches `NODE_CONTROL_TOKEN` to node requests).
+
+**A10 Snapshots.** Public stream snapshot: poses, discovered coverage, links, and obstacles only for cells in the union of nodes' discovered cells. Privileged snapshot (admin token): full obstacles, targets, battery.
+
+**A11 Readiness.** In live mode API `/readyz` means coordinator reachable and at least one node ready; it does not depend on run activity.
+
+**A12 Compose networks.** `peers` (nodes only, internal), `control` (nodes + coordinator + API-to-coordinator, internal), `ingest` (nodes + API telemetry route only, internal), `core` (api, web, proxy, grafana, db). Nodes do not join `core`.
+
+**A13 Battery and schedules.** The Plan carries `battery_scale`. Moving drones exhaust the battery near tick 250 at scale 1; the demonstration (900 ticks, cut 300, rejoin 600) requires `battery_scale >= 4`. The coordinator rejects, before starting, any fault schedule that extends past the minimum feasible survival horizon of the configured world.
+
+**A14 Node removal.** `Sim2DAdapter.kill(node)` (T28 scope) removes the drone from `drones` and `agents` (vanish, no wreck, absent from snapshot poses). Per-episode `RunConfig` is derived with a distinct env seed and run id suffix; `event_id` and sequence re-stamp per episode so ids never repeat across episodes or runs; `emitted_at_utc` is wall time (simulation time stays in `sim_tick`); `topology.links` is populated from the current allowed links.
+
+**A15 Ownership grants.** T27 additionally owns `packages/node/peer/**`, `packages/transport/**`, `tests/transport/**` and `packages/node/learner/**`. T26 owns the encoders module. The integrator adds the new packages to the workspace, mypy `files` and pytest path configuration.
+
+**A16 Numeric acceptance.** Act latency p99 under 50 ms while the validation worker runs at 100% load on 0.5 CPU; deadline-miss rate under 1% in the local e2e; node memory limit = 1.5x peak training RSS rounded up to 64 MiB; "distinct per-node policy" means distinct parameter hashes after identical-seed initialization plus different data, asserted after training.
+
+**A17 Checkpoint cadence.** A node writes a generation every 200 feedback steps and at each `episode_end`; file names are fixed (`policy.npz`, `target.npz`, `optimizer.npz`, `replay.npz`, `rng.json`, `counters.json`, `MANIFEST.json`); replay file size bound is `capacity * obs_dim * 4 * 2` bytes.
+
+## 14. Normative control message shapes (coordinator <-> node), implementing A1-A5
+
+All bodies are JSON objects; unknown fields are rejected by the receiver; every request carries `run_id`.
+
+- `POST /v1/control {"command":"configure","run_id":..., "hyperparameters":{"lr","gamma","hidden","capacity","batch","target_every","train_steps_per_feedback"}, "epsilon_schedule":{"start","end","decay_episodes"}, "margin":float, "world_config":{"size","n_targets","obstacle_density","sense_radius","max_ticks","battery_scale","reward_id"}, "gate_seeds":[int,...], "n_validation_agents":int, "encoder_id":str, "exchange_every_ticks":int, "seed":int}` -> `200 {"ok":true,"config_hash":str}`. Sent once per run before the first reset; the node rejects a second configure with a different hash while a run is active (409).
+- `POST /v1/control {"command":"reset","run_id":...,"episode":int,"mode":"train"|"eval","fault_schedule":[{"start_tick","end_tick","cut_links":[[a,b],...]}]}` -> `200 {"ok":true,"policy_version":int}`. Starts an episode; `eval` freezes optimizer, exploration and replay.
+- `POST /v1/act {"run_id","episode","tick","deadline_ms","observation":<contract Observation>}` -> `200 {"node_id","tick","action":<contract Action>,"policy_version":int,"epsilon":float}`; stale `(episode,tick)` -> 409.
+- `POST /v1/feedback {"run_id","episode","tick","reward":float,"next_observation":<contract Observation>,"terminated":bool,"truncated":bool,"executed_command":"stay|north|east|south|west","action_index":int,"deadline_missed":bool}` -> `200 {"accepted":bool,"replay_size":int,"train_steps":int,"policy_version":int}`. Idempotent per `(run_id,episode,tick)`. The policy snapshot is published before the response is sent.
+- `POST /v1/control {"command":"episode_end","run_id","episode","tick":int}` -> `202 {"window_id":str}` (final exchange window runs in the background; see A4).
+- `POST /v1/control {"command":"checkpoint","run_id"}` -> `200 {"generation":int}`; `{"command":"stop","run_id"}` -> `200`.
+- `GET /v1/status` additionally returns `config_hash`, `exchange_every_ticks`, `window` state (`idle|running`), `last_window_id`, `dropped_events`, `boot_id`, `sequence_ceiling`.
+- Peer endpoints (A8) require `Authorization: Bearer <PEER_TOKEN>`; telemetry shipper posts to `TELEMETRY_URL` (`POST /v1/telemetry`, section 8.1 + A7 `context`).

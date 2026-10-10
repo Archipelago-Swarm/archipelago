@@ -15,7 +15,13 @@ pytestmark = [
     pytest.mark.docker,
     pytest.mark.skipif(not shutil.which("docker"), reason="docker not installed"),
 ]
-ENV = {**os.environ, "ARCHIPELAGO_API_TOKEN": "x" * 32, "GRAFANA_ADMIN_PASSWORD": "x" * 16}
+ENV = {
+    **os.environ,
+    "ARCHIPELAGO_API_TOKEN": "x" * 32,
+    "GRAFANA_ADMIN_PASSWORD": "x" * 16,
+    "SITE_ADDRESS": "localhost",  # local.env uses plain http for make demo; these tests probe TLS
+    "ARCHIPELAGO_COOKIE_SECURE": "true",
+}
 
 
 def compose(*args):
@@ -28,6 +34,8 @@ def compose(*args):
         str(ROOT / "infra/compose/compose.yml"),
         "--env-file",
         str(ROOT / "infra/compose/.env.example"),
+        "--env-file",
+        str(ROOT / "infra/compose/local.env"),
         "--profile",
         "local",
         *args,

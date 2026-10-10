@@ -1,0 +1,11 @@
+task: T26
+status: PASS
+verified_commit: 252232429c
+verifier: A/independent-reviewer-agent
+checked_at: '2026-10-10T19:55:46Z'
+commands:
+- command: uv run pytest tests/learning -q
+  expected_exit_code: 0
+  actual_exit_code: 0
+failures: []
+required_actions: []

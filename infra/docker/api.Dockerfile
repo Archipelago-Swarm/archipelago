@@ -1,4 +1,4 @@
-# Run API image. Build context: repo root. NOT RUN: never built (Docker daemon unavailable).
+# Run API image. Build context: repo root.
 FROM python:3.12-slim AS build
 COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never
@@ -9,13 +9,16 @@ COPY packages/contracts packages/contracts
 COPY packages/storage packages/storage
 # Locked, production-only install of the API workspace member (no dev group).
 RUN uv sync --frozen --no-dev --package archipelago-api
+# Live mode (live-runtime.md section 9) imports archipelago_coordinator.models at startup to validate the plan file.
+# Not a workspace member: copied and put on PYTHONPATH. Its heavy imports (sim, adapters) are lazy and not needed.
+COPY services/coordinator services/coordinator
 
 FROM python:3.12-slim
 RUN useradd --system --uid 10001 --create-home app && mkdir -p /data && chown app /data
 WORKDIR /repo
 COPY --from=build /repo /repo
 ENV PATH="/repo/.venv/bin:$PATH" PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/repo/packages/storage \
+    PYTHONPATH=/repo/packages/storage:/repo/services/coordinator \
     ARCHIPELAGO_DATA_DIR=/data \
     ARCHIPELAGO_FIXTURE_DIR=/repo/packages/contracts/fixtures/good
 USER app

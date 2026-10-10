@@ -16,7 +16,7 @@ Bootstrap exception: before T02 creates the remote ledger, A records its T01/T02
 4. Use the task's branch/worktree `agent/<TASK-ID>-<slug>` (PROTOCOL section 9; this overrides older per-machine names).
 5. Create a handoff checkpoint with plan, acceptance checks and next steps before implementation.
 
-Computer A is the single dispatcher/integrator. Computer B leads its own workers but accepts A's recorded assignments. Maximum two active coding workers per machine (slots `w1`, `w2`, PROTOCOL section 3); a verifier or integrator session is a model call and does not run while both worker slots are mid-session on a one-machine setup; no recursive fan-out. The verifier may run on any machine in `roles.verifier` but never as the task's owner. Coordinators cannot silently exceed the slot budget by coding in parallel too.
+All agents run on one computer. One orchestrator/integrator dispatches work and merges; verifiers and reviewers are separate agent contexts (a verifier must differ from the task owner). No fixed numeric worker cap: the integrator paces concurrent model agents (including reviewers) under `agents/operations/token-budget.md` (operator removed the cap on 2026-10-10, ADR-0009 amended; the cap counts every model-invoking agent including reviewers, and the shared-path and single-integrator rules below still serialize contended files), counting any reviewer that invokes a model; no recursive fan-out. Coordinators cannot silently exceed the slot budget by coding in parallel too.
 
 ## During work
 

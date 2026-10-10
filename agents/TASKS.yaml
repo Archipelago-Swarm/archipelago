@@ -1063,13 +1063,13 @@ tasks:
   description: 'TorchLearner per agents/architecture/live-runtime.md section 4 and 7: per-instance policy/target/optimizer/replay/RNG,
     snapshot inference, param-map-v1 import/export shared with the NumPy baseline, transactional generation
     checkpoints, thread control. NumPy learner kept and labeled as regression baseline.'
-  state: QUEUED
+  state: INTEGRATION
   priority: 1
-  owner: cloud/w1
-  machine: cloud
+  owner: A/wf-w1
+  machine: A
   branch: agent/T26-pytorch-cpu-learner-with-peer-pr
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T20:51:58Z'
+  updated_at: '2026-10-10T19:55:47Z'
   dependencies:
   - T07
   blocked_by: []
@@ -1102,8 +1102,8 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
-  last_good_commit: null
+    same_failure_signature: 3
+  last_good_commit: 252232429c
   artifacts: []
   handoff_file: agents/handoffs/T26/LATEST.md
   notes: Dependency torch==2.14.1 comes from the integrator-owned torch dependency group (T24 PR). Install
@@ -1115,34 +1115,24 @@ tasks:
     to: CLAIMED
     by: A/wf-w1
     note: ''
-  - at: '2026-10-10T20:32:10Z'
-    event: claim_expired
-    by: controller
-    note: no ledger or branch activity for 77 min
-  - at: '2026-10-10T20:32:10Z'
-    event: requeue
-    from: CLAIMED
-    to: QUEUED
-    by: controller
-    note: stale claim
-  - at: '2026-10-10T20:44:10Z'
-    event: transition
-    from: QUEUED
-    to: CLAIMED
-    by: cloud/w1
-    note: ''
-  - at: '2026-10-10T20:47:09Z'
+  - at: '2026-10-10T19:55:46Z'
     event: start
     from: CLAIMED
     to: ACTIVE
-    by: cloud/w1
+    by: A/wf-T26
     note: ''
-  - at: '2026-10-10T20:51:58Z'
-    event: requeue
+  - at: '2026-10-10T19:55:46Z'
+    event: to_review
     from: ACTIVE
-    to: QUEUED
-    by: cloud/w1
-    note: 'janitor mode: fan-out stopped'
+    to: REVIEW
+    by: A/wf-T26
+    note: ''
+  - at: '2026-10-10T19:55:47Z'
+    event: verify_pass
+    from: REVIEW
+    to: INTEGRATION
+    by: A/independent-reviewer-agent
+    note: ''
 - id: T27
   name: Node runtime process (act/feedback/control/peer/telemetry)
   description: 'archipelago_noderuntime: the per-container process of agents/architecture/live-runtime.md
@@ -1198,13 +1188,13 @@ tasks:
   description: 'archipelago_coordinator: owns Sim2DAdapter, tick loop with action deadlines and deterministic
     fallback, episode and train/validation/test schedules, peer-fault schedule distribution, node health,
     authoritative replay and privileged snapshots. Does not own models.'
-  state: REVIEW
+  state: INTEGRATION
   priority: 1
-  owner: cloud/janitor
-  machine: cloud
+  owner: A/wf-w2
+  machine: A
   branch: agent/T28-simulation-coordinator-service
   created_at: '2026-10-10T19:30:00Z'
-  updated_at: '2026-10-10T21:06:39Z'
+  updated_at: '2026-10-10T19:55:48Z'
   dependencies:
   - T03
   blocked_by: []
@@ -1238,8 +1228,8 @@ tasks:
     test_failure: 5
     build_failure: 3
     integration_failure: 3
-    same_failure_signature: 2
-  last_good_commit: 9fd6008750770ef684b48ba0b7815b503afc6b5f
+    same_failure_signature: 3
+  last_good_commit: e79d2d7722
   artifacts: []
   handoff_file: agents/handoffs/T28/LATEST.md
   notes: Tested against in-process fake nodes; the real node runtime is T27 and the joint smoke is T29.
@@ -1250,51 +1240,23 @@ tasks:
     to: CLAIMED
     by: A/wf-w2
     note: ''
-  - at: '2026-10-10T20:32:10Z'
-    event: claim_expired
-    by: controller
-    note: no ledger or branch activity for 77 min
-  - at: '2026-10-10T20:32:10Z'
-    event: requeue
-    from: CLAIMED
-    to: QUEUED
-    by: controller
-    note: stale claim
-  - at: '2026-10-10T20:44:13Z'
-    event: transition
-    from: QUEUED
-    to: CLAIMED
-    by: cloud/w2
-    note: ''
-  - at: '2026-10-10T20:47:16Z'
+  - at: '2026-10-10T19:55:47Z'
     event: start
     from: CLAIMED
     to: ACTIVE
-    by: cloud/w2
+    by: A/wf-T28
     note: ''
-  - at: '2026-10-10T20:52:01Z'
-    event: requeue
-    from: ACTIVE
-    to: QUEUED
-    by: cloud/w2
-    note: janitor mode
-  - at: '2026-10-10T21:03:41Z'
-    event: transition
-    from: QUEUED
-    to: CLAIMED
-    by: cloud/janitor
-    note: ''
-  - at: '2026-10-10T21:06:36Z'
-    event: start
-    from: CLAIMED
-    to: ACTIVE
-    by: cloud/janitor
-    note: ''
-  - at: '2026-10-10T21:06:39Z'
+  - at: '2026-10-10T19:55:48Z'
     event: to_review
     from: ACTIVE
     to: REVIEW
-    by: cloud/janitor
+    by: A/wf-T28
+    note: ''
+  - at: '2026-10-10T19:55:48Z'
+    event: verify_pass
+    from: REVIEW
+    to: INTEGRATION
+    by: A/independent-reviewer-agent
     note: ''
 - id: T29
   name: 'Live integration gate: local end-to-end smoke and compose full test'
@@ -1612,3 +1574,314 @@ tasks:
   artifacts: []
   handoff_file: null
   notes: Split from T29.
+- id: T36
+  name: API telemetry ingest endpoint
+  description: 'POST /v1/telemetry per agents/architecture/live-runtime.md section 8.1: authenticated,
+    bounded, idempotent batch ingest of canonical records into the run event log and the Persister, with
+    per-item rejection and overload behavior.'
+  state: INTEGRATION
+  priority: 1
+  owner: codex/T36
+  machine: A
+  branch: agent/T36-api-telemetry-ingest-endpoint
+  created_at: '2026-10-10T19:55:00Z'
+  updated_at: '2026-10-10T20:13:05Z'
+  dependencies: []
+  blocked_by: []
+  owned_paths:
+  - services/api/src/archipelago_api/telemetry.py
+  - tests/api/test_telemetry_ingest.py
+  contracts:
+  - agents/architecture/live-runtime.md
+  - packages/contracts/README.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/api/test_telemetry_ingest.py -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Auth (separate TELEMETRY_TOKEN), 256 KiB / 500-event limits, malformed JSON, per-item
+        contract validation with reasons, and idempotent dedupe by (run_id, event_id) are tested through
+        the real FastAPI app.
+    - description: Overload (full bounded queue) returns 503 with Retry-After and applies nothing from
+        that request; ingest never blocks the run loop (tested with a stalled sink).
+    - description: Accepted events appear in the run event log in sequence order for replay/stream and
+        are passed to the Persister; unknown run ids are rejected per item.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 3
+  last_good_commit: d453b91eef
+  artifacts: []
+  handoff_file: agents/handoffs/T36/LATEST.md
+  notes: Hand-off to Codex (agents/operations/codex/T36.md). Adds one module and one test file; the single
+    include line in app.py is made by the integrator in T29.
+  history:
+  - at: '2026-10-10T19:26:04Z'
+    event: transition
+    from: QUEUED
+    to: CLAIMED
+    by: codex/T36
+    note: ''
+  - at: '2026-10-10T20:13:04Z'
+    event: start
+    from: CLAIMED
+    to: ACTIVE
+    by: codex/T36
+    note: ''
+  - at: '2026-10-10T20:13:04Z'
+    event: to_review
+    from: ACTIVE
+    to: REVIEW
+    by: codex/T36
+    note: ''
+  - at: '2026-10-10T20:13:05Z'
+    event: verify_pass
+    from: REVIEW
+    to: INTEGRATION
+    by: A/integrator-direct-run
+    note: ''
+- id: T37
+  name: Pre-registered observation/reward/schedule variant study (offline)
+  description: Implement the versioned variants proposed by experiments/diagnosis/idle_vs_learners.md
+    (obs grid-flat-v2-visits, reward rew-v1, epsilon schedule, lr, replay size, double DQN) in the simulator
+    and the NumPy harness, pre-register the config grid, select ONLY on training and validation seeds,
+    and record the choice with its evidence so the live runtime can adopt it.
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:35:00Z'
+  updated_at: '2026-10-10T20:35:00Z'
+  dependencies:
+  - T32
+  - T28
+  blocked_by: []
+  owned_paths:
+  - packages/sim/**
+  - experiments/**
+  - tests/experiments/**
+  - tests/simvariants/**
+  contracts:
+  - experiments/diagnosis/idle_vs_learners.md
+  - agents/architecture/evaluation.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/experiments tests/simvariants -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: 'New ids are additive: grid-flat-v0 and rew-v0 remain bit-identical (regression tests);
+        new observation and reward versions have unit tests, and idle no longer earns free spawn-time
+        targets under rew-v1.'
+    - description: 'The variant grid and selection rule are written to a pre-registration file with a
+        hash BEFORE any selection run; selection uses train and validation seeds only (asserted: no test
+        seed appears in any selection manifest).'
+    - description: The selected variant helps independent learners first (return and revisit/collision
+        rates versus idle and rule on validation seeds with >= 10 experiment seeds); the result, including
+        variants that did not help, is reported with paired intervals.
+    - description: The selected observation exposes a node-local visit signal computed from the node's
+        own pose history and from shared visited-cell summaries, so information sharing is visible to
+        the policy; a test proves info_only differs from independent under that observation.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 3
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Gate for T38. If no variant lifts independent learners above the idle floor, report that honestly
+    and proceed with the best variant labeled as such.
+- id: T38
+  name: Adopt the selected variant in the PyTorch live runtime
+  description: Port the T37-selected observation (node-computed local visit memory plus shared visited-cell
+    summaries as the non-model information message), reward version and learner schedule into encoder.py,
+    TorchLearner and the coordinator plan; versioned ids end to end; regression checks against NumPy results.
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:35:00Z'
+  updated_at: '2026-10-10T20:35:00Z'
+  dependencies:
+  - T27
+  - T37
+  blocked_by: []
+  owned_paths:
+  - packages/node/runtime/**
+  - tests/noderuntime/**
+  - packages/learning/**
+  - tests/learning/**
+  - services/coordinator/**
+  - tests/coordinator/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  - experiments/diagnosis/idle_vs_learners.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/noderuntime tests/learning tests/coordinator -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: The node builds the selected observation from its own history and received summaries
+        only; no privileged world state is read (tested).
+    - description: Encoder id, reward id and schedule are recorded in every model compatibility header
+        and run manifest; mismatched peers reject candidates with a named reason.
+    - description: The info message is the single non-model information channel for modes 4 and 5, carries
+        no parameters, and is bounded and schedule-cut like model offers.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 3
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Serialized after T27 and T37 because it edits the same packages.
+- id: T39
+  name: Reconcile coordinator with agreement amendments
+  description: 'Bring the T28 coordinator in line with live-runtime.md section 13: executed_command/deadline_missed
+    feedback and the feedback-before-act barrier (A2), configure command distribution (A5), exchange-window
+    cadence cooperation (A1), episode_end 202 semantics (A4), server-side plan file and no request-supplied
+    node urls (A9), redacted public vs privileged snapshots (A10), battery_scale and unreachable-schedule
+    rejection (A13), Sim2DAdapter.kill, per-episode RunConfig and re-stamped ids/wall-clock timestamps/topology
+    links (A14), global sim_tick (A7).'
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:20:00Z'
+  updated_at: '2026-10-10T20:20:00Z'
+  dependencies:
+  - T28
+  blocked_by: []
+  owned_paths:
+  - services/coordinator/**
+  - tests/coordinator/**
+  - packages/adapters/sim2d/**
+  - tests/sim/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/coordinator tests/sim -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Each amendment A1-A14 that concerns the coordinator is covered by a behavioral test;
+        the node receives executed_command for every tick including deadline fallbacks.
+    - description: A schedule that cannot be reached (battery) is rejected before the run starts; Sim2DAdapter.kill
+        removes the drone with vanish semantics.
+    - description: Event ids never repeat across episodes or runs; snapshots expose no undiscovered obstacle
+        cells on the public route.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 3
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Dispatched ahead of the formal claim because T28 is INTEGRATION (path-overlap bookkeeping); paths
+    verified disjoint from every running worker.
+- id: T40
+  name: Reconcile learner library with agreement amendments
+  description: 'Add archipelago_learning.encoders (A6): geometry-bearing ids, canonical definition hash,
+    entry points for contract Observation and raw GridWorld dicts; keep TorchLearner/peer interface per
+    A1 window_limit reason; persisted peer seq support hooks (A3/A8); fix cross-backend tests to use matching
+    encoder ids; export checkpoint file names and cadence helpers from A17.'
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:20:00Z'
+  updated_at: '2026-10-10T20:20:00Z'
+  dependencies:
+  - T26
+  blocked_by: []
+  owned_paths:
+  - packages/learning/**
+  - tests/learning/**
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/learning -q
+      expected_exit_code: 0
+      tier: integration
+    assertions:
+    - description: Encoder output for a contract Observation equals the raw-dict entry point for the same
+        state (pose floor), for sizes 8 and 16; header hash changes when geometry changes.
+    - description: Cross-backend NumPy<->Torch candidate exchange passes with matching encoder ids and
+        rejects mismatched ids with a named reason.
+    - description: peer.offer supports a per-window accept limit with reason window_limit that spends
+        no validation cost on rejected-by-limit candidates.
+    - description: Checkpoint file names and block-reserved sequence helper match A3/A17 and are tested.
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 3
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Dispatched ahead of the formal claim because T26 is INTEGRATION; paths disjoint from running
+    workers.
+- id: T42
+  name: 'Owner C: Infra/Demo one-command stack and artifacts'
+  description: 'Persistent owner mission. Dockerfiles and Compose for coordinator and four node containers
+    per amendments A12/A16; server-side demo and smoke plans; make demo (compose local profile, run scenario,
+    collect artifacts to artifacts/demo/<run>/); stdlib artifact generator (curves, topology snapshots,
+    node timelines, summary JSON/CSV, SVG charts). Invariant: one command launches the whole stack reproducibly
+    and writes demo artifacts.'
+  state: QUEUED
+  priority: 1
+  owner: null
+  machine: null
+  branch: null
+  created_at: '2026-10-10T20:50:00Z'
+  updated_at: '2026-10-10T20:50:00Z'
+  dependencies:
+  - T28
+  blocked_by: []
+  owned_paths:
+  - infra/**
+  - tests/infra/**
+  - tests/e2e/**
+  - Makefile
+  contracts:
+  - agents/architecture/live-runtime.md
+  acceptance:
+    commands:
+    - command: uv run pytest tests/infra -q -m "not docker"
+      expected_exit_code: 0
+      tier: integration
+    - command: uv run pytest tests/infra -q
+      expected_exit_code: 0
+      tier: full
+      needs:
+      - docker
+    assertions:
+    - description: docker compose config validates; only the proxy publishes ports; nodes join peers/control/ingest
+        and not core; coordinator joins control and core as needed (tested).
+    - description: make demo builds images, starts the local profile, runs the smoke plan to completion,
+        and writes artifacts/demo/<run_id>/ with summary.json, curves CSV, peer_decisions CSV, topology
+        snapshots and SVG charts (full tier in CI; artifact generator tested offline from recorded events).
+    - description: Node and coordinator images build from pinned inputs with the CPU torch wheel; memory
+        limits are provisional and the measurement procedure is scripted (infra/demo/measure_mem.sh).
+  retry_policy:
+    test_failure: 5
+    build_failure: 3
+    integration_failure: 3
+    same_failure_signature: 3
+  last_good_commit: null
+  artifacts: []
+  handoff_file: null
+  notes: Persistent owner mission C; Makefile edits limited to demo-* targets. Dispatched ahead of formal
+    claim.

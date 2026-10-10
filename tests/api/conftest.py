@@ -11,3 +11,10 @@ for d in ("adapters/sim2d", "sim"):
 _storage = str(Path(__file__).parents[2] / "packages" / "storage")
 if _storage not in sys.path:
     sys.path.append(_storage)
+
+# Live-mode tests drive the real coordinator in-process with the coordinator test harness.
+_root = Path(__file__).parents[2]
+for _d in ("services/coordinator", "tests/coordinator", "tests/storage", "packages/contracts/src"):
+    _p = str(_root / _d)
+    if _p not in sys.path:
+        sys.path.append(_p)

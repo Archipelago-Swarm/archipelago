@@ -55,3 +55,7 @@ Known gaps, deliberately NOT hidden:
 - Now closed in code (CI still must confirm the Docker/DB parts): acceptance check 4 (replay across restart) via durable per-run JSONL events in the api; persister applies migrations at startup; FK-poisoned rows are quarantined and counted instead of stalling a batch; remote TIGERDATA_URL must set sslmode to require/verify-ca/verify-full and `host=`/`hostaddr=` overrides are judged; real-DB persister test added.
 - Still open: Vultr/TigerData evidence (check 3), spend inventory (check 5), simulation coordinator as a compose service, real-DB behaviour of the FK salvage (psycopg `sqlstate` on a Timescale hypertable) until CI runs `test_persister_integration.py`.
 - Verifier minor notes, deliberately left: event log reopens the file per event and fsyncs on status events inside the run loop (latency risk); case-insensitive filesystems alias ids differing by case (Linux target unaffected).
+
+## Type-checking gap (recorded 2026-10-10 evening, not fixed)
+
+`packages/node/runtime/archipelago_noderuntime` and `services/coordinator/archipelago_coordinator` are NOT in the mypy `files` list: adding them reports 74 strict-mode errors (missing type arguments, untyped defs, Optional narrowing). They are linted and tested but not type-checked. Fix after the live experiment is running: add annotations, then add both paths to `[tool.mypy] files` in pyproject.toml.

@@ -1,0 +1,41 @@
+# Handoff: T27 node runtime amendments (owner A2)
+
+- State: amendments A1-A8, A16, A17 implemented and validated locally; awaiting integrator review. Not pushed (owner rule).
+- Base: 36c0456 (the worktree started 49 commits behind it; fast-forwarded, no divergence).
+- Interface: `agents/architecture/live-runtime.md` sections 3, 5, 7, 8, 13 (A1-A17 win), 14 (field names used exactly). Package README: `packages/node/runtime/README.md`.
+- Owned paths touched: `packages/node/runtime/**`, `tests/noderuntime/**`, `packages/node/peer/**`, `packages/node/learner/**`, `tests/transport/**`. `packages/transport/**` and `packages/learning/**` unchanged.
+
+## Completion invariant: demonstrated
+
+"Three real node runtimes (HTTP on localhost, one process) learn independently, run tick-cadence exchange windows that a scheduled partition actually cuts, resume from a mid-write kill with continued ids, and honour sections 13-14" is validated by `tests/noderuntime/test_invariant.py` (+ the per-amendment tests below):
+independent learning (distinct policy hashes and replay buffers before any exchange); windows at ticks 10/20/30/40 + final 45 with a cut [15,35) on one link: windows 20 and 30 sent nothing on the cut link (other links unaffected) while `train_steps` kept rising; node-02 killed with the checkpoint writer dying before its 3rd filesystem primitive, restarted on the same volume: last complete generation restored, sequence ceiling above everything the dead boot issued, its post-restart offers accepted by peers (no stale drop), no event_id collision, all new ids carry the new boot id.
+
+## What changed, by amendment
+
+- A1: windows on the node's own tick (`exchange_every_ticks`, default 50, in `act` -> queued to ONE background worker, never run inline) plus a final window at `episode_end`; fault decisions use the window's tick; candidates judged in arrival order through `archipelago_learning.OfferWindow` (<=1 accept, rest `window_limit`, zero validation cost). Catch-up resend on reopen is naturally the next window's offer (`last_sent` only advances on success). Eval mode: no cadence windows.
+- A2: `FeedbackRequest` has `executed_command`, `action_index`, `deadline_missed` (index/command mismatch 422); replay stores the executed action; fallback stay trains as stay; a deadline-missed feedback with no recorded act is acknowledged `accepted:false`. Snapshot is published inside `train_step`, i.e. before the response. Barrier: `act` waits (<= `deadline_ms`, cap 1 s, counted on timeout) only while the feedback of an EARLIER tick is mid-processing; a compliant coordinator never hits it. Response adds `policy_version`.
+- A3: `boot_id` 8 hex; `event_id={node}-{boot}-{seq}`; sequences from `SequenceAllocator` (`sequence.json`, blocks of 1000); peer envelope `seq` from a second allocator (`peer_seq.json`, replaces "policy version as seq"); pending (obs, action) (<=64), `tick`, `fed_tick` persisted in the checkpoint; stale rule lexicographic on (episode, tick). `PeerClient` (packages/node/peer) takes an optional persisted `seq_source`.
+- A4: `episode_end {run_id, episode, tick}` -> `202 {window_id}` (idempotent per episode; wrong episode/run 409); `wait` removed. `reset` waits `WINDOW_CANCEL_WAIT` (5 s) for running work then cancels (cooperative, between world steps and while joining sends); `windows_cancelled` counter, `window_cancelled` MetricSample, result `cancelled:true`; a cancelled window never applies a candidate.
+- A5: `configure` (section 14 shape, pydantic `extra=forbid`): hash = sha256 of the canonical body without command/run_id; same run+hash idempotent, same run+other hash 409, bad encoder/reward 422; applied `Config.with_run`, learner/validator rebuilt, body persisted in `run_config.json` (a restart rebuilds the configured learner BEFORE restoring the checkpoint); a new run id starts fresh and moves old generations to `ckpt-before-<run>-<boot>`. `gate_seeds` feed the node-private validation world, which has `n_validation_agents` drones and never sees live state. All control commands now carry `run_id`.
+- A6: `encoder.py` is a thin adapter over `archipelago_learning.encoders` (duplicate logic removed); ids `grid-flat-v1-s{size}-r{radius}`.
+- A7: shipper body `{source, boot_id, events:[records], context:{commit, config_hash, seed, host, boot_id, episode?}}`, <=500 events and ~200 KiB per request; `sim_tick = episode*max_ticks+tick` on every record incl. Action; validation seconds/evaluations/margin as extra MetricSamples (`peer_validation_seconds` s, `peer_validation_evaluations` count, `peer_candidate_margin` score); source and sha256 stay in `LearningEvent.reason`.
+- A8: `PEER_TOKEN` bearer on `/envelope` and `/catchup` (401), `src` bound to the declared id list (403); defaults control 8080 / peer 9000; `PEER_URLS` validated.
+- A16: node-side act handler latency ring (`status.act_latency_ms` p50/p99/max). Test: with validation of 12 seeds x 2 policies burning CPU on the same single pinned core, act p99 = 0.39 ms over 769 acts (bound 50 ms). The old flaky process test is replaced (its race: it polled `exchange_running` before the async window had started; the new `window` state covers queued -> running). A lock-structure test parks validation mid-evaluation and holds `fbl`+`mu`+`ckl`: act still answers (no timing). `measure_node.py` full-size run: client-side act p99 6.5 ms during a 0.85 s validation; node-reported p99 0.47 ms.
+- A17: `ckpt.py` writes the fixed names `policy.npz target.npz optimizer.npz replay.npz rng.json counters.json MANIFEST.json` via `write_generation`; generation every 200 feedback steps (worker thread) and at each `episode_end`; replay file deflated and asserted `<= replay_max_bytes(capacity, obs_dim)` on a wrapped full buffer. `TorchLearner.save_generation` (T40) still uses pre-A17 names and is NOT used by the node (uses learner underscore helpers `_optimizer_arrays/_restore_optimizer/_import/_identity`; if T40 renames them this module must follow).
+- Peak RSS: `status.rss_peak_bytes` + `rss_peak_bytes` metric; measured idle 665 MiB, after training 3000 steps 684 MiB peak (VmHWM) on the PyPI/CUDA torch 2.14.1 wheel (RssFile 317 MiB is shared mapped libraries). Proposal per A16 (1.5x peak, 64 MiB steps) = 1088 MiB with THIS wheel; the CPU wheel (download.pytorch.org is blocked here) is expected to be much smaller but was NOT measured, so the 512 MB limit remains unproven.
+- `LearnerNode.poll` (packages/node/learner) now runs one `OfferWindow` per poll (in-memory path honours A1).
+
+## Needs the integrator / other owners
+
+- Owner B (`services/api` ingest): `/v1/telemetry` currently accepts only `{source, boot_id, events}`; nodes now also send `context` (A7) and will be rejected until ingest allows it.
+- Owner C / T28 (coordinator and infra): feedback must send `executed_command/action_index/deadline_missed`; every control command needs `run_id`; `episode_end` takes `episode` and `tick` and answers 202; nodes need `PEER_TOKEN` (>=16 chars) and `PEER_URLS`; `configure` once per run before the first reset; container env defaults changed (control port 8080).
+- Shared files I did not touch: `pyproject.toml`, `uv.lock`, `Makefile`, `.github`, `scripts`, `agents/TASKS.yaml`, `agents/STATUS.yaml`. `tests/transport/conftest.py` gained `packages/learning` on sys.path (transport tests now import `SequenceAllocator`).
+- Cross-node tick skew is real: a sender whose window fires at tick T can be refused 403 by a receiver still at T-1 whose cut ends at T (seen in a debug run). The offer is retried in the next window (not lost, `last_sent` not advanced). Schedules in tests avoid cadence-aligned boundaries for determinism.
+- "Distinct per-node policy" (A16): nodes use distinct init seeds (`SEED*1000 + index`); the test asserts distinct hashes after independent training, not an identical-seed init.
+- Computer A/B artifacts: none exist in the owned paths (grepped); nothing to remove here.
+
+## Not run / limits
+
+- No Docker; no CPU-wheel measurement; no coordinator-driven run (T28/T29). `0.5 CPU` is approximated by pinning the test process to one core, not a cgroup quota.
+- `act` can hit one `fsync` per 1000 issued sequence numbers (block reservation); not measurable in p99.
+- mypy list does not include the runtime packages (per instructions); linted and tested only.

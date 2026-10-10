@@ -51,12 +51,12 @@
     "retry_policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["test_failure", "build_failure", "integration_failure", "same_failure_signature"],
+      "required": ["test_failure", "build_failure", "integration_failure"],
       "properties": {
         "test_failure": {"type": "integer", "minimum": 1},
         "build_failure": {"type": "integer", "minimum": 1},
         "integration_failure": {"type": "integer", "minimum": 1},
-        "same_failure_signature": {"type": "integer", "minimum": 1}
+        "same_failure_signature": {"type": "integer", "minimum": 1, "default": 3}
       }
     },
     "attempts": {

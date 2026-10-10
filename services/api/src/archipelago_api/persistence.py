@@ -22,6 +22,15 @@ from typing import Any, Protocol
 log = logging.getLogger("archipelago.persistence")
 
 NODE_ID = "api"
+SWARM = "swarm"  # canonical records with no source node (coordinator-wide)
+
+
+def _parse_utc(value: Any, default: datetime) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return default
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
 class Sink(Protocol):
@@ -96,18 +105,45 @@ class Persister:
             self._shed += 1
         self._pending.append((kind, run_id, row))
 
-    def record_run(self, run_id: str, scenario: str | None = None) -> None:
+    def record_run(
+        self, run_id: str, scenario: str | None = None, git_sha: str | None = None
+    ) -> None:
         try:
-            self._enqueue("run", run_id, (run_id, self._now(), scenario, None))
+            self._enqueue("run", run_id, (run_id, self._now(), scenario, git_sha))
         except Exception:  # telemetry must never reach the run loop
             log.exception("persistence record failed")
 
-    def record_event(self, run_id: str, event: Mapping[str, Any]) -> None:
+    def record_event(
+        self,
+        run_id: str,
+        event: Mapping[str, Any],
+        context: Mapping[str, Any] | None = None,
+    ) -> None:
+        """Queue one API event or canonical record.
+
+        Canonical records (they carry `kind` and `event_id`) are stored under their own node,
+        event id and emission time so a retry or an API restart is idempotent and per-node
+        queries (Grafana, archipelago_storage.queries) see the real node, not "api". The
+        request-level context (A7: commit, config_hash, seed, host, boot_id, episode) is stored
+        in payload.context next to the record's own fields (phase, sim_tick, ...).
+        """
         try:
-            ts, seq, kind = self._now(), event["sequence"], str(event["type"])
+            seq, kind = event["sequence"], str(event["type"])
+            canonical = isinstance(event.get("kind"), str) and isinstance(
+                event.get("event_id"), str
+            )
+            ts, node, eid = self._now(), NODE_ID, str(seq)
+            if canonical:
+                kind, node = str(event["kind"]), str(event.get("source_node_id") or SWARM)
+                eid, ts = str(event["event_id"]), _parse_utc(event.get("emitted_at_utc"), ts)
             # deltas embed a full snapshot; keep rows small and store the headline fields only
-            body = {k: v for k, v in event.items() if k != "snapshot"}
-            self._enqueue("event", run_id, (ts, run_id, NODE_ID, str(seq), kind, json.dumps(body)))
+            body = {k: v for k, v in event.items() if k not in ("snapshot", "context")}
+            if kind == "world_snapshot":
+                body.pop("obstacles", None)  # static map data, large and repeated every tick
+            ctx = context if context is not None else event.get("context")
+            if ctx:
+                body["context"] = dict(ctx)
+            self._enqueue("event", run_id, (ts, run_id, node, eid, kind, json.dumps(body)))
             if kind == "delta":
                 tick = float(event["tick"])
                 self._enqueue("metric", run_id, (ts, run_id, NODE_ID, "sim_tick", tick, "count"))

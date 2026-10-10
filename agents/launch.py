@@ -3,7 +3,6 @@
     python agents/launch.py pick  --machine A            # what would run next (no side effects)
     python agents/launch.py tick  --machine A            # ONE idempotent step; a scheduler calls this
     python agents/launch.py start --machine A [--hours 8] [--dry-run]       # detached loop of ticks
-    python agents/launch.py start --machine A --runner night -- --billing subscription --hours 8
     python agents/launch.py status --machine A
     python agents/launch.py stop  --machine A
     python agents/launch.py schedule --machine A --every 30   # print cron/routine recipes
@@ -13,7 +12,8 @@ OS process: CONDITIONALLY_RELIABLE, valid only on a machine that stays up (lapto
 dies with an ephemeral cloud container; there, schedule `tick` with a routine/cron instead. `status`
 never trusts a pid file alone: it checks that the process is alive and its heartbeat is fresh.
 The loop launches fresh bounded `claude -p` sessions; it never keeps a conversation alive. It does not
-use permission-bypass flags and never force-pushes. All ledger writes go through
+use permission-bypass flags and never force-pushes. Sessions run only inside a dedicated git
+worktree (.agent-runtime/worktrees/<machine>-<task>), never in the shared checkout. All ledger writes go through
 `controller.py --remote`, so two machines cannot claim the same task.
 """
 
@@ -39,6 +39,12 @@ ROOT = ctl.ROOT
 RUNTIME = ROOT / ".agent-runtime"
 HEARTBEAT_STALE_SECONDS = 600
 LIMIT_MARKERS = ("usage limit", "rate limit", "rate_limit", "quota", "resets at")
+# Claude CLI flags. Present in `claude --help` of 2.1.296 (checked 2026-10-10): --output-format,
+# --permission-mode auto, --permission-prompts none, --disallowedTools. NOT verified against a live
+# unattended session (T23): that `auto` mode plus `none` never stalls on a prompt, and that the
+# DENIED patterns are matched against every spelling of a command (`git -C x push`, shell chains,
+# aliases, `sh -c`). DENIED is a best-effort prefix list, not a security boundary; the real guards
+# are the dedicated worktree, branch protection on main, and the clean-tree checks in this file.
 SESSION_FLAGS = [
     "--output-format",
     "json",
@@ -47,11 +53,37 @@ SESSION_FLAGS = [
     "--permission-prompts",
     "none",
 ]
-DENIED = ["Bash(git push --force*)", "Bash(git push -f*)", "Bash(git reset --hard*)"]
+PROTECTED_BRANCHES = ("main", "master")
+DENIED = [
+    "Bash(git push --force*)",
+    "Bash(git push -f*)",
+    "Bash(git push --force-with-lease*)",
+    "Bash(git push origin main*)",
+    "Bash(git push origin master*)",
+    "Bash(git push origin HEAD:main*)",
+    "Bash(git push origin HEAD:master*)",
+    "Bash(git push origin HEAD:refs/heads/main*)",
+    "Bash(git push origin HEAD*)",
+    "Bash(git push * *:main*)",
+    "Bash(git push * *:master*)",
+    "Bash(git push * *:refs/heads/main*)",
+    "Bash(git push --delete*)",
+    "Bash(git push * --delete*)",
+    "Bash(git push -d*)",
+    "Bash(git push * :*)",
+    "Bash(git -C * push*)",
+    "Bash(git reset --hard*)",
+    "Bash(git checkout main*)",
+    "Bash(git checkout master*)",
+    "Bash(git merge*)",
+    "Bash(git branch -D*)",
+    "Bash(git clean*)",
+]
 COMMON = (
     "Read CLAUDE.md, agents/LESSONS.md and agents/PROTOCOL.md first. Every ledger change goes through "
-    "`python agents/controller.py --remote <command>`. Use your own git worktree for the task branch; "
-    "never force-push; stay inside the task's owned_paths. Do the work, update the handoff, push, "
+    "`python agents/controller.py --remote <command>`. Your working directory is a dedicated git worktree "
+    "on the task branch; "
+    "never force-push, never push to main, never merge, never switch your worktree off the task branch; stay inside the task's owned_paths. Do the work, update the handoff, push, "
     "and stop at the state PROTOCOL names for your role. "
     "EXECUTION REQUIREMENT (PROTOCOL 4a): you are an execution agent, not an advisor. Analysis must "
     "end in an action within your first cycle: run the reproducing/acceptance command, edit code, or "
@@ -135,7 +167,8 @@ def prompt_for(role: str, task: dict[str, Any], machine: str) -> str:
         )
     return (
         f"{COMMON}You are the INTEGRATOR for {tid} (branch {task['branch']}). Follow PROTOCOL section 8: merge "
-        f"into the integration branch, run `make check-integration`, then "
+        f"into the integration branch (unattended sessions cannot `git merge`; if the merge is denied, "
+        f"write the handoff and stop for a human), run `make check-integration`, then "
         f"`controller.py --remote complete {tid} --commit <merge sha> --machine {machine}`, or "
         f"`integrate-fail` with a stable signature."
     )
@@ -267,13 +300,65 @@ def fingerprint(task_id: str, remote: str) -> tuple[str, str]:
     return (f"{task['state']}:{task['last_good_commit']}:{len(task.get('history', []))}", head)
 
 
-def run_session(prompt: str, minutes: int, log: Path, extra: list[str]) -> tuple[int | None, str]:
+def dirty_files(path: Path) -> str:
+    """`git status --porcelain` with untracked files; the launcher's own runtime dir is ignored."""
+    exclude = ["--", ".", ":(exclude).agent-runtime"]
+    return ctl.git_out(
+        "status", "--porcelain", "--untracked-files=all", *exclude, cwd=path
+    ).stdout.strip()
+
+
+def current_branch(path: Path) -> str:
+    return ctl.git_out("rev-parse", "--abbrev-ref", "HEAD", cwd=path).stdout.strip()
+
+
+def session_worktree(machine: str, role: str, task: dict[str, Any], remote: str) -> Path:
+    """Create or reuse .agent-runtime/worktrees/<machine>-<task> on the task's branch.
+
+    The shared checkout is never used for sessions. Integrators get `integrate/<task>`, never main.
+    Existing local branches are reused as they are (never reset), so unpushed work survives.
+    """
+    branch = f"integrate/{task['id']}" if role == "integrator" else task["branch"]
+    if not branch or branch in PROTECTED_BRANCHES:
+        raise ctl.ControllerError(f"{task['id']}: refusing to run a session on branch {branch!r}")
+    path = RUNTIME / "worktrees" / f"{machine}-{task['id']}"
+    has_remote = (
+        ctl.git_out("rev-parse", "--verify", "-q", f"origin/{branch}", check=False).returncode == 0
+    )
+    if (path / ".git").exists():
+        if not dirty_files(path) and has_remote and current_branch(path) == branch:
+            ctl.git_out("merge", "--ff-only", "-q", f"origin/{branch}", cwd=path, check=False)
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ctl.git_out("worktree", "prune", check=False)
+    exists = ctl.git_out("rev-parse", "--verify", "-q", f"refs/heads/{branch}", check=False)
+    if exists.returncode == 0:
+        ctl.git_out("worktree", "add", "-q", str(path), branch)
+    else:
+        base = f"origin/{branch}" if has_remote else f"origin/{remote}"
+        ctl.git_out("worktree", "add", "-q", "-b", branch, str(path), base)
+    return path
+
+
+def unsafe_reason(worktree: Path) -> str | None:
+    """Why a session must not start now, or None. Checks the shared checkout and the worktree."""
+    for label, path in (("shared checkout", ROOT), ("session worktree", worktree)):
+        if files := dirty_files(path):
+            return f"{label} {path} has modified or untracked files:\n{files[:400]}"
+    if (branch := current_branch(worktree)) in PROTECTED_BRANCHES:
+        return f"session worktree {worktree} is on {branch}"
+    return None
+
+
+def run_session(
+    prompt: str, minutes: int, log: Path, extra: list[str], cwd: Path
+) -> tuple[int | None, str]:
     argv = ["claude", "-p", prompt, *SESSION_FLAGS, "--disallowedTools", *DENIED, *extra]
     with log.open("ab") as out:
         out.write(f"\n=== {iso(now())} session start\n".encode())
         proc = subprocess.Popen(
             argv,
-            cwd=ROOT,
+            cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -351,6 +436,13 @@ def _tick(
             if rc == 0
             else ("error", f"claim of {task['id']} lost or refused")
         )
+    try:
+        ctl.git_out("fetch", "-q", "origin")
+        worktree = session_worktree(machine, role, task, remote)
+        if problem := unsafe_reason(worktree):
+            return "error", f"{role} {task['id']}: {problem}"
+    except ctl.ControllerError as error:
+        return "error", f"{role} {task['id']}: {error}"
     before = fingerprint(task["id"], remote)
     RUNTIME.mkdir(exist_ok=True)
     code, text = run_session(
@@ -358,6 +450,7 @@ def _tick(
         minutes,
         RUNTIME / f"launch-{machine}{'-' + slot if slot else ''}.log",
         extra,
+        worktree,
     )
     if any(m in text.lower() for m in LIMIT_MARKERS):
         return (
@@ -434,8 +527,8 @@ def cmd_start(a: argparse.Namespace) -> int:
         if not shutil.which("claude"):
             print("REFUSED: 'claude' is not on PATH")
             return 1
-        if ctl.git_out("status", "--porcelain", "--untracked-files=no").stdout.strip():
-            print("REFUSED: checkout has uncommitted changes")
+        if dirty_files(ROOT):
+            print("REFUSED: checkout has modified or untracked files")
             return 1
         status, detail = tick(a.machine, a.remote, 1, [], dry_run=True)
         print(f"preflight: {detail}")
@@ -457,14 +550,6 @@ def cmd_start(a: argparse.Namespace) -> int:
             "--max-ticks",
             str(a.max_ticks),
             *[x for e in a.claude_arg for x in ("--claude-arg", e)],
-        ]
-    else:
-        argv = [
-            sys.executable,
-            str(ROOT / "tools" / "agents" / "night.py"),
-            "--machine",
-            a.machine,
-            *a.rest,
         ]
     if a.dry_run:
         print("dry run; would spawn: " + " ".join(argv))
@@ -508,8 +593,6 @@ def cmd_status(a: argparse.Namespace) -> int:
     print(f"{live}: {detail}")
     if st.get("last_tick"):
         print(f"last tick: {st['last_tick']}")
-    if st.get("runner") == "night":
-        print("note: legacy night.py runner (CONDITIONALLY_RELIABLE); no heartbeat, pid check only")
     if stop_requested(a.machine):
         print(f"stop requested via {stop_requested(a.machine)}")
     return 0 if live == "ALIVE" else 1
@@ -600,14 +683,13 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--dry-run", action="store_true")
     s = sub.add_parser("start")
     common(s)
-    s.add_argument("--runner", choices=["loop", "night"], default="loop")
+    s.add_argument("--runner", choices=["loop"], default="loop")
     s.add_argument("--hours", type=float, default=8.0)
     s.add_argument("--slice-minutes", type=int, default=30)
     s.add_argument("--max-ticks", type=int, default=40)
     s.add_argument("--claude-arg", action="append", default=[])
     s.add_argument("--dry-run", action="store_true")
     s.add_argument("--force", action="store_true")
-    s.add_argument("rest", nargs=argparse.REMAINDER, help="after --, arguments for night.py")
     lp = sub.add_parser("_loop")
     common(lp)
     lp.add_argument("--hours", type=float, default=8.0)

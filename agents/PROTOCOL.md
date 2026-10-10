@@ -34,7 +34,7 @@ QUEUED -> CLAIMED -> ACTIVE -> REVIEW -> INTEGRATION -> COMPLETE
 - `REVIEW` implementation done, local acceptance commands pass, `last_good_commit` recorded. Waiting for the verifier.
 - `INTEGRATION` verifier PASS recorded for the same commit. Waiting for the integrator.
 - `COMPLETE` integrator merged and ran `controller.py complete --commit <merge sha>`. Terminal.
-- `BLOCKED` retry budget exhausted or an external need exists. Requires `BLOCKER.md`. `FAILED` terminal.
+- `BLOCKED` retry budget exhausted or an external need exists. Requires `BLOCKER.md`. `unblock` refuses while any `human:*` blocker is open unless `--resolved "<what was done>"` is given, and after 3 unblock cycles the next `unblock` moves the task to `FAILED`. `requeue` clears owner, machine and branch so the task can be claimed again. `FAILED` terminal.
 
 Only `COMPLETE` satisfies another task's dependency.
 
@@ -59,20 +59,20 @@ Slots: at most `MAX_WORKERS_PER_MACHINE` (1 in janitor mode; reversible, raise i
 | Integrator (cloud session) | merges verified branches, resolves conflicts, runs `check-integration` on the merged head, calls `complete` or `integrate-fail` | integrate unverified work; let the same session verify and integrate one task |
 | Reviewer (cloud session) | process review (section 8); proposes KEEP/SIMPLIFY/REMOVE/REPLACE/NEW RULE | add infrastructure when deleting some would do |
 
-Machine roles are in `OWNERSHIP.yaml`. The controller enforces the integrator role for `complete` and `integrate-fail`. [implemented]. Other role boundaries are [convention].
+Machine roles are in `OWNERSHIP.yaml`. The controller enforces [implemented]: the integrator role for `complete` and `integrate-fail`; `--by` equal to the task owner for `start`, `review`, `record-failure`, `block` (and for `requeue`/`unblock`, or a machine holding the integrator role); for `verify`, `--machine` holding the verifier role, a machine other than the one that ran the task, and a verdict verifier on that machine. Other role boundaries are [convention].
 
 ## 4. Worker loop [convention; steps 7, 12, 13 call the controller]
 
 1. Read the task in `TASKS.yaml`, `LESSONS.md`, the contracts it lists, and the latest handoff on the task branch.
 2. Fetch and check out the task branch (create it from `origin/main` only on first claim). Never start over from main on resume.
-3. Inspect the current implementation. Write or update the handoff with plan and acceptance commands (`controller.py start`).
+3. Inspect the current implementation. Write or update the handoff with plan and acceptance commands (`controller.py start <ID> --by <owner>`).
 4. Implement the smallest useful change. Stay inside `owned_paths`; ask the integrator through the ledger (`blocked_by: T..`) for shared files.
 5. Run narrow validation (the fast tier). On failure: diagnose, patch, retest.
-6. Each failed attempt: `controller.py record-failure <ID> --kind ... --signature "<stable short string>"`. Same signature twice, or a kind budget exhausted, moves the task to BLOCKED and you must write `BLOCKER.md`. Defaults: test 5, build 3, integration 3, same signature 2.
+6. Each failed attempt: `controller.py record-failure <ID> --by <owner> --kind ... --signature "<stable short string>"`. The same root cause three times (`same_failure_signature`, default 3, never below 3; matches CONTRACT.md), or a kind budget exhausted, moves the task to BLOCKED and you must write `BLOCKER.md`. Signatures are normalized (`file.py:12-30`, `#L4`, `line 9` lose their line numbers) so one root cause counts once. Defaults: test 5, build 3, integration 3, same signature 3.
 7. When narrow validation passes, run broader tests, then `make check-integration` (or the commands in `acceptance.commands`).
 8. Self-review the diff: no TODO/FIXME, debug prints, dead code, duplicate implementation, unhandled errors, test bypasses, hardcoded values, secrets, unnecessary dependencies, scope creep, missing tests, stubs presented as features. Tests passing does not imply done.
 9. Update the handoff (section 6), commit, push the task branch.
-10. `controller.py review <ID> --commit <sha>`. Stop. Do not mark anything COMPLETE or merged.
+10. `controller.py review <ID> --by <owner> --commit <sha>`. Stop. Do not mark anything COMPLETE or merged.
 
 Do not stop after implementation while meaningful validation remains. Stop earlier only for BLOCKED, context exhaustion (write CHECKPOINT first) or the session budget.
 
@@ -107,9 +107,9 @@ The verifier checks out `last_good_commit` in a clean worktree and:
 1. Runs every `acceptance.commands` entry; records actual exit codes.
 2. Checks every assertion by test or inspection.
 3. Reviews contracts (`contracts` in the task), regressions, TODO/stub/fake implementations, error handling, scope against `owned_paths`, affected integration boundaries.
-4. Writes `agents/handoffs/<ID>/VERIFICATION.yaml` (schema `agents/schemas/verification.schema.json`), then `controller.py verify <ID>`.
+4. Writes `agents/handoffs/<ID>/VERIFICATION.yaml` (schema `agents/schemas/verification.schema.json`), then `controller.py verify <ID> --machine <verifier machine>`.
 
-PASS moves to INTEGRATION; the controller refuses PASS when a declared command is missing from the verdict, an exit code differs, or the verdict covers a different commit. FAIL returns to ACTIVE with required actions and counts toward the retry budget. **A missing or malformed verdict is a verifier-infrastructure failure: the task keeps its state and no budget is consumed** (L-004). Example FAIL:
+PASS moves to INTEGRATION. The controller judges the verdict against the **ledger**, not the verdict's own claims, and refuses PASS when: a ledger command is missing, the verdict has a command the ledger does not declare, an `actual_exit_code` differs from the ledger's `expected_exit_code`, a ledger assertion has no result or its result is not `met` (verdict key `assertions: [{description, result: met|unmet|not_checked}]`), the verifier is the task owner, or `verified_commit` (resolved with `git rev-parse` to a full sha; unresolvable is refused) differs from the task's `last_good_commit` (null is refused). FAIL returns to ACTIVE with required actions and counts toward the retry budget. **A missing or malformed verdict is a verifier-infrastructure failure: the task keeps its state and no budget is consumed** (L-004). Example FAIL:
 
 ```yaml
 task: T14
@@ -126,7 +126,7 @@ required_actions: [Serve replay from the persisted event store.]
 
 ## 8. Integration [convention; role gate implemented]
 
-The integrator collects INTEGRATION tasks, merges each branch into the integration branch with a merge commit (no force, no history rewrite on shared branches), resolves conflicts, runs `make check-integration` on the merged head, checks contracts, then `controller.py complete`. A failure goes back with `integrate-fail`. Prefer one PR per integration wave, not per task. The integrator never accepts a task that is not in INTEGRATION.
+The integrator collects INTEGRATION tasks, merges each branch into the integration branch with a merge commit (no force, no history rewrite on shared branches), resolves conflicts, runs `make check-integration` on the merged head, checks contracts, then `controller.py complete`. `--commit` must resolve, be an ancestor of the integration tip (`origin/<ledger-branch>` if present, else HEAD), contain the verified commit, and be a merge commit or a later descendant (not the verified commit itself); otherwise `complete` refuses. A failure goes back with `integrate-fail`. Prefer one PR per integration wave, not per task. The integrator never accepts a task that is not in INTEGRATION.
 
 ## 9. Git and parallel sessions [convention; ledger publishing implemented]
 
@@ -182,7 +182,7 @@ UNRELIABLE and UNSUPPORTED mechanisms are not part of the architecture.
 | `stop --machine M` | writes `.agent-runtime/STOP-M`; honored before the next session | RELIABLE |
 | `schedule --machine M --every N` | prints cron, Windows Task Scheduler and Claude-routine recipes | RELIABLE (prints only) |
 
-Work selection is deterministic (`pick_work`): resume own CLAIMED/ACTIVE task; integrator machine takes INTEGRATION; verifier machine takes REVIEW; only the orchestrator machine claims new work. The loop stops on: STOP file, deadline, no work, provider-limit text in session output (it does not wait through a limit; restart after the reset), an error, or **two sessions in a row without progress on the same item** (ledger state and remote branch head unchanged). Sessions use `--permission-mode auto --permission-prompts none` (the flags `night.py` used; confirm against the installed version in the first trial), deny force-push and hard reset, and never use permission-bypass flags.
+Work selection is deterministic (`pick_work`): resume own CLAIMED/ACTIVE task; integrator machine takes INTEGRATION; verifier machine takes REVIEW; only the orchestrator machine claims new work. The loop stops on: STOP file, deadline, no work, provider-limit text in session output (it does not wait through a limit; restart after the reset), an error, or **two sessions in a row without progress on the same item** (ledger state and remote branch head unchanged). Sessions use `--permission-mode auto --permission-prompts none` (present in `claude --help` 2.1.296; behavior unverified until the first live trial, T23), never use permission-bypass flags, and run **only inside a dedicated worktree** `.agent-runtime/worktrees/<machine>-<task>` (created or reused; integrators get `integrate/<task>`), never in the shared checkout. A tick fails (status `error`, no session) when the shared checkout or the worktree has modified or untracked files, or the worktree is on `main`/`master`. `--disallowedTools` denies force-push, `--force-with-lease`, pushes to main, `git checkout main`, `git merge`, `git branch -D`, `git clean` and `git reset --hard`; this is a best-effort prefix list, so keep branch protection on main. Unattended sessions therefore cannot merge: integration stops for a human or a PR.
 
 Where the loop runs matters:
 - **Persistent machine** (none today; kept for a future self-hosted pool): an agent or person runs `launch.py start`. If the machine sleeps or reboots the loop is DEAD; `status` says so and the next `start` resumes from repository state.

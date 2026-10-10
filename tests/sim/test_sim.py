@@ -170,3 +170,47 @@ def test_cli_default_runs_full_900_ticks(tmp_path, monkeypatch):
     monkeypatch.setattr("sys.argv", ["x", "--seed", "1", "--out", str(tmp_path)])
     main()
     assert json.loads((tmp_path / "manifest.json").read_text())["ticks"] == 900
+
+
+def test_kill_mid_episode_leaves_no_wreck_and_others_continue(tmp_path):
+    from archipelago_sim2d.smoke import make_action
+
+    kw = {"n_targets": 0, "battery_scale": 10.0}
+    ad = Sim2DAdapter(**kw)
+    ad.reset(make_config(3, 20))
+    ad.world.obstacles.clear()
+    ad.step({n: make_action(n, 0, "stay") for n in ad.world.agents})
+    gone_pos = ad.world.drones["node-1"].pos
+    ad.kill("node-1")
+    assert "node-1" not in ad.world.agents and "node-1" not in ad.world.drones
+    assert "node-1" not in ad.snapshot().poses
+    with pytest.raises(ValueError):
+        ad.kill("node-1")
+    # node-0 walks into the removed drone's cell: no wreck blocks it
+    ad.world.drones["node-0"].pos = (gone_pos[0] - 1, gone_pos[1])
+    res = ad.step(
+        {n: make_action(n, 1, "east" if n == "node-0" else "stay") for n in ad.world.agents}
+    )
+    assert set(res.observations) == {"node-0", "node-2", "node-3"}
+    assert ad.world.drones["node-0"].pos == gone_pos
+    while ad.world.agents:
+        ad.step({})
+    m = json.loads(ad.write_replay(tmp_path).read_text())
+    assert m["removed_nodes"] == ["node-1"]
+    assert m["ticks"] == len([r for r in ad.replay if "actions" in r])
+
+
+def test_replay_with_removal_reexecutes_to_same_hash(tmp_path):
+    from archipelago_sim2d.adapter import replay_final_hash_from_dir
+    from archipelago_sim2d.smoke import make_action
+
+    kw = {"n_targets": 0, "battery_scale": 10.0}
+    ad = Sim2DAdapter(**kw)
+    ad.reset(make_config(4, 12))
+    cmds = ["east", "south", "west", "north"]
+    for t in range(12):
+        if t == 5:
+            ad.kill("node-2")
+        ad.step({n: make_action(n, t, cmds[(t + i) % 4]) for i, n in enumerate(ad.world.agents)})
+    m = json.loads(ad.write_replay(tmp_path).read_text())
+    assert replay_final_hash_from_dir(tmp_path) == m["final_state_hash"]

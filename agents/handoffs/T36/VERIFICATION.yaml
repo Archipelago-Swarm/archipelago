@@ -1,0 +1,11 @@
+task: T36
+status: PASS
+verified_commit: d453b91eef
+verifier: A/integrator-direct-run
+checked_at: '2026-10-10T20:13:02Z'
+commands:
+- command: uv run pytest tests/api/test_telemetry_ingest.py -q
+  expected_exit_code: 0
+  actual_exit_code: 0
+failures: []
+required_actions: []

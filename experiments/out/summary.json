@@ -1,71 +1,44 @@
 {
- "config": {
-  "args": {
-   "seeds": 3,
-   "episodes": 20,
-   "modes": [
-    "rule",
-    "independent",
-    "information_only",
-    "p2p",
-    "central_online",
-    "ctde"
-   ],
-   "scenarios": [
-    "connected",
-    "split",
-    "rejoin",
-    "node_failure"
-   ],
-   "out": "experiments/out"
-  },
-  "val": [
-   900,
-   901,
-   902,
-   903
-  ],
-  "test": [
-   950,
-   951,
-   952,
-   953,
-   954,
-   955
-  ],
-  "rerun": "python experiments/run.py --seeds 3 --episodes 20 --out experiments/out",
-  "train_env_steps": 50466,
-  "wall_s": 7.955262599991329,
-  "note": "n=3 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0."
- },
- "paired_vs_independent": [
+ "paired": [
   {
    "scenario": "connected",
    "mode": "central_online",
    "vs": "independent",
    "n": 3,
-   "mean_diff": -4.614444444444448,
+   "mean_diff": -11.012499999999982,
    "ci95": [
-    -9.656666666666679,
-    0.9433333333333298
+    -20.012499999999953,
+    -4.512499999999948
    ],
-   "wins": 1
+   "wins": 0
   },
   {
    "scenario": "connected",
    "mode": "ctde",
    "vs": "independent",
    "n": 3,
-   "mean_diff": -4.614444444444448,
+   "mean_diff": -4.408333333333356,
    "ci95": [
-    -9.656666666666679,
-    0.9433333333333298
+    -9.375000000000016,
+    0.5749999999999078
    ],
    "wins": 1
   },
   {
    "scenario": "connected",
-   "mode": "information_only",
+   "mode": "idle",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": -6.491666666666645,
+   "ci95": [
+    -7.7624999999999735,
+    -5.787499999999954
+   ],
+   "wins": 0
+  },
+  {
+   "scenario": "connected",
+   "mode": "info_only",
    "vs": "independent",
    "n": 3,
    "mean_diff": 0.0,
@@ -80,10 +53,22 @@
    "mode": "p2p",
    "vs": "independent",
    "n": 3,
-   "mean_diff": 1.5350000000000035,
+   "mean_diff": 3.7291666666666585,
    "ci95": [
-    -6.750000000000007,
-    7.718333333333348
+    0.8374999999999746,
+    8.750000000000021
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "connected",
+   "mode": "replay_sharing",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": 2.633333333333335,
+   "ci95": [
+    -6.2500000000000115,
+    8.46249999999996
    ],
    "wins": 2
   },
@@ -92,10 +77,94 @@
    "mode": "rule",
    "vs": "independent",
    "n": 3,
-   "mean_diff": 14.105000000000004,
+   "mean_diff": 90.96183333333322,
    "ci95": [
-    11.576666666666675,
-    18.970000000000006
+    89.69099999999987,
+    91.6659999999999
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "connected",
+   "mode": "central_online",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": -4.520833333333338,
+   "ci95": [
+    -12.24999999999998,
+    1.2750000000000064
+   ],
+   "wins": 1
+  },
+  {
+   "scenario": "connected",
+   "mode": "ctde",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 2.083333333333289,
+   "ci95": [
+    -1.6125000000000418,
+    6.499999999999916
+   ],
+   "wins": 2
+  },
+  {
+   "scenario": "connected",
+   "mode": "independent",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 6.491666666666645,
+   "ci95": [
+    5.787499999999954,
+    7.7624999999999735
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "connected",
+   "mode": "info_only",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 6.491666666666645,
+   "ci95": [
+    5.787499999999954,
+    7.7624999999999735
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "connected",
+   "mode": "p2p",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 10.220833333333303,
+   "ci95": [
+    6.762499999999982,
+    16.512499999999996
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "connected",
+   "mode": "replay_sharing",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 9.12499999999998,
+   "ci95": [
+    1.5124999999999618,
+    14.387499999999967
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "connected",
+   "mode": "rule",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 97.45349999999985,
+   "ci95": [
+    97.45349999999985,
+    97.45349999999985
    ],
    "wins": 3
   },
@@ -104,28 +173,40 @@
    "mode": "central_online",
    "vs": "independent",
    "n": 3,
-   "mean_diff": 1.591111111111113,
+   "mean_diff": -2.045833333333329,
    "ci95": [
-    -1.1233333333333324,
-    5.308333333333342
+    -7.28749999999998,
+    2.0875000000000146
    ],
-   "wins": 2
+   "wins": 1
   },
   {
    "scenario": "node_failure",
    "mode": "ctde",
    "vs": "independent",
    "n": 3,
-   "mean_diff": 0.878888888888888,
+   "mean_diff": -11.479166666666645,
    "ci95": [
-    -7.073333333333341,
-    5.418333333333334
+    -28.537499999999966,
+    -0.9375000000000142
    ],
-   "wins": 2
+   "wins": 0
   },
   {
    "scenario": "node_failure",
-   "mode": "information_only",
+   "mode": "idle",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": -12.058333333333309,
+   "ci95": [
+    -18.087499999999956,
+    -7.999999999999997
+   ],
+   "wins": 0
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "info_only",
    "vs": "independent",
    "n": 3,
    "mean_diff": 0.0,
@@ -140,112 +221,160 @@
    "mode": "p2p",
    "vs": "independent",
    "n": 3,
-   "mean_diff": 4.498333333333336,
+   "mean_diff": 4.391666666666671,
    "ci95": [
-    -0.9966666666666694,
-    8.255000000000004
-   ],
-   "wins": 2
-  },
-  {
-   "scenario": "node_failure",
-   "mode": "rule",
-   "vs": "independent",
-   "n": 3,
-   "mean_diff": 19.59833333333334,
-   "ci95": [
-    14.351666666666668,
-    23.44500000000001
+    0.9624999999999648,
+    10.112500000000015
    ],
    "wins": 3
   },
   {
-   "scenario": "rejoin",
-   "mode": "central_online",
+   "scenario": "node_failure",
+   "mode": "replay_sharing",
    "vs": "independent",
    "n": 3,
-   "mean_diff": -3.5549999999999997,
+   "mean_diff": 5.195833333333331,
    "ci95": [
-    -8.263333333333335,
-    3.513333333333336
+    -2.3999999999999844,
+    9.749999999999993
    ],
-   "wins": 1
+   "wins": 2
   },
   {
-   "scenario": "rejoin",
-   "mode": "ctde",
-   "vs": "independent",
-   "n": 3,
-   "mean_diff": -4.614444444444448,
-   "ci95": [
-    -9.656666666666679,
-    0.9433333333333298
-   ],
-   "wins": 1
-  },
-  {
-   "scenario": "rejoin",
-   "mode": "information_only",
-   "vs": "independent",
-   "n": 3,
-   "mean_diff": 0.0,
-   "ci95": [
-    0.0,
-    0.0
-   ],
-   "wins": 0
-  },
-  {
-   "scenario": "rejoin",
-   "mode": "p2p",
-   "vs": "independent",
-   "n": 3,
-   "mean_diff": -4.509444444444448,
-   "ci95": [
-    -11.430000000000007,
-    0.22166666666666934
-   ],
-   "wins": 1
-  },
-  {
-   "scenario": "rejoin",
+   "scenario": "node_failure",
    "mode": "rule",
    "vs": "independent",
    "n": 3,
-   "mean_diff": 14.105000000000004,
+   "mean_diff": 77.15666666666665,
    "ci95": [
-    11.576666666666675,
-    18.970000000000006
+    71.12750000000001,
+    81.21499999999997
    ],
    "wins": 3
   },
   {
-   "scenario": "split",
+   "scenario": "node_failure",
+   "mode": "central_online",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 10.01249999999998,
+   "ci95": [
+    7.062499999999976,
+    12.174999999999985
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "ctde",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 0.5791666666666634,
+   "ci95": [
+    -10.45000000000001,
+    7.062499999999983
+   ],
+   "wins": 2
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "independent",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 12.058333333333309,
+   "ci95": [
+    7.999999999999997,
+    18.087499999999956
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "info_only",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 12.058333333333309,
+   "ci95": [
+    7.999999999999997,
+    18.087499999999956
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "p2p",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 16.449999999999978,
+   "ci95": [
+    8.962499999999963,
+    20.199999999999985
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "replay_sharing",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 17.254166666666638,
+   "ci95": [
+    15.687499999999972,
+    19.837499999999963
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "node_failure",
+   "mode": "rule",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 89.21499999999997,
+   "ci95": [
+    89.21499999999997,
+    89.21499999999997
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "partition_reconnect",
    "mode": "central_online",
    "vs": "independent",
    "n": 3,
-   "mean_diff": -7.661111111111116,
+   "mean_diff": 7.7583333333333115,
    "ci95": [
-    -8.708333333333343,
-    -6.428333333333337
+    3.8374999999999857,
+    9.825
    ],
-   "wins": 0
+   "wins": 3
   },
   {
-   "scenario": "split",
+   "scenario": "partition_reconnect",
    "mode": "ctde",
    "vs": "independent",
    "n": 3,
-   "mean_diff": -4.614444444444448,
+   "mean_diff": -4.408333333333356,
    "ci95": [
-    -9.656666666666679,
-    0.9433333333333298
+    -9.375000000000016,
+    0.5749999999999078
    ],
    "wins": 1
   },
   {
-   "scenario": "split",
-   "mode": "information_only",
+   "scenario": "partition_reconnect",
+   "mode": "idle",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": -6.491666666666645,
+   "ci95": [
+    -7.7624999999999735,
+    -5.787499999999954
+   ],
+   "wins": 0
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "info_only",
    "vs": "independent",
    "n": 3,
    "mean_diff": 0.0,
@@ -256,10 +385,166 @@
    "wins": 0
   },
   {
-   "scenario": "split",
+   "scenario": "partition_reconnect",
    "mode": "p2p",
    "vs": "independent",
    "n": 3,
+   "mean_diff": -3.0083333333333555,
+   "ci95": [
+    -15.537499999999982,
+    7.475000000000015
+   ],
+   "wins": 1
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "replay_sharing",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": 4.208333333333321,
+   "ci95": [
+    -3.925000000000006,
+    9.16249999999992
+   ],
+   "wins": 2
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "rule",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": 90.96183333333322,
+   "ci95": [
+    89.69099999999987,
+    91.6659999999999
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "central_online",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 14.249999999999957,
+   "ci95": [
+    9.62499999999994,
+    17.587499999999974
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "ctde",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 2.083333333333289,
+   "ci95": [
+    -1.6125000000000418,
+    6.499999999999916
+   ],
+   "wins": 2
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "independent",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 6.491666666666645,
+   "ci95": [
+    5.787499999999954,
+    7.7624999999999735
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "info_only",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 6.491666666666645,
+   "ci95": [
+    5.787499999999954,
+    7.7624999999999735
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "p2p",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 3.4833333333332903,
+   "ci95": [
+    -7.775000000000008,
+    13.262499999999969
+   ],
+   "wins": 2
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "replay_sharing",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 10.699999999999966,
+   "ci95": [
+    3.837499999999968,
+    15.087499999999928
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "partition_reconnect",
+   "mode": "rule",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 97.45349999999985,
+   "ci95": [
+    97.45349999999985,
+    97.45349999999985
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "central_online",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": -11.012499999999982,
+   "ci95": [
+    -20.012499999999953,
+    -4.512499999999948
+   ],
+   "wins": 0
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "ctde",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": -4.408333333333356,
+   "ci95": [
+    -9.375000000000016,
+    0.5749999999999078
+   ],
+   "wins": 1
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "idle",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": -6.491666666666645,
+   "ci95": [
+    -7.7624999999999735,
+    -5.787499999999954
+   ],
+   "wins": 0
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "info_only",
+   "vs": "independent",
+   "n": 3,
    "mean_diff": 0.0,
    "ci95": [
     0.0,
@@ -268,16 +553,125 @@
    "wins": 0
   },
   {
-   "scenario": "split",
+   "scenario": "telemetry_outage",
+   "mode": "p2p",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": 3.7291666666666585,
+   "ci95": [
+    0.8374999999999746,
+    8.750000000000021
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "replay_sharing",
+   "vs": "independent",
+   "n": 3,
+   "mean_diff": 2.633333333333335,
+   "ci95": [
+    -6.2500000000000115,
+    8.46249999999996
+   ],
+   "wins": 2
+  },
+  {
+   "scenario": "telemetry_outage",
    "mode": "rule",
    "vs": "independent",
    "n": 3,
-   "mean_diff": 14.105000000000004,
+   "mean_diff": 90.96183333333322,
    "ci95": [
-    11.576666666666675,
-    18.970000000000006
+    89.69099999999987,
+    91.6659999999999
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "central_online",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": -4.520833333333338,
+   "ci95": [
+    -12.24999999999998,
+    1.2750000000000064
+   ],
+   "wins": 1
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "ctde",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 2.083333333333289,
+   "ci95": [
+    -1.6125000000000418,
+    6.499999999999916
+   ],
+   "wins": 2
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "independent",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 6.491666666666645,
+   "ci95": [
+    5.787499999999954,
+    7.7624999999999735
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "info_only",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 6.491666666666645,
+   "ci95": [
+    5.787499999999954,
+    7.7624999999999735
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "p2p",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 10.220833333333303,
+   "ci95": [
+    6.762499999999982,
+    16.512499999999996
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "replay_sharing",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 9.12499999999998,
+   "ci95": [
+    1.5124999999999618,
+    14.387499999999967
+   ],
+   "wins": 3
+  },
+  {
+   "scenario": "telemetry_outage",
+   "mode": "rule",
+   "vs": "idle",
+   "n": 3,
+   "mean_diff": 97.45349999999985,
+   "ci95": [
+    97.45349999999985,
+    97.45349999999985
    ],
    "wins": 3
   }
- ]
+ ],
+ "note": "n=3 experiment seeds: preliminary; CIs are bootstrap over seeds."
 }
