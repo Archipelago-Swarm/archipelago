@@ -82,3 +82,16 @@ def test_adapter_encoder_matches_learner_and_stays_isolated() -> None:
     assert not [f for f in core if "pybullet" in f.read_text(encoding="utf-8")]
     src = (root / "packages/adapters/pybullet/archipelago_pybullet/adapter.py").read_text()
     assert "p.DIRECT" in src and "p.GUI" not in src  # headless physics only
+
+
+def test_saved_smoke_evidence_is_reproducible(capsys: pytest.CaptureFixture[str]) -> None:
+    pytest.importorskip("pybullet")
+    import json
+
+    from archipelago_pybullet import smoke
+
+    smoke.main()
+    fresh = json.loads(capsys.readouterr().out)
+    saved = json.loads((Path(smoke.__file__).parents[1] / "evidence/smoke.json").read_text())
+    assert fresh["drone_drone_collisions"] == saved["drone_drone_collisions"] == 0
+    assert fresh["poses3d"] == pytest.approx(saved["poses3d"], abs=1e-6)

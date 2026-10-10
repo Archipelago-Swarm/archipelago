@@ -106,3 +106,21 @@ The repo `.venv` is Python 3.13 and has no pybullet, so there the flight test sk
 - Independent review: not run
 - Next issue: Worker permission, exit 0; inspect local log
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A (run 20261010T065500Z)
+- `pybullet/` is now a reserved path, so the earlier move to `pybullet3d/` is unnecessary; adapter stays in `packages/adapters/pybullet/`.
+- Added `test_saved_smoke_evidence_is_reproducible` (fresh smoke run must match `evidence/smoke.json`). `pytest tests/adapters3d -q` -> 5 passed (global Python 3.14).
+- Still open: gym-pybullet-drones not integrated (needs network/heavy install), contract takeoff/land commands, `Pose.z` ADR, pybullet absent from repo `.venv` (tests skip there).
+
+## Supervisor checkpoint 2026-10-10T06:55:40Z
+
+- Run: 20261010T065500Z
+- Machine: A
+- Task/branch: T12 / agent/A/20261010T065500Z/T12
+- Base: b63e8184fb0f13ca5ffc2342cab2b0be19a835a5
+- Round: 1
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.
