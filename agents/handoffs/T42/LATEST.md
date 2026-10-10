@@ -1,8 +1,10 @@
 # Handoff: T42 Owner C (Infra / Demo)
 
-- State: implemented and validated locally as far as no-Docker allows; Docker-tier validation pending in CI.
-- Base: 94712c5 (worktree fast-forwarded from ab8b93b, clean tree). Branch: worktree-wf_3aeacd71-a28-2. Never pushed.
-- Owned paths touched: `infra/**`, `tests/infra/**`, `tests/e2e/**`, `Makefile` demo-* targets only.
+- State: integrated on main (PR #12, #22). Local Docker validation done for each docker test individually (a Docker daemon was available in the integrator session); the full docker slice is checked by CI on PR #22.
+- Last updated at PR #22 head after commit `b36f454` (plan name in body, stop with latest revision, API command reply no longer terminates a run). Branch: `claude/elegant-pascal-a8a3hp`.
+- Owned paths touched: `infra/**`, `tests/infra/**`, `tests/e2e/**`, `Makefile` demo-* targets only; PR #22 also fixed `infra/docker/api.Dockerfile` (coordinator package in the API image) and `infra/demo/artifacts.py`.
+- Resolved since the first handoff: control-message and telemetry mismatches (items 1-3 below) are fixed by T39/T27/T29 amendments; `tests/e2e` (16 tests, ~80 s, no Docker) passes without the control shim; the plan name travels in the request body (`"plan": "<name>"`), not a query parameter.
+- Still open: CPU-wheel node memory (only the CUDA wheel was measurable: ~390-400 MiB per node, limit stays 1g provisional), real Vultr/TigerData runs, `make demo` end-to-end on a clean machine, a regression test for the artifact generator fixes.
 
 ## Invariant
 
