@@ -1,0 +1,33 @@
+# TLS terminates here. SITE_ADDRESS is a DNS name (automatic ACME certificate) in production,
+# or "localhost" locally (Caddy internal CA). Only this service publishes ports.
+{
+	email {$ACME_EMAIL:admin@example.invalid}
+}
+
+{$SITE_ADDRESS:localhost} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+	request_body {
+		max_size 1MB
+	}
+
+	# Run API: every mutating route requires the API token (enforced by the API, not here).
+	@api path /v1/* /healthz /readyz
+	handle @api {
+		reverse_proxy api:8000
+	}
+
+	# Grafana has its own login (anonymous disabled in compose); served from /grafana.
+	handle /grafana* {
+		reverse_proxy grafana:3000
+	}
+
+	handle {
+		reverse_proxy web:8080
+	}
+}

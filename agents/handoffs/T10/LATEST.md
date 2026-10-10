@@ -1,0 +1,51 @@
+# Handoff: T10 / prep (machine B, static packaging only)
+
+- State: in_progress (prep branch, not a T10 assignment; deployment blocked)
+- Run / machine / worker: B, T10 prep worker
+- Branch / base commit: agent/B/T10/prep from origin/main 7999daf
+- Resume from branch/commit: agent/B/T10/prep (pushed)
+- Reserved paths: infra/, agents/handoffs/T10/ (task card dependencies T03,T04,T05,T06,T08 not all confirmed merged; A must record an assignment before this is used)
+
+## Intended outcome and acceptance
+
+T10 acceptance (task card): compose validation and four-node smoke, no anonymous mutation or public DB/peer ports, actual Vultr evidence, restart recovery, verified rollback, spend status. None of the acceptance checks is met yet; this prep only writes artifacts.
+
+## Written (not verified by running)
+
+- `infra/docker/api.Dockerfile`, `web.Dockerfile`, `node.Dockerfile` (multi-stage, non-root, healthchecks; node image is a PLACEHOLDER: no `archipelago_node` entrypoint and packages/node is not a uv workspace member).
+- `infra/compose/compose.yml` (proxy, web, api, grafana, node-01..04, timescaledb under profile `local`), `infra/compose/.env.example`.
+- `infra/proxy/Caddyfile` (TLS, security headers, routes /v1,/healthz,/readyz to api, /grafana to grafana), `infra/proxy/web-nginx.conf`.
+- `infra/scripts/smoke.sh` (black-box checks incl. anonymous rejection and closed ports).
+- `infra/runbooks/`: `vultr-deploy.md`, `rollback-teardown.md`, `budget-guard.md`, `smoke-checks.md`.
+
+## Validation
+
+Working dir: C:\archipelago\.agent-runtime\worktrees\T10prep.
+- Compose YAML parsed with PyYAML via `py`: services listed, all referenced networks/volumes declared, only `proxy` publishes ports, nodes sit only on the internal `peers` network with their own volume, cap_drop ALL. PASS (structure only).
+- Dockerfile instruction/continuation sanity script: PASS (not a real build).
+- `bash -n infra/scripts/smoke.sh`: PASS (syntax only).
+- NOT RUN: `docker compose config`, any `docker build`, hadolint, Caddyfile validation (`caddy validate`), `shellcheck`, smoke.sh against a stack, local four-node smoke, migrations, restart recovery, rollback, any Vultr or TigerData action. No cloud spend, no installs.
+
+## Known gaps / decisions
+
+- Node image cannot build until a node entrypoint exists and is in uv.lock.
+- API: login cookie `secure=False` (app.py, comment says T10); needs `secure=True` behind TLS, outside T10 paths, needs A to serialize.
+- psycopg is not a locked runtime dependency (see T08 handoff); `TIGERDATA_URL` is passed to api but nothing consumes it until that wiring exists. Simulation coordinator is not a compose service.
+- `api.Dockerfile` assumes `uv sync --frozen --no-dev --package archipelago-api` works with the workspace lock (unverified); web Dockerfile `npm ci` with workspace flags unverified (npm ci is typically root-level; adjust if it fails).
+- Images are built on the host (no registry, no cost); ghcr is an alternative.
+- Grafana is served under /grafana with its own login; anonymous disabled.
+
+## Human actions needed
+
+1. Approve host or budget cap (see `infra/runbooks/budget-guard.md`); supply Vultr access out of band.
+2. Create TigerData service and supply writer/reader TLS connection strings; run migrations 0001/0002 as admin.
+3. DNS name for the host.
+4. A Docker-capable machine (or the host) to run `docker compose config`, builds and the local four-node smoke.
+5. A to assign T10 formally and unblock the shared-file changes above.
+
+## Next steps
+
+1. On a Docker machine: `docker compose -f infra/compose/compose.yml --env-file infra/compose/.env.example --profile local config -q` (set required secrets in a copy first).
+2. Build api and web images; fix any path/lock issues; run local smoke.
+3. After node entrypoint lands, build node image; extend smoke.sh with the designed checks.
+4. Follow `infra/runbooks/vultr-deploy.md` only after the gates.
