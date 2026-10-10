@@ -1,0 +1,20 @@
+task: T22
+status: PASS
+verified_commit: 41c334f
+verifier: cloud/verifier
+checked_at: "2026-10-10T21:00:00Z"
+commands:
+  - command: make check-fast
+    expected_exit_code: 0
+    actual_exit_code: 0
+    log: "clean worktree at 41c334f; 42 passed in tests/agents"
+  - command: SKIP_DOCKER=1 make check-integration
+    expected_exit_code: 0
+    actual_exit_code: 0
+    log: "Final run after `npm ci` (as CI does): 186 passed, 3 skipped, web build ok, exit 0. Earlier runs: run 1 failed once in tests/agents/test_launch.py::test_start_detaches_reports_status_and_stops_on_no_progress (status still ALIVE right after stop_reason was set: a timing race in the detached launcher test; passes in isolation and in 3 later full runs). Runs 2-3 exited 2 only because node_modules was missing before npm ci, an environment gap, not a code fault. Docker tests not run (SKIP_DOCKER=1)."
+  - command: uv run python agents/controller.py validate
+    expected_exit_code: 0
+    actual_exit_code: 0
+    log: "OK: 23 tasks valid"
+failures: []
+required_actions: []

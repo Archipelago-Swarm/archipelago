@@ -1,0 +1,23 @@
+task: T24
+status: PASS
+verified_commit: d30d299
+verifier: cloud/verifier
+checked_at: "2026-10-10T23:00:00Z"
+commands:
+  - {command: "python agents/controller.py validate", expected_exit_code: 0, actual_exit_code: 0, log: "OK: 31 tasks valid"}
+failures: []
+required_actions: []
+# Review notes (non-blocking; owners are the named later tasks, none contradicts the agreement):
+#  - Assertion 1: read dqn.py, peer.py, rollout.py, transport, PeerServer, sim2d adapter, sim env, API app/runs against live-runtime.md. No contradiction found.
+#    Confirmed: param keys w1,b1,w2,b2 float32 and tensor-only npz; 1 MiB cap; sender check; mixing alpha<=0.5; optimizer reset and target copy on accept;
+#    local_update vs peer_offer vs rollback event types; env treats a missing action as stay; drop-node removes a drone; API run states equal the agreement's states.
+#  - Gaps the owning tasks must close (spec asks for more than the code does today):
+#    T28: Sim2DAdapter.reset() zeroes _seq/replay and event_id is "<kind>-<seq>" with a synthetic EPOCH time, and snapshot() hardcodes Topology(links=[]);
+#         section 12 needs sequences unique across episodes and restarts and topology = allowed peer links, so the coordinator must re-sequence and fill topology.
+#    T27: archipelago_transport.MAX_PAYLOAD is 64 KiB (PeerServer 413 above 128 KiB) so the 1 MiB peer cap is not reachable on the wire; real Envelope is
+#         (src,dst,seq,payload,version,digest) where seq is the model version and version is the wire version. PeerClient.seq starts at 0, so a restarted
+#         sender must restore it from the checkpoint or receivers reject as duplicate_or_stale.
+#    T29: app.py defaults to the fixture adapter when ARCHIPELAGO_ADAPTER is unset; live mode must be explicit, fail /readyz when the coordinator is unreachable, and never fall back.
+#  - Assertion 2: T26-T31 all cite live-runtime.md. Shared owned_paths exist only between T26/T30 (packages/learning, tests/learning) and T29/T31 (infra, tests/infra);
+#    both pairs are strictly ordered by dependencies (T30 needs T27 needs T26; T31 needs T29), so they can never be in flight together, which is what controller validate
+#    and paths_overlap enforce. Recommend narrowing T30 and T31 owned_paths when they are claimed.
