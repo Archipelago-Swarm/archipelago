@@ -10,6 +10,8 @@ import argparse, json, re, shutil, subprocess, sys, time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from cleanup_branches import cleanup as cleanup_branches
+
 ROOT = Path(__file__).resolve().parents[2]
 RT = ROOT / ".agent-runtime"
 STATE = RT / "driver.json"
@@ -246,6 +248,12 @@ def driver_a(a):
                     if t not in results and sh("git", "ls-remote", "--exit-code", "--heads", "origin", f"agent/{m}/{last_run}/{t}", check=False).returncode == 0:
                         results[t] = (m, "in_progress")
                 integrate(last_run, results, s)
+                try:
+                    archived, removed = cleanup_branches(ROOT, apply=True)
+                    log(f"branch cleanup: archived {archived} reports; removed {removed} redundant refs")
+                except Exception as error:
+                    # Cleanup is maintenance, never a reason to lose a run's handoff.
+                    log(f"branch cleanup deferred: {error}")
                 prior = results
             else:
                 prior = {}
