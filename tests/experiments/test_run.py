@@ -55,3 +55,12 @@ def test_information_only_flagged_stub_and_bytes_counted():
         "information_only": True,
         "p2p": False,
     }
+
+
+def test_committed_evidence_hashes_match():
+    import hashlib, json, pathlib
+    d = pathlib.Path(__file__).resolve().parents[2] / "agents/handoffs/T09/evidence"
+    if not (d / "manifest.json").exists():
+        return
+    for name, h in json.loads((d / "manifest.json").read_text())["sha256"].items():
+        assert hashlib.sha256((d / name).read_bytes()).hexdigest() == h, name

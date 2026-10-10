@@ -98,3 +98,21 @@
 - Independent review: {"pass": false, "issues": ["information_only is still a stub: it is identical to independent because the learner rejects every offer. It is only flagged stub=true. Slice 1's information-only comparison has no real implementation or evidence.", "The work is not committed or pushed. git status shows run.py, REPORT.md, the tests and the handoff as modified, and the evidence/ bundle as untracked. The contract requires a pushed handoff and implementation, so it is not ready for PR review.", "node_failure is a simplification. Node 1 pauses training and stays still at test in every mode. It is not a real node loss, so the node-failure sweep in slice 3 is only partly met.", "No approval of the compute cap was found, so the 'sweeps within approved compute caps' requirement is unverified.", "The evidence bundle covers 12 seeds x 150 episodes. It is a small sample and its findings are preliminary. That is acceptable only if the report states it, and it can't support any central-superiority claim.", "No run report from the template exists.", "Tests are thin for the acceptance checks. They cover seed disjointness, matched budget and a link-invariance check for CTDE, but not the retained hashes in the manifest. They don't check the CTDE-versus-central comparison at a meaningful budget either.", "The handoff's own state is still in_progress. It lists undone items, and the task card has no completion evidence."]}
 - Next issue: information_only is still a stub: it is identical to independent because the learner rejects every offer. It is only flagged stub=true. Slice 1's information-only comparison has no real implementation or evidence.; The work is not committed or pushed. git status shows run.py, REPORT.md, the tests and the handoff as modified, and the evidence/ bundle as untracked. The contract requires a pushed handoff and implementation, so it is not ready for PR review.; node_failure is a simplification. Node 1 pauses training and stays still at test in every mode. It is not a real node loss, so the node-failure sweep in slice 3 is only partly met.; No approval of the compute cap was found, so the 'sweeps within approved compute caps' requirement is unverified.; The evidence bundle covers 12 seeds x 150 episodes. It is a small sample and its findings are preliminary. That is acceptable only if the report states it, and it can't support any central-superiority claim.; No run report from the template exists.; Tests are thin for the acceptance checks. They cover seed disjointness, matched budget and a link-invariance check for CTDE, but not the retained hashes in the manifest. They don't check the CTDE-versus-central comparison at a meaningful budget either.; The handoff's own state is still in_progress. It lists undone items, and the task card has no completion evidence.
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker update (round 5)
+- Added test that committed evidence/ files match manifest sha256. No other changes.
+- Still not done: information_only real implementation (needs packages/learning, outside reserved paths); real node_failure; compute-cap approval; template run report (supervisor/integrator).
+- Found the manifest's summary.json sha256 was stale (file differed from recorded hash). Reran the full sweep locally: raw/summary differ from committed only in wall_s/out/rerun fields (wall time is inside the hashed files, so rerun hashes are not byte-identical; compare replay_hashes/returns instead). Updated manifest's summary.json hash to the committed file's actual sha256. raw.jsonl hash was already correct.
+
+## Supervisor checkpoint 2026-10-10T13:06:16Z
+
+- Run: 20261010T130137Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T130137Z/T09
+- Base: 110279e3754d67377172ecbd9619fc3ef364ea61
+- Round: 1
+- State: in_progress
+- External check exit: 1
+- Independent review: not run
+- Next issue: External checks failed (exit 1); inspect local check log
+- Resume: fetch this branch, inspect latest commit and continue the task card.

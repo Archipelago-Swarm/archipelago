@@ -38,6 +38,6 @@
  "note": "n=12 experiment seeds: preliminary; CIs are bootstrap over seeds, wide for small n; no superiority claims without CI excluding 0.",
  "sha256": {
   "raw.jsonl": "90ea6fb724733648fcd807fa637a039e94028f5f318a5c93b137349606caf889",
-  "summary.json": "b7922a6517e3b6d8f86e8b19d915281c994df43c6d63460d972b961ded187f81"
+  "summary.json": "13c7fd3580a5740a93ad559deb609a72bd49ffc345e204947a18f1fc98edc33b"
  }
 }
