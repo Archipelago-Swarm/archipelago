@@ -33,6 +33,7 @@ from .compat import (
 ENCODER = "grid-flat-v1"
 CKPT_SCHEMA = "torch-ckpt-v1"
 _PREFIX = "extra."
+MAX_CKPT_EVENTS = 1000  # newest events kept in a checkpoint; bounds size and write time
 
 
 class InferenceSnapshot:
@@ -87,7 +88,12 @@ class TorchLearner:
         encoder=ENCODER,
         threads=None,
     ):
-        """threads=None -> env OMP_NUM_THREADS if set, else 1."""
+        """threads=None -> env OMP_NUM_THREADS if set, else 1.
+
+        Thread count and deterministic mode are process-wide. runtime['threads'] is the value at
+        construction; a learner built later in the same process with a different count makes it
+        stale (last constructor wins). Read torch.get_num_threads() for the live value.
+        """
         assert mode in ("independent", "information_only", "mixing")
         if threads is None:
             threads = int(os.environ.get("OMP_NUM_THREADS", "1") or 1)
@@ -296,6 +302,7 @@ class TorchLearner:
             "paused": self.paused,
             "has_previous": self.previous is not None,
             "torch_version": torch.__version__,
+            "events_dropped": max(0, len(self.events) - MAX_CKPT_EVENTS),
         }
         policy_arrays = {f"p_{k}": v for k, v in self.params_numpy().items()}
         policy_arrays.update({f"t_{k}": v for k, v in self.target_numpy().items()})
@@ -311,7 +318,7 @@ class TorchLearner:
             ),
             "previous.npz": _npz(**{k: v for k, v in (self.previous or {}).items()}),
             "counters.json": json.dumps(counters, sort_keys=True).encode(),
-            "events.json": json.dumps(self.events, allow_nan=False).encode(),
+            "events.json": json.dumps(self.events[-MAX_CKPT_EVENTS:], allow_nan=False).encode(),
         }
         for name, blob in extra.items():
             files[f"{_PREFIX}{name}.json"] = json.dumps(

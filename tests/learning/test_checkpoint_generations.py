@@ -254,3 +254,24 @@ def test_bad_extra_names_and_values_are_refused(tmp_path):
         L.save_generation(tmp_path, extra={"../evil": {}})
     with pytest.raises(ValueError):
         L.save_generation(tmp_path, extra={"nan": float("nan")})
+
+
+def test_checkpoint_events_are_capped_to_newest_and_size_stays_bounded(tmp_path):
+    from archipelago_learning import torch_dqn
+
+    cap = torch_dqn.MAX_CKPT_EVENTS
+
+    def evs(n):
+        return [{"type": "local_update", "step": i, "version": i, "loss": 0.0} for i in range(n)]
+
+    L = trained_torch(0, "a", steps=10)
+    L.events = evs(cap)
+    L.save_generation(tmp_path / "small")
+    small = (tmp_path / "small" / "gen-1" / "events.json").stat().st_size
+    L.events = evs(cap * 5)
+    L.save_generation(tmp_path / "big")
+    assert (tmp_path / "big" / "gen-1" / "events.json").stat().st_size <= small * 1.1
+    R = torch_learner("a")
+    out = R.load_latest(tmp_path / "big")
+    assert R.events == L.events[-cap:]
+    assert out["counters"]["events_dropped"] == cap * 4

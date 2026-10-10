@@ -18,7 +18,8 @@
 - Payload versioning: payloads from the pre-T26 encoder have no `format` field and are REJECTED (`incompatible format`); they cannot prove encoder-hash/reward/action-space identity and none are persisted. `backend` is evidence only, never a compatibility criterion.
 - `grid-flat-v0` (NumPy default) and `grid-flat-v1` (TorchLearner default) are distinct ids, so default-constructed NumPy and Torch learners reject each other; cross-backend tests construct both with the same encoder id.
 - Loss uses `0.5*mean(err^2)` so one-step Adam updates match the NumPy baseline (tested to 1e-4 over 25 steps with identical batches).
-- `events` grows unbounded like the NumPy learner (the `LearnerNode` flush index depends on it); runtime may truncate after flushing in a later task.
+- In-memory `events` still grows like the NumPy learner (the `LearnerNode` flush index depends on it); runtime may truncate after flushing in T27. Repair round: checkpoints now serialize only the newest `MAX_CKPT_EVENTS` (1000) events, and `counters.json` records `events_dropped`, so checkpoint size/write time no longer grow with run length. After a restore the list holds only those newest events (a flush index from before the restore must be clamped by T27).
+- `runtime['threads']` is captured at construction; torch thread count is process-wide, so a later learner built with a different count makes it stale (last constructor wins). Documented in the constructor docstring; `torch.get_num_threads()` is the live value.
 - Node-runtime state (sequence, exploration schedule, episode, dedupe cache, telemetry cursor) goes through `extra`; T27 owns the content.
 - Fault-injection hook: `save_generation(..., _io=DurableIO subclass)`; every filesystem primitive calls `io.hook(op, path)`.
 
@@ -39,6 +40,15 @@
 ## Files modified
 
 packages/learning/archipelago_learning/{__init__,dqn,peer,compat,checkpoint,torch_dqn}.py; tests/learning/{torch_support,test_torch_learner,test_peer_crossbackend,test_checkpoint_generations}.py; this handoff. Existing tests/learning/test_learning.py unchanged and passing.
+
+## Repair round evidence (4-node-sized RSS, reproducible)
+
+Script committed: `tests/learning/measure_rss.py` (not collected by pytest). Setup: 28-32-5 MLP, capacity 5000 filled, 1 thread, 1000 train steps per learner, one `save_generation` each; torch 2.14.1+cu130 PyPI wheel.
+- `PYTHONPATH=packages/learning uv run python tests/learning/measure_rss.py` (4 TorchLearners, ONE process) -> `{"after_import_peak_mib": 503.9, "peak_rss_mib": 690.7}`
+- `PYTHONPATH=packages/learning uv run python tests/learning/measure_rss.py --procs` (4 processes, one learner each) -> per-process 668.6 / 668.2 / 668.9 / 668.8 MiB, sum 2674.5 MiB
+- Reading: about 500 MiB is `import torch` (CUDA wheel); each extra learner in-process costs about 62 MiB. As separate processes the 4-node total is about 2.6 GiB on this wheel.
+- **The 512 MB node limit is UNRESOLVED.** Every measured node process exceeds it on this wheel. No CPU-wheel number exists (download.pytorch.org blocked), so no repo evidence either way; T27 must measure with the CPU wheel (or `scripts/install-torch-cpu.sh`) and, if still over, change the limit or the design.
+- After this round: `uv run pytest -q tests/learning` -> 131 passed; `uv run pytest -q -m "not docker" --ignore=tests/e2e` -> 331 passed, 5 skipped (pre-existing, outside tests/learning); ruff check/format and mypy clean.
 
 ## Not run / limits
 
