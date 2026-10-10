@@ -1,4 +1,5 @@
 """Behavioral tests for the T36 router mounted on the existing FastAPI runtime."""
+
 import asyncio
 import json
 import threading
@@ -131,10 +132,7 @@ def test_malformed_json_envelope_and_limits_apply_nothing(client: TestClient) ->
         client.post("/v1/telemetry", content=b" " * (MAX_BYTES + 1), headers=AUTH).status_code
         == 413
     )
-    assert (
-        client.post("/v1/telemetry", json=batch(*([{}] * 501)), headers=AUTH).status_code
-        == 413
-    )
+    assert client.post("/v1/telemetry", json=batch(*([{}] * 501)), headers=AUTH).status_code == 413
     # A streaming request has no Content-Length, so actual bytes must be limited too.
     assert (
         client.post(
@@ -175,9 +173,7 @@ def test_per_item_validation_unknown_run_and_dedupe(client: TestClient) -> None:
 def test_all_four_contracts_in_order_paging_and_durable_replay(client: TestClient) -> None:
     events = [
         record(f"e{i}", kind)
-        for i, kind in enumerate(
-            ("action", "learning_event", "metric_sample", "world_snapshot")
-        )
+        for i, kind in enumerate(("action", "learning_event", "metric_sample", "world_snapshot"))
     ]
     before = manager(client).get("run-a").seq
     assert client.post("/v1/telemetry", json=batch(*events), headers=AUTH).json()["accepted"] == 4
@@ -197,7 +193,9 @@ def test_all_four_contracts_in_order_paging_and_durable_replay(client: TestClien
     stored, highest = EventLog(manager(client).s.data_dir).load("run-a", 100)
     assert highest == before + 5
     assert [ev["sequence"] for ev in stored] == sorted(ev["sequence"] for ev in stored)
-    assert [ev["event_id"] for ev in stored if "event_id" in ev] == [ev["event_id"] for ev in events]
+    assert [ev["event_id"] for ev in stored if "event_id" in ev] == [
+        ev["event_id"] for ev in events
+    ]
 
 
 def test_queue_overload_has_no_partial_admission(tmp_path: Path, monkeypatch: Any) -> None:
@@ -214,15 +212,11 @@ def test_queue_overload_has_no_partial_admission(tmp_path: Path, monkeypatch: An
 
         monkeypatch.setattr(state._original_log, "append", stalled)
         try:
-            response = c.post(
-                "/v1/telemetry", json=batch(record("a"), record("b")), headers=AUTH
-            )
+            response = c.post("/v1/telemetry", json=batch(record("a"), record("b")), headers=AUTH)
             assert response.json()["accepted"] == 2
             assert entered.wait(1)
             before = manager(c).get("run-a").seq
-            response = c.post(
-                "/v1/telemetry", json=batch(record("c"), record("d")), headers=AUTH
-            )
+            response = c.post("/v1/telemetry", json=batch(record("c"), record("d")), headers=AUTH)
             assert response.status_code == 503
             assert response.headers["Retry-After"] == "1"
             assert manager(c).get("run-a").seq == before
@@ -230,9 +224,7 @@ def test_queue_overload_has_no_partial_admission(tmp_path: Path, monkeypatch: An
         finally:
             release.set()
             drain(c)
-        response = c.post(
-            "/v1/telemetry", json=batch(record("c"), record("d")), headers=AUTH
-        )
+        response = c.post("/v1/telemetry", json=batch(record("c"), record("d")), headers=AUTH)
         assert response.json()["accepted"] == 2
 
 
@@ -270,7 +262,7 @@ def test_stalled_persister_does_not_block_response_or_run_loop(tmp_path: Path) -
                 await asyncio.sleep(0)
                 run = manager(c).get("run-a")
                 manager(c)._advance(run)
-                return run.tick
+                return int(run.tick)
 
             assert cast(Any, c.portal).call(step) == 1
             assert persister.queued >= 1

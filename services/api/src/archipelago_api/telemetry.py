@@ -3,6 +3,7 @@
 Include make_router(manager) before serving requests. Its lifespan drains accepted
 writes; the shared log adapter serializes simulator and telemetry writes off-loop.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -15,7 +16,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from archipelago_contracts.models import Action, Id, LearningEvent, MetricSample, WorldSnapshot
+from archipelago_contracts.models import (
+    Action,
+    Event,
+    Id,
+    LearningEvent,
+    MetricSample,
+    WorldSnapshot,
+)
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import TypeAdapter, ValidationError
 
@@ -24,7 +32,7 @@ from .runs import Run, RunManager
 
 MAX_BYTES = 256 * 1024
 MAX_EVENTS = 500
-_MODELS = {
+_MODELS: dict[str, type[Event]] = {
     "action": Action,
     "learning_event": LearningEvent,
     "metric_sample": MetricSample,

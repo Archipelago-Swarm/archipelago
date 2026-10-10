@@ -237,9 +237,12 @@ def docker_available() -> bool:
     if shutil.which("docker") is None:
         return False
     try:
-        return subprocess.run(
-            ["docker", "info"], capture_output=True, timeout=20, check=False
-        ).returncode == 0
+        return (
+            subprocess.run(
+                ["docker", "info"], capture_output=True, timeout=20, check=False
+            ).returncode
+            == 0
+        )
     except (OSError, subprocess.TimeoutExpired):
         return False
 
@@ -259,17 +262,29 @@ def test_postgresql_queries_under_reader_role_when_docker_available() -> None:
     name = f"arch-grafana-{uuid.uuid4().hex[:8]}"
     subprocess.run(
         [
-            "docker", "run", "-d", "--rm", "--name", name,
-            "-e", "POSTGRES_PASSWORD=test-only", "-p", "127.0.0.1::5432",
+            "docker",
+            "run",
+            "-d",
+            "--rm",
+            "--name",
+            name,
+            "-e",
+            "POSTGRES_PASSWORD=test-only",
+            "-p",
+            "127.0.0.1::5432",
             "timescale/timescaledb:2.17.2-pg16",
         ],
         capture_output=True,
         check=True,
     )
     try:
-        port = subprocess.run(
-            ["docker", "port", name, "5432"], capture_output=True, text=True, check=True
-        ).stdout.strip().rsplit(":", 1)[1]
+        port = (
+            subprocess.run(
+                ["docker", "port", name, "5432"], capture_output=True, text=True, check=True
+            )
+            .stdout.strip()
+            .rsplit(":", 1)[1]
+        )
         dsn = f"postgresql://postgres:test-only@127.0.0.1:{port}/postgres"
         deadline = time.monotonic() + 60
         while True:
@@ -287,8 +302,6 @@ def test_postgresql_queries_under_reader_role_when_docker_available() -> None:
                 conn.execute("EXPLAIN " + render(sql)).fetchall()
                 assert conn.execute(render(sql)).fetchall() == []
             with pytest.raises(psycopg.errors.InsufficientPrivilege):
-                conn.execute(
-                    "INSERT INTO runs (run_id, started_at) VALUES ('denied', now())"
-                )
+                conn.execute("INSERT INTO runs (run_id, started_at) VALUES ('denied', now())")
     finally:
         subprocess.run(["docker", "rm", "-f", name], capture_output=True, check=True)
