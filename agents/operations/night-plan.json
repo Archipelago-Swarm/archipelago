@@ -2,12 +2,33 @@
   "schema_version": 1,
   "tasks": [
     {
+      "id": "T06",
+      "machine": "B",
+      "paths": [
+        "apps/web/",
+        "tests/web/"
+      ],
+      "source_branch": "agent/B/T06/carry-20261010T072103Z"
+    },
+    {
       "id": "T09",
       "machine": "A",
       "paths": [
         "experiments/",
         "tests/experiments/"
-      ]
+      ],
+      "source_branch": "agent/A/T09/carry1"
+    },
+    {
+      "id": "T12",
+      "machine": "A",
+      "paths": [
+        "packages/adapters/pybullet3d/",
+        "packages/adapters/pybullet/",
+        "infra/3d/",
+        "tests/adapters3d/"
+      ],
+      "source_branch": "agent/A/T12/carry-20261010T072103Z"
     }
   ]
 }
