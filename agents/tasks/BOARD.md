@@ -11,7 +11,7 @@ This is the dependency plan. T01 is complete and the initial T02 runner is integ
 | [T05](T05.md) | A | T01 | done | Implement peer transport and seeded network faults |
 | [T06](T06.md) | B | T01 | in_progress | Build the 2D dashboard and replay controls |
 | [T07](T07.md) | A | T03, T05 | done | Implement independent learners and validated peer learning |
-| [T08](T08.md) | B | T01 | blocked: needs Docker; code unverified on agent/A/T08/fanout | Add TigerData persistence and Grafana observability |
+| [T08](T08.md) | B | T01 | review: merged, real-DB checks NOT RUN (needs Docker) | Add TigerData persistence and Grafana observability |
 | [T09](T09.md) | A | T07, T08 | waiting | Run fair baselines and reproducible partition experiments |
 | [T10](T10.md) | B | T03, T04, T05, T06, T08 | waiting | Package and deploy the working stack to Vultr |
 | [T11](T11.md) | B | T09, T10 | waiting | Create the measured demo narrative and optional Remotion video |
