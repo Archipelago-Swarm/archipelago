@@ -27,3 +27,8 @@ GitHub runners DO have a Docker daemon, so these tests actually ran there. Resul
 ## Unrelated finding: stray gitlinks on main
 
 `.claude/worktrees/wf_37b0f56c-fca-2`, `wf_37b0f56c-fca-3`, `wf_fa014e97-0fa-1` are committed as submodule-style gitlinks (mode 160000) with no `.gitmodules` entry. They are leftover Claude Code worktree pointers to agent branch SHAs. They make `git submodule foreach` fail in the checkout cleanup step (warning only: `No url found for submodule path`). Not removed here; fix by `git rm --cached` them and ignoring `.claude/worktrees/`.
+
+## Fix applied (pending CI confirmation)
+
+- `tests/infra/test_four_nodes.py` and `test_runtime_ports.py` now start the stack with `up -d --build` instead of `--no-build`, so a clean host builds `archipelago/{web,api,node}:dev` itself. Not verified locally (no daemon); GitHub Actions is the first evidence.
+- Stray `.claude/worktrees/*` gitlinks removed from the index and `.claude/worktrees/` added to `.gitignore`.

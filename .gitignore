@@ -22,3 +22,5 @@ data/
 *.safetensors
 *.mp4
 .DS_Store
+
+.claude/worktrees/

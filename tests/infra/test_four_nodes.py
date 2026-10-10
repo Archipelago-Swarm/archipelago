@@ -38,7 +38,7 @@ def wait_boots(want, timeout=60):
 
 @pytest.fixture(scope="module")
 def nodes():
-    compose("up", "-d", "--no-build", *NODES)
+    compose("up", "-d", "--build", *NODES)
     yield
     compose("down", "-v")
 

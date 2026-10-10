@@ -65,7 +65,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def stack():
     if is_open(80) or is_open(443):
         pytest.skip("host ports 80/443 already in use")
-    compose("up", "-d", "--no-build", "proxy", "web", "api", "timescaledb")
+    compose("up", "-d", "--build", "proxy", "web", "api", "timescaledb")
     yield
     compose("down", "-v")
 
