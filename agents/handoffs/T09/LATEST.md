@@ -1,6 +1,6 @@
 # Handoff: T09 / 2026-10-10 (run 20261010T072103Z, worker A)
 
-- State: in_progress (first slice; local, not committed by worker)
+- State: blocked (needs integrator decisions; see RUN-REPORT.md) (first slice; local, not committed by worker)
 - Branch: agent/A/20261010T072103Z/T09, base 426574f
 - Reserved paths: experiments/, tests/experiments/, agents/handoffs/T09/
 
@@ -292,4 +292,17 @@
 - External check exit: 0
 - Independent review: {"pass": false, "issues": ["Slice 2 is not a real central-online vs CTDE comparison. ctde and central_online share one Learner with no actor/critic split, so the check 'CTDE does not falsely lose inference' holds by construction. The report admits this is 'not a full CTDE algorithm'.", "node_failure is a Down stub. The drone stays in the sim world and stands still. This is not a real node loss, so the node-failure sweep is weak evidence (the report admits it).", "Slice 3 has no approved compute cap on record. Only a preliminary 12-seed, 150-episode sweep exists. Resource costs are env steps, bytes and wall time only.", "The central_online/split gain of +4.3 is an artifact. An idle control equals it exactly, and learners do not beat doing nothing. No superiority claim is supported, so the evidence for central vs CTDE is negative or inconclusive.", "Nothing from the latest rounds is committed or pushed. run.py, test_run.py, REPORT.md, LATEST.md and the evidence files (manifest.json, raw.jsonl, summary.json) are modified in the working tree. The contract requires a pushed handoff, and the committed bundle hashes may not match the regenerated bundle.", "The task card agents/tasks/T09 is untouched: status waiting, no assignment recorded, acceptance boxes unchecked. No template-based run report exists.", "The handoff state is still in_progress and says items need an integrator decision (actor/critic split, real node loss, compute-cap approval). The task is not ready for human PR review."]}
 - Next issue: Slice 2 is not a real central-online vs CTDE comparison. ctde and central_online share one Learner with no actor/critic split, so the check 'CTDE does not falsely lose inference' holds by construction. The report admits this is 'not a full CTDE algorithm'.; node_failure is a Down stub. The drone stays in the sim world and stands still. This is not a real node loss, so the node-failure sweep is weak evidence (the report admits it).; Slice 3 has no approved compute cap on record. Only a preliminary 12-seed, 150-episode sweep exists. Resource costs are env steps, bytes and wall time only.; The central_online/split gain of +4.3 is an artifact. An idle control equals it exactly, and learners do not beat doing nothing. No superiority claim is supported, so the evidence for central vs CTDE is negative or inconclusive.; Nothing from the latest rounds is committed or pushed. run.py, test_run.py, REPORT.md, LATEST.md and the evidence files (manifest.json, raw.jsonl, summary.json) are modified in the working tree. The contract requires a pushed handoff, and the committed bundle hashes may not match the regenerated bundle.; The task card agents/tasks/T09 is untouched: status waiting, no assignment recorded, acceptance boxes unchecked. No template-based run report exists.; The handoff state is still in_progress and says items need an integrator decision (actor/critic split, real node loss, compute-cap approval). The task is not ready for human PR review.
+- Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Supervisor checkpoint 2026-10-10T13:53:23Z
+
+- Run: 20261010T132342Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T132342Z/T09
+- Base: 2368137d1885098c5b1012ed08e2a31484b4f8aa
+- Round: 5
+- State: in_progress
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
