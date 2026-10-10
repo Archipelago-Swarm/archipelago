@@ -395,3 +395,21 @@
 - Independent review: not run
 - Next issue: Independent review unavailable or inconclusive
 - Resume: fetch this branch, inspect latest commit and continue the task card.
+
+## Worker A update (run 20261010T140742Z, round 2)
+- Regenerated `agents/handoffs/T09/evidence/` (12 seeds x 150 episodes, ~3.7 min wall, local CPU) so the manifest/summary hashes match the shell-neutral `rerun` field. Command: `PYTHONPATH="packages/learning;packages/sim" .venv/Scripts/python experiments/run.py --seeds 12 --episodes 150 --out agents/handoffs/T09/evidence` (use `:` as separator on POSIX).
+- Results unchanged: PRELIMINARY n=12; rule beats independent (+14.3, CI excludes 0); no learner beats `idle`; no central/CTDE superiority claim supported.
+- Still open: real CTDE, real node loss, cap approval, task card, eol=lf. Not committed or pushed.
+
+## Supervisor checkpoint 2026-10-10T14:14:19Z
+
+- Run: 20261010T140742Z
+- Machine: A
+- Task/branch: T09 / agent/A/20261010T140742Z/T09
+- Base: 5d1e103e7021fd2f0d23c157eb9f0b9dda8f5e0f
+- Round: 2
+- State: blocked
+- External check exit: 0
+- Independent review: not run
+- Next issue: Independent review unavailable or inconclusive
+- Resume: fetch this branch, inspect latest commit and continue the task card.
