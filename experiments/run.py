@@ -191,7 +191,8 @@ def main(argv=None):
                 walls.append(rows[-1].pop("wall_s"))  # timing is nondeterministic: manifest only
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "raw.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    # write bytes: write_text emits CRLF on Windows but git stores LF, which breaks the hashes
+    (out / "raw.jsonl").write_bytes("".join(json.dumps(r) + "\n" for r in rows).encode())
     summ = summarise(rows)
     cfg = {
         "args": vars(a),
@@ -202,14 +203,14 @@ def main(argv=None):
         "note": f"n={a.seeds} experiment seeds: preliminary; CIs are bootstrap over seeds, "
         "wide for small n; no superiority claims without CI excluding 0.",
     }
-    (out / "summary.json").write_text(
-        json.dumps({"config": cfg, "paired_vs_independent": summ}, indent=1)
+    (out / "summary.json").write_bytes(
+        json.dumps({"config": cfg, "paired_vs_independent": summ}, indent=1).encode()
     )
     cfg["wall_s"] = sum(walls)  # unhashed: keeps reruns byte-identical
     cfg["sha256"] = {
         f: hashlib.sha256((out / f).read_bytes()).hexdigest() for f in ("raw.jsonl", "summary.json")
     }
-    (out / "manifest.json").write_text(json.dumps(cfg, indent=1))
+    (out / "manifest.json").write_bytes(json.dumps(cfg, indent=1).encode())
     for r in summ:
         print(
             f"{r['scenario']:13} {r['mode']:17} n={r['n']} "
