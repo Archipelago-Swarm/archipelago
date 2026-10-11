@@ -40,7 +40,7 @@ def test_paired_bootstrap_separates_a_clear_gain_and_keeps_noise_inconclusive():
 
 
 # ------------------------------------------------------------------------------------ outcomes
-def one_episode(policy_maker, ticks=20, seed=7, n=4):
+def one_episode(policy_maker, ticks=20, seed=1, n=4):  # maps derive from (seed, episode)
     cfg = make_config(seed, ticks, n)
     kw = {"size": 8, "n_targets": 3, "battery_scale": 4.0}
     return cfg, kw, A.play_policy(cfg, kw, policy_maker)

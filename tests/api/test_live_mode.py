@@ -421,3 +421,29 @@ def test_a_stop_command_never_shows_completed_before_the_final_events_are_pulled
         assert (
             len(c.get(f"/v1/runs/{rid}/events?limit=500", headers=AUTH).json()["events"]) == count
         )
+
+
+def test_mission_selected_in_the_request_reaches_the_api_event_stream(
+    stack: Callable[..., Stack],
+) -> None:
+    s = stack()
+    mission = {"id": "sr-api", "n_targets": 3, "dynamics": {"targets_appear": 1}}
+    with TestClient(s.app) as c:
+        assert s.post_run(c, mission="sar").status_code == 422  # must be an object
+        bad = s.post_run(c, mission={"type": "teleport"}, key="k-bad")
+        assert bad.status_code == 422  # the coordinator's validation is passed through
+        r = s.post_run(c, mission=mission, key="k-ok")
+        assert r.status_code == 201, r.text
+        rid = r.json()["run_id"]
+
+        def mission_snapshots() -> list[dict[str, Any]]:
+            page = c.get(f"/v1/runs/{rid}/events?limit=500", headers=AUTH).json()
+            recs = [e.get("snapshot") or e.get("event") or e for e in page["events"]]
+            return [
+                x["mission"] for x in recs if x.get("kind") == "world_snapshot" and x.get("mission")
+            ]
+
+        wait_for(lambda: bool(mission_snapshots()), "mission snapshot over the API")
+        m = mission_snapshots()[0]
+        assert (m["id"], m["status"], m["dynamics"]) == ("sr-api", "active", ["targets_appear"])
+        assert m["objectives"][0]["target"] == 4 and isinstance(m["map_seed"], int)

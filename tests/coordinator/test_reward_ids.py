@@ -23,6 +23,7 @@ for p in ("experiments", "packages/learning"):
 import protocol_harness as H  # noqa: E402
 from archipelago_coordinator.models import LEARNER_SCHEDULES  # noqa: E402
 from archipelago_sim.env import REWARD_EXTRA, REWARD_SPECS  # noqa: E402
+from archipelago_sim.mission import derive_map_seed  # noqa: E402
 
 TICKS = 120
 SEEDS = (5, 8, 21)
@@ -35,10 +36,11 @@ def script(seed: int, nodes: tuple[str, ...]) -> dict[str, list[int]]:
 
 
 def harness_rewards(seed: int, reward_id: str, seqs: dict[str, list[int]]):
-    """Per-step rewards (and world counters) of the NumPy-harness world for a recorded script."""
+    """Per-step rewards (and world counters) of the NumPy-harness world for a recorded script.
+    The coordinator derives each episode map from (env seed, episode index); episode 0 here."""
     env = H.make_env(H.OBS_ID, reward_id)
     nodes = sorted(seqs)
-    env.reset(seed=seed, options={"starts": {n: (i, 0) for i, n in enumerate(nodes)}})
+    env.reset(seed=derive_map_seed(seed, 0), options={"starts": {n: (i, 0) for i, n in enumerate(nodes)}})
     out: dict[str, list[float]] = {n: [] for n in nodes}
     t = 0
     while env.agents and t < TICKS:

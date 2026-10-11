@@ -69,6 +69,34 @@ class NodeConfig(Strict):
     seed: int = 0
 
 
+class MissionObjective(Strict):
+    id: Id
+    kind: Literal["find_targets", "cover_fraction"]
+    target: Annotated[float, Field(gt=0, allow_inf_nan=False)]
+
+
+class MissionDynamics(Strict):
+    """Seeded scheduled changes; all off by default. 0 disables a periodic one."""
+
+    targets_move_every: Annotated[int, Field(ge=0, le=100_000)] = 0
+    targets_appear: Annotated[int, Field(ge=0, le=200)] = 0
+    appear_window: tuple[Annotated[float, Field(ge=0, le=1)], Annotated[float, Field(ge=0, le=1)]] = (0.2, 0.7)
+    obstacles_shift_every: Annotated[int, Field(ge=0, le=100_000)] = 0
+
+
+class MissionPlan(Strict):
+    """Mission selection (mirror of archipelago_sim.mission.MissionSpec, which re-validates the
+    cross-field rules when the world is built). The coordinator image does not ship the sim."""
+
+    id: Id = "mission-1"
+    type: Literal["search_rescue", "coverage"] = "search_rescue"
+    n_targets: Annotated[int, Field(ge=0, le=200)] = 5
+    objectives: list[MissionObjective] = []
+    time_budget_ticks: Annotated[int, Field(ge=1)] | None = None
+    energy_budget: Annotated[float, Field(gt=0, le=1, allow_inf_nan=False)] | None = None
+    dynamics: MissionDynamics = MissionDynamics()
+
+
 class EpisodeSpec(Strict):
     kind: Literal["train", "validation", "test"]
     seed: int
@@ -98,6 +126,7 @@ class Plan(Strict):
     fault_schedule: list[FaultWindow] = []
     kill_node: KillNode | None = None
     telemetry_outage: Outage | None = None
+    mission: MissionPlan | None = None  # None = no mission (the pre-mission scoreboard behaviour)
 
 
 class CreateRun(Strict):
@@ -106,6 +135,7 @@ class CreateRun(Strict):
     run_config: RunConfig
     plan_name: Id | None = None
     map_offset: Annotated[int, Field(ge=0, le=1_000_000)] = 0  # shifts every plan episode seed
+    mission: MissionPlan | None = None  # overrides the plan's mission (validated like the plan's)
 
 
 @dataclass(frozen=True)

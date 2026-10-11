@@ -177,12 +177,21 @@ class LiveBackend:
             raise Rejected(422, "map_offset must be an integer in 0..1000000")
         return v
 
+    @staticmethod
+    def mission(body: Any) -> dict[str, Any] | None:
+        """Optional `mission` in a POST /v1/runs body: forwarded as-is; the coordinator validates."""
+        v = body.get("mission") if isinstance(body, dict) else None
+        if v is not None and not isinstance(v, dict):
+            raise Rejected(422, "mission must be a JSON object")
+        return v
+
     def resolve_plan(self, body: Any) -> tuple[RunConfig, str]:
         """Split a POST /v1/runs body into (run config, allowlisted plan name)."""
         if not isinstance(body, dict):
             raise Rejected(422, "body must be a JSON object")
         raw = dict(body)
         raw.pop("map_offset", None)  # read by map_offset(); not part of RunConfig
+        raw.pop("mission", None)  # read by mission(); not part of RunConfig
         if FORBIDDEN_BODY_KEYS & set(raw):
             raise Rejected(422, "node_urls are server-side only and are not accepted")
         name = raw.pop("plan", None)
@@ -210,11 +219,18 @@ class LiveBackend:
         return await asyncio.to_thread(self.client.request, method, path, body, timeout=timeout)
 
     async def create(
-        self, key: str, config: RunConfig, plan_name: str, map_offset: int = 0
+        self,
+        key: str,
+        config: RunConfig,
+        plan_name: str,
+        map_offset: int = 0,
+        mission: dict[str, Any] | None = None,
     ) -> tuple[Run, bool]:
         fingerprint = config.model_dump_json() + "\n" + plan_name
         if map_offset:
             fingerprint += f"\n{map_offset}"
+        if mission:
+            fingerprint += "\n" + json.dumps(mission, sort_keys=True)
         async with self._create_lock:
             existing = self.mgr.precheck(key, config, fingerprint)
             if existing is not None:
@@ -227,6 +243,7 @@ class LiveBackend:
                         "run_config": config.model_dump(mode="json"),
                         "plan_name": plan_name,
                         **({"map_offset": map_offset} if map_offset else {}),
+                        **({"mission": mission} if mission else {}),
                     },
                 )
             except UpstreamError:

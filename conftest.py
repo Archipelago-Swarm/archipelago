@@ -11,7 +11,9 @@ import pytest
 LIMIT = float(os.environ.get("ARCH_TEST_TIMEOUT", "120"))
 
 
-def _die(name: str) -> None:
+def _die(name: str, cap) -> None:
+    if cap:
+        cap.suspend_global_capture()  # pytest swallows fd 2 otherwise
     sys.stderr.write(f"\nHANG GUARD: {name} exceeded {LIMIT:.0f}s; killing pytest tree\n")
     faulthandler.dump_traceback(all_threads=True)
     sys.stderr.flush()
@@ -22,7 +24,7 @@ def _die(name: str) -> None:
 
 @pytest.fixture(autouse=True)
 def _hang_guard(request):
-    t = threading.Timer(LIMIT, _die, args=(request.node.nodeid,))
+    t = threading.Timer(LIMIT, _die, args=(request.node.nodeid, request.config.pluginmanager.getplugin("capturemanager")))
     t.daemon = True
     t.start()
     yield

@@ -1,4 +1,4 @@
-import type { LearningEvent, MetricSample, WorldSnapshot } from "@archipelago/contracts";
+import type { LearningEvent, MetricSample, MissionStatus, WorldSnapshot } from "@archipelago/contracts";
 import type { Conn, Source } from "./status";
 import { isTerminal } from "./status";
 
@@ -42,6 +42,7 @@ export function searchBoost(m: Mission, now: number): number | null {
 }
 export interface Panels {
   mission: Mission;
+  missionStatus: MissionStatus | null; // active mission, objectives and map seed from the newest snapshot
   lineage: Lineage;
   runId: string | null; lastSequence: number; lastEventAt: number | null;
   nodes: Record<string, NodeCard>; offers: Offer[]; envelopes: Envelope[]; links: [string, string][];
@@ -55,6 +56,7 @@ export type PanelAction = { t: "record"; record: unknown; at: number } | { t: "r
 
 export const emptyPanels = (): Panels => ({
   mission: { total: null, finds: [], adoptTick: null },
+  missionStatus: null,
   lineage: { dag: {}, holders: {}, status: {}, flagged: [] },
   runId: null, lastSequence: 0, lastEventAt: null, nodes: {}, offers: [], envelopes: [], links: [], positions: {},
   runStatus: null, coverage: null, tick: null, faultPhase: null,
@@ -76,11 +78,11 @@ function applySnapshot(s: Panels, r: WorldSnapshot): Panels {
   for (const [id, p] of Object.entries(r.poses)) {
     positions[id] = { x: p.x, y: p.y };
     const prev = s.positions[id];
-    if (r.world) { nodes[id] = { ...nodes[id], lastAction: `${Math.round(((((p.heading_rad ?? 0) * 180) / Math.PI + 90) % 360 + 360) % 360)}° at ${Math.round(p.speed_mps ?? 0)} m/s` }; continue; }
+    if (r.world) { nodes[id] = { ...nodes[id], lastAction: `${Math.round(((((p.heading_rad ?? 0) * 180) / Math.PI + 90) % 360 + 360) % 360)}ï¿½ at ${Math.round(p.speed_mps ?? 0)} m/s` }; continue; }
     const lastAction = !prev ? nodes[id]?.lastAction : prev.x === p.x && prev.y === p.y ? "hold" : `move (${signed(p.x - prev.x)}, ${signed(p.y - prev.y)}) cells`;
     nodes[id] = { ...nodes[id], lastAction };
   }
-  return { ...s, nodes, positions, links: r.topology.links as [string, string][], runStatus: r.run_status, coverage: r.coverage, tick: r.sim_tick };
+  return { ...s, missionStatus: r.mission ?? s.missionStatus, nodes, positions, links: r.topology.links as [string, string][], runStatus: r.run_status, coverage: r.coverage, tick: r.sim_tick };
 }
 
 function applyMetric(s: Panels, r: MetricSample, at: number): Panels {

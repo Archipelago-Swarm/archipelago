@@ -12,6 +12,7 @@ from archipelago_contracts.adapter import SimulatorCapabilities, StepResult
 from archipelago_contracts.models import (
     SCHEMA_VERSION,
     Action,
+    MissionStatus,
     Observation,
     Pose,
     RunConfig,
@@ -21,6 +22,7 @@ from archipelago_contracts.models import (
 )
 from archipelago_sim.env import WALL, GridWorld
 from archipelago_sim.flight import FlightWorld
+from archipelago_sim.mission import derive_map_seed
 
 EPOCH = datetime(2026, 1, 1, tzinfo=UTC)  # fixture timestamps for hand-built actions (smoke)
 
@@ -37,6 +39,8 @@ class Sim2DAdapter:
         self._run_id = ""
         self._tick_base = 0
         self._vanished_known: dict[tuple[int, int], int] = {}  # cells known to killed drones
+        self.map_seed = 0
+        self.episode = 0
 
     def capabilities(self) -> SimulatorCapabilities:
         return SimulatorCapabilities("sim2d", "2d", "act-v0")
@@ -68,7 +72,10 @@ class Sim2DAdapter:
 
     def reset(self, config: RunConfig, episode: int = 0) -> dict[str, Observation]:
         """Start an episode. `episode` offsets sim_tick so it is the global index
-        `episode * max_ticks + tick`; give each episode its own run_id suffix and env seed."""
+        `episode * max_ticks + tick`; give each episode its own run_id suffix and env seed.
+
+        The map (terrain, obstacles, target placement, dynamics schedule) is derived from
+        (env seed, episode), so it differs per episode and the same pair reproduces it."""
         nodes = sorted(n.node_id for n in config.nodes)
         kw = {k: v for k, v in self.kw.items() if k != "environment_mode"}
         cls = FlightWorld if self.mode == "continuous_flight" else GridWorld
@@ -78,6 +85,10 @@ class Sim2DAdapter:
             **{"reward_id": config.reward_id, **kw},
         )
         self.world.possible_agents = nodes  # contract node ids replace default names
+        self.episode = episode
+        self.map_seed = derive_map_seed(config.seeds["env"], episode)
+        if self.world.terrain_seed is not None:  # a terrain world gets fresh terrain per map
+            self.world.terrain_seed = self.map_seed
         self._run_id, self._seq, self.replay, self._cfg = config.run_id, 0, [], config
         self._tick_base = episode * config.budgets.max_ticks
         self._vanished_known = {}
@@ -89,7 +100,7 @@ class Sim2DAdapter:
             for x, y in starts.values()
         ):
             raise ValueError("node start poses must be inside the grid")
-        raw = self.world.reset(seed=config.seeds["env"], starts=starts)
+        raw = self.world.reset(seed=self.map_seed, starts=starts)
         return {n: self._obs(n, o) for n, o in raw.items()}
 
     def step(self, actions: dict[str, Action]) -> StepResult:
@@ -179,6 +190,7 @@ class Sim2DAdapter:
             coverage=s["coverage"],
             topology=Topology(links=list(links)),
             world=geometry,
+            mission=MissionStatus(**s["mission"]) if "mission" in s else None,
         )
 
     def snapshot(self, links: Iterable[tuple[str, str]] = ()) -> WorldSnapshot:
@@ -207,6 +219,8 @@ class Sim2DAdapter:
         manifest = {
             "run_id": self._run_id,
             "seed": self._cfg.seeds["env"],
+            "episode": self.episode,
+            "map_seed": self.map_seed,
             "simulator_version": self._cfg.simulator_version,
             "world_kwargs": self.kw,
             "ticks": sum("actions" in r for r in self.replay),
@@ -223,12 +237,14 @@ class Sim2DAdapter:
         self.world = None
 
 
-def replay_final_hash(config: RunConfig, records: list[dict], **world_kwargs) -> str:
+def replay_final_hash(
+    config: RunConfig, records: list[dict], episode: int = 0, **world_kwargs
+) -> str:
     """Re-execute recorded actions on a fresh world; return its final state hash."""
     from .smoke import make_action  # local: smoke imports this module
 
     ad = Sim2DAdapter(**world_kwargs)
-    ad.reset(config)
+    ad.reset(config, episode=episode)
     for r in records:
         if "removed" in r:
             ad.kill(r["removed"])
@@ -242,4 +258,4 @@ def replay_final_hash_from_dir(out: Path) -> str:
     manifest = json.loads((out / "manifest.json").read_text())
     records = [json.loads(x) for x in (out / "replay.jsonl").read_text().splitlines()]
     cfg = RunConfig.model_validate(manifest["run_config"])
-    return replay_final_hash(cfg, records, **manifest["world_kwargs"])
+    return replay_final_hash(cfg, records, manifest.get("episode", 0), **manifest["world_kwargs"])

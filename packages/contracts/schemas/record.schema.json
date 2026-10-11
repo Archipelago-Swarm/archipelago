@@ -597,6 +597,107 @@
       "title": "MetricSample",
       "type": "object"
     },
+    "MissionStatus": {
+      "additionalProperties": false,
+      "description": "What the fleet is asked to do and how it is going. `map_seed` identifies the (replayable)\nmap of this episode; `completed_tick` is the episode tick the mission succeeded (time to\ncomplete), null while active or failed.",
+      "properties": {
+        "completed_tick": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completed Tick"
+        },
+        "dynamics": {
+          "default": [],
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Dynamics",
+          "type": "array"
+        },
+        "energy_budget": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Energy Budget"
+        },
+        "energy_spent": {
+          "default": 0.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Energy Spent",
+          "type": "number"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "map_seed": {
+          "minimum": 0,
+          "title": "Map Seed",
+          "type": "integer"
+        },
+        "objectives": {
+          "items": {
+            "$ref": "#/$defs/ObjectiveStatus"
+          },
+          "title": "Objectives",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "succeeded",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "time_budget_ticks": {
+          "minimum": 1,
+          "title": "Time Budget Ticks",
+          "type": "integer"
+        },
+        "type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "map_seed",
+        "status",
+        "objectives",
+        "time_budget_ticks"
+      ],
+      "title": "MissionStatus",
+      "type": "object"
+    },
     "NodeSpec": {
       "additionalProperties": false,
       "properties": {
@@ -616,6 +717,50 @@
         "start_pose"
       ],
       "title": "NodeSpec",
+      "type": "object"
+    },
+    "ObjectiveStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "done": {
+          "title": "Done",
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "find_targets",
+            "cover_fraction"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "progress": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Progress",
+          "type": "number"
+        },
+        "target": {
+          "exclusiveMinimum": 0,
+          "title": "Target",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "target",
+        "progress",
+        "done"
+      ],
+      "title": "ObjectiveStatus",
       "type": "object"
     },
     "Observation": {
@@ -1284,6 +1429,17 @@
           "default": "world_snapshot",
           "title": "Kind",
           "type": "string"
+        },
+        "mission": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MissionStatus"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "obstacles": {
           "items": {

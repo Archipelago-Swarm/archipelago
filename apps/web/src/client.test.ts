@@ -49,4 +49,7 @@ it("startRun sends the map seed as map_offset and leaves the config seeds alone"
   await startRun({ seeds: { env: 1000 } }, 42, f);
   expect(body.map_offset).toBe(42);
   expect(body.seeds).toEqual({ env: 1000 });
+  expect("mission" in body).toBe(false);
+  await startRun({ seeds: { env: 1000 } }, 42, f, { type: "coverage", n_targets: 0 });
+  expect(body.mission).toEqual({ type: "coverage", n_targets: 0 });
 });
