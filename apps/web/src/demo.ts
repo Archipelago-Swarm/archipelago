@@ -32,18 +32,21 @@ export function startDemo(dispatch: (e: LiveEvent) => void, intervalMs = 100, ct
       const cx = Math.floor(p.x / 250), cy = Math.floor(p.y / 250);
       for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) revealed.add((cy + dy) * N + cx + dx);
     }
+    // organic canyon outline: a rounded, wobbling blob inside the scripted CANYON box (<1 = inside), not the box itself
+    const ccx = (CANYON.x0 + CANYON.x1) / 500, ccy = (CANYON.y0 + CANYON.y1) / 500, chx = (CANYON.x1 - CANYON.x0) / 500, chy = (CANYON.y1 - CANYON.y0) / 500;
+    const canyon = (x: number, y: number) => (Math.abs((x - ccx) / chx) ** 2.4 + Math.abs((y - ccy) / chy) ** 2.4) ** (1 / 2.4) * (1 + 0.22 * Math.sin(x / 1.7 + y / 2.3) + 0.12 * Math.cos(y / 1.3 - x / 3));
     const idx = Array.from({ length: N * NH }, (_, i) => i), at = (i: number) => [i % N, Math.floor(i / N)];
     const terrain = {
       size: N,
       height: NH,
-      biome: idx.map((i) => { const [x, y] = at(i); if (ctl) return x * 250 >= CANYON.x0 && x * 250 < CANYON.x1 && y * 250 >= CANYON.y0 && y * 250 < CANYON.y1 ? 0 : 1 + (Math.sin(x / 7) + Math.cos(y / 6) > 0 ? 1 : 0); return Math.floor(((Math.sin(x / 7) + Math.cos(y / 6) + 2) / 4) * 2.99); }).join(""),
+      biome: idx.map((i) => { const [x, y] = at(i); if (ctl) return canyon(x, y) < 1 ? 0 : 1 + (Math.sin(x / 7) + Math.cos(y / 6) > 0 ? 1 : 0); return Math.floor(((Math.sin(x / 7) + Math.cos(y / 6) + 2) / 4) * 2.99); }).join(""),
       observed: idx.map((i) => (revealed.has(i) ? "1" : "0")).join(""),
       elev_m: idx.map((i) => { // massifs + warped ridge chains; the canyon is a low basin so its walls rise around it
         const [x, y] = at(i), wx = x + 3 * Math.sin(y / 5), wy = y + 3 * Math.cos(x / 6);
         const ridge = (1 - Math.abs(Math.sin(wx / 4.5 + Math.sin(wy / 7)) * Math.cos(wy / 5.5))) ** 3;
         const mass = [[8, 15, 5], [20, 6, 4], [33, 19, 5]].reduce((a, [px, py, s]) => a + Math.exp(-((x - px) ** 2 + (y - py) ** 2) / (2 * s * s)), 0);
-        const inCanyon = x * 250 >= CANYON.x0 && x * 250 < CANYON.x1 && y * 250 >= CANYON.y0 && y * 250 < CANYON.y1;
-        return Math.round(inCanyon ? 30 + 60 * ridge : 120 + 650 * ridge + 900 * mass);
+        const open = 120 + 650 * ridge + 900 * mass, floor = 30 + 60 * ridge, k = ctl ? Math.min(1, Math.max(0, (canyon(x, y) - 0.6) / 0.7)) : 1; // smooth basin, walls rise gradually
+        return Math.round(floor + (open - floor) * k * k * (3 - 2 * k));
       }),
       veg_pct: idx.map(() => 50),
     };

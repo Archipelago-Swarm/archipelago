@@ -3,16 +3,18 @@ import type { TerrainGrid } from "@archipelago/contracts";
 export type MapStyle = "natural" | "topo";
 
 const BASE = [[150, 178, 100], [64, 120, 60], [26, 82, 44]]; // grass, forest, jungle
-const FOG = [13, 20, 36]; // unobserved terrain is mixed toward the background so it reads as dim, not gone
+// Brand kit (brand-kit/src/tokens.ts): black 60 / stone+white 30 / orange <=10 accent / grey for labels.
+const BLACK = [10, 10, 10], STONE = [237, 231, 223], ORANGE = [244, 123, 60], GREY = [138, 138, 138];
 // Texels per cell: the grid is only a few dozen cells wide so the detail below is synthesised, deterministically.
 // Capped at ~1.1 Mpx so building it (once per run) stays well under a second even on the 80x45 demo world.
 const upFor = (t: TerrainGrid) => Math.max(6, Math.min(24, Math.floor(Math.sqrt(1.1e6 / (t.size * t.height)))));
 let zCache: { key: string; Z: Float32Array; zMin: number; zMax: number } | null = null; // elevation field is shared by both map styles
 const DETAIL_M = 45; // amplitude of fine elevation noise (m), on top of the interpolated sim elevation
 export const CONTOUR_M = 50, INDEX_EVERY = 5; // minor contour interval and how many minors per bold, labelled index contour
-const HYPSO: [number, number[]][] = [ // classic hypsometric tints, low to high (fraction of the map's relief)
-  [0, [170, 204, 140]], [0.2, [208, 222, 160]], [0.4, [236, 222, 166]], [0.6, [222, 188, 140]], [0.8, [196, 148, 110]], [0.93, [176, 130, 112]], [1, [246, 242, 236]],
+const HYPSO: [number, number[]][] = [ // brand monochrome relief ramp: black lowlands rising to stone peaks (fraction of the map's relief)
+  [0, [40, 39, 37]], [0.25, [72, 70, 65]], [0.5, [112, 108, 100]], [0.75, [156, 151, 141]], [0.93, [206, 200, 190]], [1, [237, 231, 223]],
 ];
+const MONO = "Consolas, 'Courier New', monospace";
 const ramp = (f: number) => {
   f = Math.max(0, Math.min(1, f));
   let i = 1; while (i < HYPSO.length - 1 && HYPSO[i][0] < f) i++;
@@ -49,7 +51,13 @@ export function sampleElev(t: TerrainGrid, u: number, v: number): number {
   return cubic(row(-1), row(0), row(1), row(2), fy);
 }
 
-// Static, fully lit terrain. "natural" is shaded imagery; "topo" is a military-style map: hypsometric tints, minor and
+/** Elevation (m) with the same fractal detail the GPU shader adds (shader also adds finer octaves when zoomed in). */
+export function detailElev(t: TerrainGrid, u: number, v: number): number {
+  const ridged = 1 - Math.abs(2 * fbm(u * 1.6, v * 1.6, 91, 5) - 1);
+  return sampleElev(t, u, v) + DETAIL_M * (fbm(u * 3, v * 3, 7, 5) - 0.5) + 0.6 * DETAIL_M * (ridged - 0.5);
+}
+
+// Fallback (no WebGL) bitmap terrain. Static, fully lit terrain. "natural" is shaded imagery; "topo" is a military-style map: hypsometric tints, minor and
 // bold index contours with elevation labels, and a 1 km grid. Fog is a separate overlay.
 function* buildSteps(t: TerrainGrid, cellM: number, style: MapStyle): Generator<void, HTMLCanvasElement> { // yields once per texel row so callers can time-slice
 
@@ -94,15 +102,17 @@ function* buildSteps(t: TerrainGrid, cellM: number, style: MapStyle): Generator<
     const o = (py * W + px) * 4;
     d[o + 3] = 255;
     if (topo) {
-      const c = ramp((z - zMin) / (zMax - zMin + 1e-9)), gv = [[1, 1, 1], [0.7, 0.86, 0.66], [0.52, 0.74, 0.54]][bio]; // forest / jungle tint the map green
-      const vt = 0.55 * veg * (bio ? 1 : 0.35), k = 0.9 + 0.5 * shade, tex = 1 + 0.06 * (fbm(u * 14, v * 14, 40, 2) - 0.5);
-      const col = [0, 1, 2].map((ch) => Math.max(0, Math.min(255, (c[ch] * (1 - vt) + c[ch] * gv[ch] * vt) * k * tex)));
+      const c = ramp((z - zMin) / (zMax - zMin + 1e-9)), k = 0.82 + 0.95 * shade;
+      // forest / jungle read as denser stipple, not a colour: the palette stays black / stone / orange
+      const sp = bio ? (vnoise(u * 30, v * 30, 61) - 0.5) * (0.25 + 0.5 * veg) * (bio === 2 ? 1.3 : 1) : 0, tex = 1 + 0.08 * (fbm(u * 14, v * 14, 40, 2) - 0.5) + sp;
+      const col = [0, 1, 2].map((ch) => Math.max(0, Math.min(255, c[ch] * k * tex)));
       // contour lines: coverage from the distance (in texels) to the nearest contour level
       const gpx = Math.hypot(zAt(px + 1, py) - zAt(px - 1, py), zAt(px, py + 1) - zAt(px, py - 1)) / 2; // m per texel
       const n = z / CONTOUR_M, lvl = Math.round(n), isIndex = ((lvl % INDEX_EVERY) + INDEX_EVERY) % INDEX_EVERY === 0;
       if (gpx > 0.05) {
-        const dist = (Math.abs(n - lvl) * CONTOUR_M) / gpx, cov = Math.max(0, Math.min(1, (isIndex ? 1.5 : 0.75) + 0.5 - dist)) * (isIndex ? 0.9 : 0.62);
-        for (let ch = 0; ch < 3; ch++) col[ch] = col[ch] * (1 - cov) + [128, 72, 36][ch] * cov;
+        const dist = (Math.abs(n - lvl) * CONTOUR_M) / gpx, cov = Math.max(0, Math.min(1, (isIndex ? 1.5 : 0.75) + 0.5 - dist)) * (isIndex ? 0.8 : 0.34);
+        const lc = 0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2] > 120 ? BLACK : STONE; // dark lines on bright ground, stone lines on dark
+        for (let ch = 0; ch < 3; ch++) col[ch] = col[ch] * (1 - cov) + lc[ch] * cov;
         if (isIndex && dist < 0.8) { // label candidate
           const key = Math.floor(px / LBL) * 1000 + Math.floor(py / LBL), dd = Math.hypot(px % LBL - LBL / 2, py % LBL - LBL / 2), cur = lbl.get(key);
           if (!cur || dd < cur.dd) lbl.set(key, { x: px, y: py, ang: Math.atan2(zAt(px + 1, py) - zAt(px - 1, py), -(zAt(px, py + 1) - zAt(px, py - 1))), lvl: lvl * CONTOUR_M, dd });
@@ -126,18 +136,18 @@ function* buildSteps(t: TerrainGrid, cellM: number, style: MapStyle): Generator<
   if (topo) {
     g.save(); // 1 km grid with labels, then elevation labels on the index contours
     const step = (1000 / cellM) * UP;
-    g.strokeStyle = "rgba(40,80,150,0.45)"; g.lineWidth = 1.2; g.fillStyle = "rgba(30,60,130,0.9)"; g.font = "bold 20px system-ui, sans-serif";
+    g.strokeStyle = "rgba(138,138,138,0.3)"; g.lineWidth = 1.2; g.fillStyle = "rgba(138,138,138,0.95)"; g.font = `bold 20px ${MONO}`; // graticule in brand grey
     g.beginPath();
     for (let k = 1; k * step < W; k++) { g.moveTo(k * step, 0); g.lineTo(k * step, H); g.fillText(String(k), k * step + 4, 20); }
     for (let k = 1; k * step < H; k++) { g.moveTo(0, k * step); g.lineTo(W, k * step); g.fillText(String(k), 4, k * step - 4); }
     g.stroke();
-    g.font = "bold 22px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.lineJoin = "round";
+    g.font = `bold 22px ${MONO}`; g.textAlign = "center"; g.textBaseline = "middle"; g.lineJoin = "round";
     for (const l of lbl.values()) {
       if (l.x < 30 || l.y < 30 || l.x > W - 30 || l.y > H - 30) continue;
       let a = l.ang; if (a > Math.PI / 2) a -= Math.PI; else if (a < -Math.PI / 2) a += Math.PI; // keep text upright
       g.save(); g.translate(l.x, l.y); g.rotate(a);
-      g.strokeStyle = "rgba(246,240,225,0.95)"; g.lineWidth = 6; g.strokeText(String(l.lvl), 0, 0);
-      g.fillStyle = "#7a431f"; g.fillText(String(l.lvl), 0, 0); g.restore();
+      g.strokeStyle = "rgba(10,10,10,0.9)"; g.lineWidth = 6; g.strokeText(String(l.lvl), 0, 0);
+      g.fillStyle = "#EDE7DF"; g.fillText(String(l.lvl), 0, 0); g.restore();
     }
     g.restore();
   }
@@ -163,17 +173,35 @@ export function buildTerrainBaseAsync(t: TerrainGrid, cellM: number, style: MapS
   });
 }
 
-// One texel per cell, alpha = fog strength; drawn smoothed over the base so it can change cheaply every observation.
+// Unexplored ground: near-black fog, brand-style diagonal hatching, and a dashed orange frontier where explored meets unexplored.
+// Built from the per-cell observed mask smoothed up to FOG_PX texels per cell; only rebuilt when the observed set changes.
+const FOG_PX = 8;
 export function buildFogOverlay(t: TerrainGrid): HTMLCanvasElement {
-  const w = t.size, h = t.height, c = document.createElement("canvas");
-  c.width = w; c.height = h;
-  const g = c.getContext("2d")!, img = g.createImageData(w, h);
+  const w = t.size, h = t.height, W = w * FOG_PX, H = h * FOG_PX;
+  const small = document.createElement("canvas"); small.width = w; small.height = h;
+  const sg = small.getContext("2d")!, simg = sg.createImageData(w, h);
   const obs = (x: number, y: number) => (t.observed[Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))] === "1" ? 1 : 0);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // alpha = how unexplored this cell is (3x3 softened)
     let a = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) a += obs(x + dx, y + dy);
-    const i = (y * w + x) * 4;
-    img.data[i] = FOG[0]; img.data[i + 1] = FOG[1]; img.data[i + 2] = FOG[2]; img.data[i + 3] = 255 * 0.62 * (1 - a / 9);
+    simg.data[(y * w + x) * 4 + 3] = 255 * (1 - a / 9);
   }
-  g.putImageData(img, 0, 0);
+  sg.putImageData(simg, 0, 0);
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d", { willReadFrequently: true })!;
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high"; g.drawImage(small, 0, 0, W, H);
+  const m = g.getImageData(0, 0, W, H), d = m.data, A = (x: number, y: number) => d[(Math.min(H - 1, Math.max(0, y)) * W + Math.min(W - 1, Math.max(0, x))) * 4 + 3] / 255;
+  const out = g.createImageData(W, H), o = out.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4, a = d[i + 3] / 255; // 0 explored .. 1 unexplored
+    let r = BLACK[0], gg = BLACK[1], b = BLACK[2], al = 0.92 * Math.min(1, a * 1.6);
+    if (a > 0.5 && ((x + y) % 16) < 2.2) { const k = 0.12 * a; r += (GREY[0] - r) * k; gg += (GREY[1] - gg) * k; b += (GREY[2] - b) * k; } // "/" hatch: lighter lines in the fog, faint so it never fights the frontier
+    const gr = (Math.abs(A(x + 1, y) - A(x - 1, y)) + Math.abs(A(x, y + 1) - A(x, y - 1))) / 2; // frontier = a == 0.5 contour
+    if (gr > 0.002 && ((x + y) % 18) < 11) {
+      const cov = Math.max(0, Math.min(1, 1.3 - Math.abs(a - 0.5) / gr));
+      if (cov > 0) { r = r * (1 - cov) + ORANGE[0] * cov; gg = gg * (1 - cov) + ORANGE[1] * cov; b = b * (1 - cov) + ORANGE[2] * cov; al = Math.max(al, cov); }
+    }
+    o[i] = r; o[i + 1] = gg; o[i + 2] = b; o[i + 3] = al * 255;
+  }
+  g.putImageData(out, 0, 0);
   return c;
 }

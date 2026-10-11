@@ -29,15 +29,36 @@ export function buildViewshed(t: TerrainGrid, drones: [number, number][], radius
   return out;
 }
 
-export function viewshedCanvas(t: TerrainGrid, vs: Uint8Array): HTMLCanvasElement {
-  const c = document.createElement("canvas");
-  c.width = t.size; c.height = t.height;
-  const g = c.getContext("2d")!, img = g.createImageData(t.size, t.height);
-  for (let i = 0; i < vs.length; i++) {
-    const o = i * 4;
-    if (vs[i] === 1) { img.data[o] = 200; img.data[o + 1] = 40; img.data[o + 2] = 110; img.data[o + 3] = 125; } // radar shadow
-    else if (vs[i] === 2) { img.data[o] = 255; img.data[o + 1] = 255; img.data[o + 2] = 235; img.data[o + 3] = 22; } // live view
+const VS_PX = 6;
+let hatchPat: CanvasPattern | null = null;
+const hatch = (g: CanvasRenderingContext2D) => { // orange "\" hatch, the brand's comms-denied motif
+  if (!hatchPat) {
+    const p = document.createElement("canvas"); p.width = p.height = 8;
+    const x = p.getContext("2d")!; x.strokeStyle = "rgba(244,123,60,0.6)"; x.lineWidth = 1.4;
+    x.beginPath(); x.moveTo(-1, -1); x.lineTo(9, 9); x.moveTo(-1, 7); x.lineTo(1, 9); x.moveTo(7, -1); x.lineTo(9, 1); x.stroke();
+    hatchPat = g.createPattern(p, "repeat");
   }
-  g.putImageData(img, 0, 0);
-  return c;
+  return hatchPat!;
+};
+
+// Cells hidden behind terrain get an orange tint + hatch; cells in live view get a stone wash. Smoothed up from one texel per cell.
+export function viewshedCanvas(t: TerrainGrid, vs: Uint8Array): HTMLCanvasElement {
+  const W = t.size * VS_PX, H = t.height * VS_PX;
+  const mask = (v: number) => { // alpha mask for one visibility class at cell resolution
+    const c = document.createElement("canvas"); c.width = t.size; c.height = t.height;
+    const g = c.getContext("2d")!, img = g.createImageData(t.size, t.height);
+    for (let i = 0; i < vs.length; i++) if (vs[i] === v) img.data[i * 4 + 3] = 255;
+    g.putImageData(img, 0, 0); return c;
+  };
+  const out = document.createElement("canvas"); out.width = W; out.height = H;
+  const g = out.getContext("2d")!;
+  const layer = (v: number, paint: (x: CanvasRenderingContext2D) => void) => {
+    const l = document.createElement("canvas"); l.width = W; l.height = H;
+    const x = l.getContext("2d")!; paint(x);
+    x.globalCompositeOperation = "destination-in"; x.imageSmoothingEnabled = true; x.drawImage(mask(v), 0, 0, W, H);
+    g.drawImage(l, 0, 0);
+  };
+  layer(2, (x) => { x.fillStyle = "rgba(237,231,223,0.16)"; x.fillRect(0, 0, W, H); });
+  layer(1, (x) => { x.fillStyle = "rgba(244,123,60,0.16)"; x.fillRect(0, 0, W, H); x.fillStyle = hatch(x); x.fillRect(0, 0, W, H); });
+  return out;
 }
