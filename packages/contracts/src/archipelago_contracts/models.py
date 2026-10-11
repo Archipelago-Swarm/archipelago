@@ -124,8 +124,10 @@ class Marker(Strict):
 
 
 class TerrainGrid(Strict):
-    """Whole-map terrain for display, row-major (index = y * size + x, size columns, height rows). `observed` marks the cells the
-    fleet has actually sensed, so a viewer can draw unobserved terrain dimmed. Display only: nodes never get it."""
+    """Whole-map terrain for display, row-major (index = y * size + x, size columns, height rows).
+
+    `observed` marks the cells the fleet has actually sensed, so a viewer can draw unobserved
+    terrain dimmed. Display only: nodes never get it."""
 
     size: Annotated[int, Field(ge=1, le=256)]  # width in cells
     height: Annotated[int, Field(ge=1, le=256)]

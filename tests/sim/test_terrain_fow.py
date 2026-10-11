@@ -1,4 +1,4 @@
-"""Terrain-aware FOW: real visibility effect, honest observations, learnable + shareable estimates."""
+"""Terrain-aware FOW: real visibility effect, honest observations, shareable estimates."""
 
 import sys
 from pathlib import Path
@@ -14,7 +14,9 @@ from archipelago_sim.terrain import GRASS, JUNGLE, Terrain  # noqa: E402
 
 
 def world(terr, targets, pos=(5, 5), radius=2):
-    w = GridWorld(size=12, n_agents=1, n_targets=0, obstacle_density=0.0, sense_radius=radius, terrain_seed=3)
+    w = GridWorld(
+        size=12, n_agents=1, n_targets=0, obstacle_density=0.0, sense_radius=radius, terrain_seed=3
+    )
     w.reset(seed=0, starts={"node-0": pos})
     w.terrain, w.targets = terr, list(targets)
     return w
@@ -26,7 +28,9 @@ def test_terrain_deterministic_and_coherent():
     flat = [v for r in a.biome for v in r]
     assert {0, 1, 2} <= set(flat)
     same = sum(a.biome[x][y] == a.biome[x + 1][y] for x in range(31) for y in range(32))
-    assert same / (31 * 32) > 0.75  # regions (random 3-class tiles score ~0.34), not salt-and-pepper tiles
+    assert (
+        same / (31 * 32) > 0.75
+    )  # regions (random 3-class tiles score ~0.34), not salt-and-pepper tiles
 
 
 def test_same_target_open_vs_forest_changes_detection():
@@ -56,10 +60,14 @@ def test_ridge_blocks_cells_and_targets_without_leaking():
     for k in range(50):
         w.tick = k
         w._sense("node-0")
-    assert (7, 5) not in d.known and d.known.get((7, 5), UNKNOWN) == UNKNOWN  # occluded cell stays unknown
+    assert (7, 5) not in d.known and d.known.get(
+        (7, 5), UNKNOWN
+    ) == UNKNOWN  # occluded cell stays unknown
     assert (6, 5) in d.known and (7, 5) not in d.found
     obs = w.observe("node-0")
-    assert (7, 5) not in obs["visible_markers"] and obs["sense_log"] == []  # hidden target: no evidence at all
+    assert (7, 5) not in obs["visible_markers"] and obs[
+        "sense_log"
+    ] == []  # hidden target: no evidence at all
     assert not {"terrain", "eval_p", "targets", "elev"} & set(obs)
 
 
@@ -81,7 +89,9 @@ def test_unknown_marker_gives_no_feedback_known_marker_does():
     assert seen_first
     w.tick = 999
     w._sense("node-0")
-    assert len(d.sense_log) == 1 and d.sense_log[0][0] == GRASS  # biome the node saw; flat() is grass
+    assert (
+        len(d.sense_log) == 1 and d.sense_log[0][0] == GRASS
+    )  # biome the node saw; flat() is grass
 
 
 def test_visibility_model_learns_and_shares():

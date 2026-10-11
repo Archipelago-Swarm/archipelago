@@ -38,7 +38,7 @@ class Drone:
         default_factory=set
     )  # cells peers reported standing on
     # Terrain-aware sensing (only populated when the world has terrain): the surface class and
-    # elevation this node saw when it first detected a marker, and this tick's re-observation attempts.
+    # elevation this node saw when it first detected a marker, and this tick's attempts.
     marker_info: dict[tuple[int, int], tuple[int, float]] = field(default_factory=dict)
     sense_log: list[tuple[int, float, int, bool]] = field(default_factory=list)
 
@@ -69,10 +69,13 @@ class GridWorld:
         self.reward_id = reward_id
         self.terrain_seed = terrain_seed  # None = uniform world (the pre-terrain behaviour)
         self.terrain: Terrain | None = None
-        self.eval_p: dict[str, list[float]] = {}  # PRIVILEGED, evaluation only: true p of each logged attempt; never in observe()
+        self.eval_p: dict[
+            str, list[float]
+        ] = {}  # PRIVILEGED, evaluation only: true p of each logged attempt; never in observe()
         self.r_revisit, self.pay_spawn_targets = REWARD_EXTRA[reward_id]
         self.size, self.n_targets, self.radius = size, n_targets, sense_radius
-        # `size` is the width in cells; `height` defaults to a square. Height may not exceed the width, so
+        # `size` is the width in cells; `height` defaults to a square. Height may not exceed
+        # the width, so
         # pose / size stays in [0, 1] for the observation encoders (which know only the width).
         self.height = size if height is None else height
         if not 1 <= self.height <= size:
@@ -97,7 +100,9 @@ class GridWorld:
         self.terrain = (
             None
             if self.terrain_seed is None
-            else Terrain.generate(n, getattr(self, "cell_m", 625.0), self.terrain_seed, height=self.height)
+            else Terrain.generate(
+                n, getattr(self, "cell_m", 625.0), self.terrain_seed, height=self.height
+            )
         )
         free = [c for c in cells if c not in self.obstacles]
         rng.shuffle(free)
@@ -150,7 +155,9 @@ class GridWorld:
                     d.known[c] = self._cell(c)
                     if c in self.targets:
                         d.found.add(c)
-                elif t.los_clear(d.pos, c):  # terrain between drone and cell hides it: stays unknown
+                elif t.los_clear(
+                    d.pos, c
+                ):  # terrain between drone and cell hides it: stays unknown
                     d.known[c] = self._cell(c)
                 else:
                     if c in self.targets:
@@ -193,7 +200,9 @@ class GridWorld:
             "battery": min(1.0, max(0.0, d.battery)),
             "visible_markers": sorted(d.found),
         }
-        if self.terrain is not None:  # (biome, rel_alt_m, dist_cells, detected) per known marker in range
+        if (
+            self.terrain is not None
+        ):  # (biome, rel_alt_m, dist_cells, detected) per known marker in range
             obs["sense_log"] = list(d.sense_log)
         return obs
 

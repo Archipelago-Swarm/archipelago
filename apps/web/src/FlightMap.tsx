@@ -159,7 +159,7 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
         let b = shapeBox.get(key); if (!b) { b = boundsOf(sh.points as [number, number][]); shapeBox.set(key, b); }
         if (!intersects(b, vb)) continue;
         g.beginPath();
-        (sh.points as [number, number][]).forEach(([x, y], i) => { const [px, py] = S(x, y); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+        (sh.points as [number, number][]).forEach(([x, y], i) => { const [px, py] = S(x, y); if (i) g.lineTo(px, py); else g.moveTo(px, py); });
         g.closePath(); g.fillStyle = "rgba(120,135,165,0.28)"; g.fill(); g.strokeStyle = "rgba(160,175,205,0.55)"; g.lineWidth = 1; g.stroke();
       }
       for (const t of w.targets_found ?? []) {
@@ -172,7 +172,7 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
       if (zr >= LOD_ICON) { // trails: medium and close only
         for (const id of ids) {
           const t = trails.current[id]; if (!t || t.length < 2) continue;
-          g.beginPath(); t.forEach(([x, y], i) => { const [px, py] = S(x, y); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+          g.beginPath(); t.forEach(([x, y], i) => { const [px, py] = S(x, y); if (i) g.lineTo(px, py); else g.moveTo(px, py); });
           g.strokeStyle = color(id) + "55"; g.lineWidth = 1.5; g.stroke();
         }
       }

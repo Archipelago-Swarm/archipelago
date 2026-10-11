@@ -85,7 +85,8 @@ class Sim2DAdapter:
         if len(set(starts.values())) != len(starts):
             raise ValueError("node start poses must be distinct")
         if any(
-            not (0 <= x < self.world.size and 0 <= y < self.world.height) for x, y in starts.values()
+            not (0 <= x < self.world.size and 0 <= y < self.world.height)
+            for x, y in starts.values()
         ):
             raise ValueError("node start poses must be inside the grid")
         raw = self.world.reset(seed=config.seeds["env"], starts=starts)

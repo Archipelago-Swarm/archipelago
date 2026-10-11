@@ -69,7 +69,9 @@ class FlightWorld(GridWorld):
         self.cell_m, self.speed_mps, self.tick_s = cell_m, speed_mps, tick_s
         self.substeps = max(1, round(tick_s * physics_hz))
         self.max_turn = math.radians(turn_rate_dps)
-        self.n_complexes = round(9 * size * self.height / 1024) if n_complexes is None else n_complexes
+        self.n_complexes = (
+            round(9 * size * self.height / 1024) if n_complexes is None else n_complexes
+        )
         self.width_m, self.height_m = size * cell_m, self.height * cell_m
         self.sensor_radius_m = self.radius * cell_m  # the real perception radius (crop half-width)
         self.shapes: dict[str, dict] = {}

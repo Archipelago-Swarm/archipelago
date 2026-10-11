@@ -52,14 +52,22 @@ class VisibilityModel:
         return sum(c[1] for c in self.own.values())
 
     def to_wire(self) -> bytes:
-        return json.dumps({"kind": KIND, "node": self.node, "counts": self.own}, sort_keys=True, separators=(",", ":")).encode()
+        return json.dumps(
+            {"kind": KIND, "node": self.node, "counts": self.own},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
 
     def receive(self, payload: bytes, sender: str) -> None:
         """Validate and store a peer's table. Raises ValueError for anything malformed."""
         if len(payload) > MAX_BYTES:
             raise ValueError("vis-estimate too large")
         doc = json.loads(payload)
-        if not isinstance(doc, dict) or doc.get("kind") != KIND or set(doc) != {"kind", "node", "counts"}:
+        if (
+            not isinstance(doc, dict)
+            or doc.get("kind") != KIND
+            or set(doc) != {"kind", "node", "counts"}
+        ):
             raise ValueError("bad vis-estimate")
         if doc["node"] != sender:
             raise ValueError("claimed node != sender")
@@ -67,7 +75,12 @@ class VisibilityModel:
         if not isinstance(counts, dict) or len(counts) > 64:
             raise ValueError("bad counts")
         for k, v in counts.items():
-            ok = isinstance(v, list) and len(v) == 2 and all(type(x) is int and x >= 0 for x in v) and v[0] <= v[1]
+            ok = (
+                isinstance(v, list)
+                and len(v) == 2
+                and all(type(x) is int and x >= 0 for x in v)
+                and v[0] <= v[1]
+            )
             if not (isinstance(k, str) and len(k.split("|")) == 3 and ok):
                 raise ValueError("bad counts entry")
         if sender != self.node:

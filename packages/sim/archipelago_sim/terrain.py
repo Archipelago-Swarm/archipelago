@@ -48,32 +48,80 @@ def _fbm(seed: int, salt: int, x: float, y: float, octaves: int) -> float:
 
 class Terrain:
     def __init__(self, size: int, cell_m: float, elev, biome, veg, agl_m: float = 80.0):
-        self.size, self.height, self.cell_m, self.agl_m = size, len(elev[0]), cell_m, agl_m  # size = width in cells
+        self.size, self.height, self.cell_m, self.agl_m = (
+            size,
+            len(elev[0]),
+            cell_m,
+            agl_m,
+        )  # size = width in cells
         self.elev, self.biome, self.veg = elev, biome, veg  # [x][y] arrays
 
     @classmethod
-    def flat(cls, size: int, cell_m: float, agl_m: float = 80.0, height: int | None = None) -> Terrain:
+    def flat(
+        cls, size: int, cell_m: float, agl_m: float = 80.0, height: int | None = None
+    ) -> Terrain:
         h = height or size
         z = [[0.0] * h for _ in range(size)]
-        return cls(size, cell_m, z, [[GRASS] * h for _ in range(size)], [[0.0] * h for _ in range(size)], agl_m)
+        return cls(
+            size,
+            cell_m,
+            z,
+            [[GRASS] * h for _ in range(size)],
+            [[0.0] * h for _ in range(size)],
+            agl_m,
+        )
 
     @classmethod
-    def generate(cls, size: int, cell_m: float, seed: int, relief_m: float = 500.0, agl_m: float = 80.0, height: int | None = None) -> Terrain:
+    def generate(
+        cls,
+        size: int,
+        cell_m: float,
+        seed: int,
+        relief_m: float = 500.0,
+        agl_m: float = 80.0,
+        height: int | None = None,
+    ) -> Terrain:
         s = seed & 0xFFFF
         rng = range(height or size)  # y
         rx = range(size)  # x
         base = [[_fbm(s, 1, x / 9.0, y / 9.0, 4) for y in rng] for x in rx]
-        ridge = [[(1 - abs(2 * _fbm(s, 11, x / 7.0, y / 7.0, 3) - 1)) ** 2 for y in rng] for x in rx]
-        raw = [[0.65 * base[x][y] + 0.35 * ridge[x][y] * base[x][y] ** 0.5 for y in rng] for x in rx]
+        ridge = [
+            [(1 - abs(2 * _fbm(s, 11, x / 7.0, y / 7.0, 3) - 1)) ** 2 for y in rng] for x in rx
+        ]
+        raw = [
+            [0.65 * base[x][y] + 0.35 * ridge[x][y] * base[x][y] ** 0.5 for y in rng] for x in rx
+        ]
         lo, hi = min(map(min, raw)), max(map(max, raw))
         e01 = [[((raw[x][y] - lo) / (hi - lo + 1e-12)) ** 1.3 for y in rng] for x in rx]
-        moist = [[_fbm(s, 21, x / 8.0, y / 8.0, 3) + 0.25 * (1 - e01[x][y]) for y in rng] for x in rx]
+        moist = [
+            [_fbm(s, 21, x / 8.0, y / 8.0, 3) + 0.25 * (1 - e01[x][y]) for y in rng] for x in rx
+        ]
         ranked = sorted(v for row in moist for v in row)
-        t1, t2 = ranked[int(0.40 * len(ranked))], ranked[int(0.72 * len(ranked))]  # ~40% grass, 32% forest, 28% jungle
-        biome = [[GRASS if (moist[x][y] < t1 or e01[x][y] > 0.8) else FOREST if moist[x][y] < t2 else JUNGLE for y in rng] for x in rx]
+        t1, t2 = (
+            ranked[int(0.40 * len(ranked))],
+            ranked[int(0.72 * len(ranked))],
+        )  # ~40% grass, 32% forest, 28% jungle
+        biome = [
+            [
+                GRASS
+                if (moist[x][y] < t1 or e01[x][y] > 0.8)
+                else FOREST
+                if moist[x][y] < t2
+                else JUNGLE
+                for y in rng
+            ]
+            for x in rx
+        ]
         veg = [
             [
-                min(1.0, max(0.0, BASE_VEG[biome[x][y]] * (1 - 0.6 * max(0.0, (e01[x][y] - 0.6) / 0.4)) + 0.2 * (_fbm(s, 31, x / 3.0, y / 3.0, 2) - 0.5)))
+                min(
+                    1.0,
+                    max(
+                        0.0,
+                        BASE_VEG[biome[x][y]] * (1 - 0.6 * max(0.0, (e01[x][y] - 0.6) / 0.4))
+                        + 0.2 * (_fbm(s, 31, x / 3.0, y / 3.0, 2) - 0.5),
+                    ),
+                )
                 for y in rng
             ]
             for x in rx
@@ -84,7 +132,7 @@ class Terrain:
         return self.elev[c[0]][c[1]] + self.agl_m
 
     def los_clear(self, a: tuple[int, int], b: tuple[int, int]) -> bool:
-        """Line of sight from a drone over cell a (agl above ground) to a ground entity in cell b."""
+        """Line of sight from a drone over cell a (agl above ground) to a ground entity in b."""
         n = max(abs(b[0] - a[0]), abs(b[1] - a[1]))
         if n <= 1:
             return True
