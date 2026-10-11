@@ -17,11 +17,11 @@ const MONO = "Consolas, 'Courier New', monospace";
 const TRAIL_MAX = 600, TRAIL_STEP_M = 30, PULSE_MS = 3000;
 const LOD_ICON = 2.5, LOD_CLOSE = 10; // zoom relative to the fit-world zoom
 // 2.5D vertical exaggeration: relief is small next to a tens-of-km map, so heights are stretched until the tallest peak is ~18% of the map width
-const exFor = (widthM: number, t?: { elev_m: number[] } | null) => (t ? Math.round(Math.min(4, Math.max(1, (0.18 * widthM) / (t.elev_m.reduce((a, b) => Math.max(a, b), 1)))) * 10) / 10 : 1);
+export const exFor = (widthM: number, t?: { elev_m: number[] } | null) => (t ? Math.round(Math.min(4, Math.max(1, (0.18 * widthM) / (t.elev_m.reduce((a, b) => Math.max(a, b), 1)))) * 10) / 10 : 1);
 
 // Camera pitch (degrees above the horizon) follows zoom: zoomed out is near top-down, zoomed in is a low oblique view.
 const PITCH_FAR = 84, PITCH_NEAR = 22, ZR_NEAR = 12;
-const pitchFor = (zr: number) => {
+export const pitchFor = (zr: number) => {
   const t = Math.min(1, Math.max(0, Math.log(Math.max(zr, 1)) / Math.log(ZR_NEAR))), k = t * t * (3 - 2 * t);
   return PITCH_FAR + (PITCH_NEAR - PITCH_FAR) * k;
 };
