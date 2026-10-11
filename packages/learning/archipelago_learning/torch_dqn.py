@@ -300,19 +300,21 @@ class TorchLearner:
         self.opt.load_state_dict(sd)
 
     def _identity(self) -> dict:
+        # order matters: the first differing field names the refusal, and the versioned ids
+        # (encoder, reward, schedule) are the clearest reasons, so they come before sizes
         return {
             "node_id": self.node_id,
+            "encoder": self.encoder,
+            "encoder_sha256": self.encoder_sha256,
+            "reward_id": self.reward_id,
+            "learner_schedule": self.schedule_id,
             "obs_dim": self.obs_dim,
             "hidden": self.hidden,
             "n_actions": self.n_actions,
             "capacity": self.capacity,
-            "encoder": self.encoder,
-            "encoder_sha256": self.encoder_sha256,
-            "reward_id": self.reward_id,
             "action_space": self.action_space,
             "param_map": PARAM_MAP,
             "double_dqn": self.double,
-            "learner_schedule": self.schedule_id,
         }
 
     def save_generation(self, root, extra: dict | None = None, _io=None) -> dict:
