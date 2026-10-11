@@ -32,6 +32,7 @@ from .live import CoordinatorClient, LiveBackend, LiveConfigError, Rejected
 from .persistence import Persister
 from .runs import AdapterFactory, Conflict, NotFound, Run, RunManager, Subscriber
 from .settings import Settings
+from .skills import skills_view
 from .telemetry import TelemetryIngest, make_router
 
 log = logging.getLogger("archipelago.api")
@@ -247,6 +248,11 @@ def create_app(
             "oldest_sequence": run.events[0]["sequence"] if run.events else 0,
             "latest_sequence": run.seq,
         }
+
+    @app.get("/v1/runs/{run_id}/skills", dependencies=[Depends(auth)])
+    async def skills(run_id: str) -> dict[str, Any]:
+        """What each node has learned: proficiency, version and source node per skill."""
+        return {"run_id": run_id, **skills_view(mgr.get(run_id).events)}
 
     async def send(ws: WebSocket, msg: dict[str, Any]) -> None:
         await asyncio.wait_for(ws.send_text(json.dumps(msg)), settings.send_timeout)

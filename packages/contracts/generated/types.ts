@@ -141,6 +141,8 @@ export type RunId5 = string;
 export type SchemaVersion5 = string;
 export type Sequence4 = number;
 export type SimTick4 = number;
+export type Skill = string | null;
+export type SkillGain = number | null;
 export type SourceNodeId4 = string | null;
 export type Transfer = "none" | "accepted" | "rejected";
 export type UpdateCount = number;
@@ -370,6 +372,8 @@ export interface LearningEvent {
   schema_version: SchemaVersion5;
   sequence: Sequence4;
   sim_tick: SimTick4;
+  skill?: Skill;
+  skill_gain?: SkillGain;
   source_node_id: SourceNodeId4;
   transfer: Transfer;
   update_count: UpdateCount;

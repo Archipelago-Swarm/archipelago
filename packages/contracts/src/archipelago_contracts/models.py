@@ -219,6 +219,9 @@ class LearningEvent(Event):
     origin_node: Id | None = None
     generation_count: Annotated[int, Field(ge=0)] = 0
     flagged_peer: Id | None = None  # set when the candidate failed a safety check
+    # Peer decisions: the skill the candidate improved most and its measured proficiency gain.
+    skill: Id | None = None
+    skill_gain: Finite | None = None
 
 
 class MetricSample(Event):
