@@ -39,7 +39,6 @@ export type KnownMask = boolean[][];
 export type NeighborSummaries = {
   [k: string]: number;
 }[];
-export type Radar = number[];
 export type RunId1 = string;
 export type SchemaVersion1 = string;
 export type Sequence = number;
@@ -69,9 +68,7 @@ export type SchemaVersion3 = string;
 export type Sequence2 = number;
 export type SimTick2 = number;
 export type SourceNodeId2 = string | null;
-export type Blocked = [unknown, unknown][];
 export type Links = [unknown, unknown][];
-export type Syncing = [unknown, unknown][];
 export type CellM = number;
 export type HeightM = number;
 export type SensorRadiusM = number;
@@ -213,7 +210,6 @@ export interface Observation {
   known_mask: KnownMask;
   neighbor_summaries?: NeighborSummaries;
   pose: Pose;
-  radar?: Radar;
   run_id: RunId1;
   schema_version: SchemaVersion1;
   sequence: Sequence;
@@ -254,9 +250,7 @@ export interface Poses {
   [k: string]: Pose;
 }
 export interface Topology {
-  blocked?: Blocked;
   links: Links;
-  syncing?: Syncing;
 }
 /**
  * Continuous-flight world description (meters). Absent for the legacy grid world.
