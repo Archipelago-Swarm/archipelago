@@ -56,25 +56,52 @@ export function App() {
   const conn = source === "live" ? live.conn : "connected";
   const run = (c: string) => { setError(""); sendCommand(runId!, c).catch(fail); };
 
+  const landing = source === "fixture";
+  const startForm = (
+    <form className="row" onSubmit={(e) => { e.preventDefault(); setError(""); startRun(runConfig, +String(new FormData(e.currentTarget).get("seed")))
+        .then((r) => { location.search = `?run=${r.run_id}`; }).catch(fail); }}>
+      <label>Random seed <input name="seed" type="number" min={0} step={1} defaultValue={1} required /></label> <button>Start run</button>
+    </form>
+  );
+
   return (
     <main>
-      <h1>Archipelago</h1>
+      <header>
+        <h1>{landing ? "Archipelago" : <a href={location.pathname}>Archipelago</a>}</h1>
+        {!landing && startForm}
+      </header>
       {needLogin && (
-        <form onSubmit={(e) => { e.preventDefault(); login(String(new FormData(e.currentTarget).get("token"))).then(() => { setNeedLogin(false); setError(""); }).catch(fail); }}>
+        <form className="row" onSubmit={(e) => { e.preventDefault(); login(String(new FormData(e.currentTarget).get("token"))).then(() => { setNeedLogin(false); setError(""); }).catch(fail); }}>
           <label>API token <input name="token" type="password" /></label> <button>Sign in</button>
         </form>
       )}
-      <form onSubmit={(e) => { e.preventDefault(); setError(""); startRun(runConfig, +String(new FormData(e.currentTarget).get("seed")))
-          .then((r) => { location.search = `?run=${r.run_id}`; }).catch(fail); }}>
-        <label>Seed <input name="seed" type="number" min={0} step={1} defaultValue={1} required /></label> <button>Start run</button>
-      </form>
+      {landing && (
+        <>
+          <p className="lede">A swarm of simulated drones explores an area together, shares what it finds over unreliable radio links, and hands improved flight policies from one drone to another. This page lets you watch a run.</p>
+          <p><a className="button" href="?demo=1">Watch the demo</a> <span className="note">Runs in your browser. No backend needed.</span></p>
+          <h2>Getting started</h2>
+          <ol>
+            <li><strong>Watch the demo.</strong> A fast synthetic run. Use the timeline to pause, rewind, or jump to a policy offer.</li>
+            <li><strong>Start your own run.</strong> This needs the API: <code>python3 infra/demo/run_demo.py up --plan demo</code>, then <code>npm run dev</code> in <code>apps/web</code>. The seed fixes the random numbers, so the same seed gives the same run.{startForm}</li>
+            <li><strong>Replay a finished run.</strong> Open <code>?run=&lt;id&gt;&amp;replay=1</code> and drag the frame slider.</li>
+          </ol>
+          <h2>Reading the map</h2>
+          <dl>
+            <dt>Aircraft</dt><dd>One per drone. Select one to see its heading, speed and policy version.</dd>
+            <dt>Link</dt><dd>A radio connection between two drones. Links drop and return.</dd>
+            <dt>Coverage</dt><dd>Share of free cells the swarm has sensed so far.</dd>
+            <dt>Policy offer</dt><dd>A drone sends its learned policy to a neighbour, who accepts or rejects it.</dd>
+          </dl>
+          <h2>Example snapshot</h2>
+        </>
+      )}
       <View present={present} details={details} source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : shownPanels} now={now} status={source === "live" ? live.status : undefined} />
       {source === "replay" && frames.length > 0 && (
         <label>Frame {frame + 1}/{frames.length} <input type="range" min={0} max={frames.length - 1} value={frame} onChange={(e) => setFrame(+e.target.value)} /></label>
       )}
-      <div role="group" aria-label="Run controls">
+      {!landing && <div className="row" role="group" aria-label="Run controls">
         {COMMANDS.map((c) => <button key={c} disabled={commandsDisabled(source, conn, live.status)} onClick={() => run(c)}>{c}</button>)}
-      </div>
+      </div>}
       {present && <label><input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details</label>}
       {error && <p role="alert">{error}</p>}
     </main>
