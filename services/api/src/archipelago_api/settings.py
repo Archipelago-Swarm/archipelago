@@ -62,4 +62,5 @@ class Settings:
                 else None
             ),
             live_poll_interval=float(os.environ.get("ARCHIPELAGO_LIVE_POLL_INTERVAL", "0.25")),
+            event_log_size=int(os.environ.get("ARCHIPELAGO_EVENT_LOG_SIZE", "5000")),
         )

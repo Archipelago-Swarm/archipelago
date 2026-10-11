@@ -102,6 +102,8 @@ services:
       TIGERDATA_URL: ${TIGERDATA_URL:-}
       # Live mode: the API is a client of the coordinator and never falls back to fixtures (section 9).
       ARCHIPELAGO_ADAPTER: live
+      # The 900-tick demo emits more than the 5000-event default; the tail-only log dropped training and peer events.
+      ARCHIPELAGO_EVENT_LOG_SIZE: ${ARCHIPELAGO_EVENT_LOG_SIZE:-100000}
       COORDINATOR_URL: http://coordinator:8800
       COORDINATOR_TOKEN: ${COORDINATOR_TOKEN:?set in .env}
       COORDINATOR_PLAN_FILE: /plans/${DEMO_PLAN:-smoke}.json
