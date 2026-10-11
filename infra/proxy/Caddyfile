@@ -22,6 +22,13 @@
 		reverse_proxy api:8000
 	}
 
+	# Mission simulator (stdlib server, SSE stream: no buffering).
+	handle /api/mission/* {
+		reverse_proxy mission:8765 {
+			flush_interval -1
+		}
+	}
+
 	# Grafana has its own login (anonymous disabled in compose); served from /grafana.
 	handle /grafana* {
 		reverse_proxy grafana:3000

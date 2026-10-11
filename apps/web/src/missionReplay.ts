@@ -1,5 +1,6 @@
 // Mission replay: types (FRONTEND_INTEGRATION.md 19.a), pure render helpers and the live/offline loaders.
 // No RF maths here: link fields are rendered exactly as emitted.
+import type { TerrainGrid } from "@archipelago/contracts";
 export type Id = string;
 export interface XY { x: number; y: number }
 export type PoiType = "INFRASTRUCTURE" | "VEHICLE" | "SIGNAL";
@@ -54,8 +55,7 @@ export interface Stats {
 }
 export interface Meta {
   seed: number; dt: number; skillsEnabled: boolean;
-  world: { width: number; height: number; tileMeters: number; tilesX: number; tilesY: number; units: "meters" };
-  terrain?: { size: number; height: number; biome: string; observed: string; elev_m: number[]; veg_pct: number[] };
+  world: { width: number; height: number; tileMeters: number; tilesX: number; tilesY: number; units: "meters"; cellMeters: number; terrain: TerrainGrid };
   searchGrid: { nx: number; ny: number };
   uavSpec: any; rfModel: any; missionRules: any; config: { skill_transfer_s: number; n_uavs: number }; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
@@ -73,7 +73,7 @@ const DISRUPTION_LABEL: Record<string, string> = { COMMUNICATION_DEGRADATION: "C
 export const disruptionLabel = (t: string) => DISRUPTION_LABEL[t] ?? t;
 
 // ---- world to screen (19.d): y grows downward, no flip ----
-export function worldTransform(w: Meta["world"], viewW: number, viewH: number) {
+export function worldTransform(w: Pick<Meta["world"], "width" | "height">, viewW: number, viewH: number) {
   const scale = Math.min(viewW / w.width, viewH / w.height), offX = (viewW - w.width * scale) / 2, offY = (viewH - w.height * scale) / 2;
   return { scale, project: (p: XY): [number, number] => [offX + p.x * scale, offY + p.y * scale] };
 }
@@ -189,6 +189,8 @@ export const SERVER_CMD = 'PYTHONPATH="packages/mission:packages/sim" python -m 
 export async function fetchSummary(seed: number, uavs: number, signal?: AbortSignal): Promise<MapSummary> {
   const r = await fetch(`${BASE}/api/mission/summary?seed=${seed}&uavs=${uavs}`, { signal });
   if (!r.ok) throw new Error(`Mission server returned HTTP ${r.status}. Start it: ${SERVER_CMD}`);
+  // A static host answers unknown paths with index.html (HTTP 200), which is not JSON.
+  if (!(r.headers.get("content-type") ?? "").includes("json")) throw new Error(`No mission server behind ${BASE || "this site"}/api/mission (got HTML, not JSON). Start it: ${SERVER_CMD}, or build with VITE_MISSION_API=<server url>.`);
   return r.json();
 }
 

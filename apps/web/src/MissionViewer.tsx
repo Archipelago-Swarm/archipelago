@@ -38,9 +38,9 @@ function useMissionBuffer(seed: number, uavs: number) {
 /** Fog of war: terrain cells within any live UAV's sensor radius in frames 0..i. Memoised so playback only scans new frames. */
 function useObserved(buf: Buffer, meta: Meta | null, t: number) {
   const memo = useRef<{ key: unknown; i: number; seen: Uint8Array; str: string }>({ key: null, i: -1, seen: new Uint8Array(0), str: "" });
-  const ter = meta?.terrain;
+  const ter = meta?.world.terrain;
   if (!ter || !meta || !buf.frames.length) return "";
-  const i = Math.min(buf.frames.length - 1, Math.floor(t / meta.dt)), m = memo.current, cell = meta.world.tileMeters / 10;
+  const i = Math.min(buf.frames.length - 1, Math.floor(t / meta.dt)), m = memo.current, cell = meta.world.cellMeters;
   if (m.key !== meta || i < m.i) Object.assign(m, { key: meta, i: -1, seen: new Uint8Array(ter.size * ter.height), str: "" });
   if (i === m.i) return m.str;
   for (let f = m.i + 1; f <= i; f++) for (const u of buf.frames[f].uavs) {
@@ -64,7 +64,7 @@ function snapshotOf(meta: Meta, v: View, seed: number, observed: string): WorldS
     schema_version: "0.1.0", event_id: `m-${seed}`, run_id: `mission-${seed}`, source_node_id: null, sim_tick: Math.round(v.t * 100), emitted_at_utc: "1970-01-01T00:00:00Z", sequence: 0,
     kind: "world_snapshot", run_status: "running", poses, obstacles: [], coverage: v.floor.mission.fleetKnowledgeCoverage,
     topology: { links: v.floor.links.filter((l) => l.connected).map((l) => [l.sourceNodeId, l.targetNodeId]) },
-    world: { width_m: meta.world.width, height_m: meta.world.height, cell_m: meta.world.tileMeters / 10, sensor_radius_m: meta.uavSpec.sensor.radiusMeters, shapes: hazards(v), targets_found: v.floor.pois.filter((p) => p.state !== "UNKNOWN").map((p) => ({ x: p.position.x, y: p.position.y, radius: 0 })), terrain: meta.terrain && { ...meta.terrain, observed } },
+    world: { width_m: meta.world.width, height_m: meta.world.height, cell_m: meta.world.cellMeters, sensor_radius_m: meta.uavSpec.sensor.radiusMeters, shapes: hazards(v), targets_found: v.floor.pois.filter((p) => p.state !== "UNKNOWN").map((p) => ({ x: p.position.x, y: p.position.y, radius: 0 })), terrain: { ...meta.world.terrain, observed } },
   } as unknown as WorldSnapshot;
 }
 

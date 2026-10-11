@@ -111,9 +111,10 @@ class Handler(BaseHTTPRequestHandler):
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--host", default="127.0.0.1")  # container: 0.0.0.0
     a = ap.parse_args()
     print(f"mission server on http://127.0.0.1:{a.port}/api/mission/stream?seed=1002")
-    ThreadingHTTPServer(("127.0.0.1", a.port), Handler).serve_forever()
+    ThreadingHTTPServer((a.host, a.port), Handler).serve_forever()
 
 
 if __name__ == "__main__":

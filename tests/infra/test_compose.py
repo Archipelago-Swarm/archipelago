@@ -74,7 +74,7 @@ def test_networks_follow_amendment_a12(raw):
     assert members("peers") == set(NODES)
     assert members("control") == {"coordinator", "api", *NODES}
     assert members("ingest") == {"api", *NODES}
-    assert members("core") == {"api", "web", "proxy", "grafana", "timescaledb"}
+    assert members("core") == {"api", "web", "proxy", "grafana", "timescaledb", "mission"}
     for n in NODES:
         assert "core" not in nets[n] and "egress" not in nets[n] and "edge" not in nets[n]
     assert set(nets["coordinator"]) == {"control"}
