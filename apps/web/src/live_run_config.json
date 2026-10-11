@@ -1,0 +1,85 @@
+{
+  "kind": "run_config",
+  "schema_version": "0.1.0",
+  "run_id": "run-template",
+  "simulator": "sim2d",
+  "simulator_version": "0.1.0",
+  "scenario_hash": "26e34020bb9438cccbcc229ef874159033da49d9e87e4fb3cf8bd84e4e86235f",
+  "seeds": {
+    "env": 1000,
+    "topology": 0,
+    "learner": 0,
+    "exploration": 0
+  },
+  "nodes": [
+    {
+      "node_id": "node-01",
+      "start_pose": {
+        "x": 2,
+        "y": 2,
+        "z": 0.0,
+        "heading_rad": 0.0
+      }
+    },
+    {
+      "node_id": "node-02",
+      "start_pose": {
+        "x": 13,
+        "y": 2,
+        "z": 0.0,
+        "heading_rad": 0.0
+      }
+    },
+    {
+      "node_id": "node-03",
+      "start_pose": {
+        "x": 2,
+        "y": 13,
+        "z": 0.0,
+        "heading_rad": 0.0
+      }
+    },
+    {
+      "node_id": "node-04",
+      "start_pose": {
+        "x": 13,
+        "y": 13,
+        "z": 0.0,
+        "heading_rad": 0.0
+      }
+    }
+  ],
+  "observation_id": "obs-v0",
+  "action_id": "act-v0",
+  "reward_id": "rew-v0",
+  "mode": "distributed",
+  "learner": "peer_dqn",
+  "budgets": {
+    "max_ticks": 900,
+    "max_wall_seconds": 7200.0
+  },
+  "fault_schedule": [
+    {
+      "start_tick": 300,
+      "end_tick": 600,
+      "cut_links": [
+        [
+          "node-01",
+          "node-03"
+        ],
+        [
+          "node-01",
+          "node-04"
+        ],
+        [
+          "node-02",
+          "node-03"
+        ],
+        [
+          "node-02",
+          "node-04"
+        ]
+      ]
+    }
+  ]
+}
