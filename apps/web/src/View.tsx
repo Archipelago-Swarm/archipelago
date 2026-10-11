@@ -14,10 +14,11 @@ const CELL = 24;
 function draw(c: HTMLCanvasElement, s: WorldSnapshot, actions: Record<string, string | undefined>) {
   const g = c.getContext("2d");
   if (!g) return;
-  g.clearRect(0, 0, c.width, c.height);
-  g.fillStyle = "#555";
+  g.fillStyle = "#141414";
+  g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = "#333";
   for (const [x, y] of s.obstacles as [number, number][]) g.fillRect(x * CELL, y * CELL, CELL, CELL);
-  g.strokeStyle = "#08c";
+  g.strokeStyle = "#8a8a8a";
   for (const [a, b] of s.topology.links as [string, string][]) {
     const p = s.poses[a], q = s.poses[b];
     if (!p || !q) continue;
@@ -26,14 +27,14 @@ function draw(c: HTMLCanvasElement, s: WorldSnapshot, actions: Record<string, st
     g.lineTo((q.x + 0.5) * CELL, (q.y + 0.5) * CELL);
     g.stroke();
   }
-  g.fillStyle = "#d33";
+  g.fillStyle = "#f47b3c";
   for (const p of Object.values(s.poses)) {
     g.beginPath();
     g.arc((p.x + 0.5) * CELL, (p.y + 0.5) * CELL, CELL / 3, 0, 2 * Math.PI);
     g.fill();
   }
-  g.fillStyle = "#000";
-  g.font = "10px sans-serif";
+  g.fillStyle = "#ede7df";
+  g.font = "11px Consolas, monospace";
   for (const [id, p] of Object.entries(s.poses)) g.fillText(`${id}${actions[id] ? `: ${actions[id]}` : ""}`, (p.x + 1) * CELL, (p.y + 0.4) * CELL);
 }
 

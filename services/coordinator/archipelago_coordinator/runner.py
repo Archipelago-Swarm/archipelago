@@ -501,6 +501,7 @@ class Run:
         with self.world_lock:
             obs = adapter.reset(cfg, episode=ep.index)
             old, self.adapter = self.adapter, adapter
+            self._seen_finds: set = set()
         if old is not None:
             old.close()
         if self.configure_body is None:
@@ -624,6 +625,15 @@ class Run:
             returns[n] += r
         with self.world_lock:
             cov = self.adapter.world.coverage
+            from archipelago_sim.mission import new_finds  # lazy: the sim is an optional dependency
+
+            w = self.adapter.world
+            finds = new_finds(w, self._seen_finds)
+            total = len(w.targets)
+        for i, (_, node) in enumerate(finds):  # value = targets found so far
+            n_found = len(self._seen_finds) - len(finds) + i + 1
+            self._metric("target_found", float(n_found), "count", ep.mode, t + 1, node)
+        self._metric("targets_total", float(total), "count", ep.mode, t + 1)
         self._metric("coverage", cov, "fraction", ep.mode, t + 1)
         self._emit_snapshot(t + 1)
 

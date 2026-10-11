@@ -125,3 +125,10 @@ def test_recovered_stream_does_not_invent_live_data(tmp_path: Path) -> None:
     with c2.websocket_connect("/v1/runs/run-a/stream") as ws:
         first = ws.receive_json()
     assert first["status"] == "completed" and not first.get("snapshot")
+
+
+def test_list_runs_returns_stored_runs_newest_first(tmp_path: Path) -> None:
+    with make(tmp_path) as c:
+        drive(c)
+        runs = c.get("/v1/runs").json()["runs"]
+    assert [r["run_id"] for r in runs] == ["run-a"] and runs[0]["status"] == "completed"

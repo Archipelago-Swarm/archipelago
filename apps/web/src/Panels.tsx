@@ -20,18 +20,18 @@ export function Curves({ train, ev }: { train: Curve; ev: Curve }) {
   return (
     <figure style={{ margin: 0 }}>
       <svg viewBox={`0 0 ${W} ${H}`} width={W} style={{ maxWidth: "100%" }} role="img" aria-label={`Training and frozen evaluation episode return (${unit}) against simulation tick`}>
-        <line x1={PAD.l} y1={H - PAD.b} x2={W - PAD.r} y2={H - PAD.b} stroke="#888" />
-        <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={H - PAD.b} stroke="#888" />
-        <text x={PAD.l - 4} y={PAD.t + 8} fontSize="10" textAnchor="end">{y1.toFixed(2)}</text>
-        <text x={PAD.l - 4} y={H - PAD.b} fontSize="10" textAnchor="end">{y0.toFixed(2)}</text>
-        <text x={PAD.l} y={H - PAD.b + 12} fontSize="10">{x0}</text>
-        <text x={W - PAD.r} y={H - PAD.b + 12} fontSize="10" textAnchor="end">{x1}</text>
-        <text x={(PAD.l + W - PAD.r) / 2} y={H - 4} fontSize="10" textAnchor="middle">sim tick</text>
-        <text x={4} y={H / 2} fontSize="10" transform={`rotate(-90 4 ${H / 2})`} textAnchor="middle">{unit}</text>
-        {train.points.length > 0 && <polyline data-series="train" points={line(train)} fill="none" stroke="#08c" strokeWidth="2" />}
-        {ev.points.length > 0 && <polyline data-series="eval" points={line(ev)} fill="none" stroke="#2a7" strokeWidth="2" strokeDasharray="5 3" />}
+        <line x1={PAD.l} y1={H - PAD.b} x2={W - PAD.r} y2={H - PAD.b} stroke="#8a8a8a" />
+        <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={H - PAD.b} stroke="#8a8a8a" />
+        <text fill="#ede7df" x={PAD.l - 4} y={PAD.t + 8} fontSize="10" textAnchor="end">{y1.toFixed(2)}</text>
+        <text fill="#ede7df" x={PAD.l - 4} y={H - PAD.b} fontSize="10" textAnchor="end">{y0.toFixed(2)}</text>
+        <text fill="#ede7df" x={PAD.l} y={H - PAD.b + 12} fontSize="10">{x0}</text>
+        <text fill="#ede7df" x={W - PAD.r} y={H - PAD.b + 12} fontSize="10" textAnchor="end">{x1}</text>
+        <text fill="#ede7df" x={(PAD.l + W - PAD.r) / 2} y={H - 4} fontSize="10" textAnchor="middle">sim tick</text>
+        <text fill="#ede7df" x={4} y={H / 2} fontSize="10" transform={`rotate(-90 4 ${H / 2})`} textAnchor="middle">{unit}</text>
+        {train.points.length > 0 && <polyline data-series="train" points={line(train)} fill="none" stroke="#f47b3c" strokeWidth="2" />}
+        {ev.points.length > 0 && <polyline data-series="eval" points={line(ev)} fill="none" stroke="#ede7df" strokeWidth="2" strokeDasharray="5 3" />}
       </svg>
-      <figcaption>Solid blue: training ({train.points.length} samples) · dashed green: frozen evaluation ({ev.points.length} samples) · y: {unit}</figcaption>
+      <figcaption>Solid orange: training ({train.points.length} samples) · dashed stone: frozen evaluation ({ev.points.length} samples) · y: {unit}</figcaption>
     </figure>
   );
 }

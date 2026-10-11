@@ -105,6 +105,7 @@ class CreateRun(Strict):
 
     run_config: RunConfig
     plan_name: Id | None = None
+    map_offset: Annotated[int, Field(ge=0, le=1_000_000)] = 0  # shifts every plan episode seed
 
 
 @dataclass(frozen=True)

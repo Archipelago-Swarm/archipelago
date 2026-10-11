@@ -10,6 +10,7 @@ import { startDemo } from "./demo";
 import { createDemoController, sceneAt } from "./demoScriptController";
 import { DemoControlsOverlay } from "./DemoControlsOverlay";
 import { usePlayback } from "./replay";
+import { PastRuns } from "./PastRuns";
 import { View } from "./View";
 
 // JSON imports widen tuples; the fixture is schema-validated by the contracts tests.
@@ -35,6 +36,19 @@ export function App() {
   const pb = usePlayback(source === "live" ? live.snap : null);
   const present = params.get("present") === "1";
   const [details, setDetails] = useState(!present);
+
+  // Landing example: advance the synthetic demo to a mid-run frame, then freeze it (the old fixture has no terrain/world).
+  const [preview, setPreview] = useState<WorldSnapshot | null>(null);
+  useEffect(() => {
+    if (runId) return;
+    let n = 0;
+    const stop = startDemo((e) => {
+      if (e.t !== "message") return;
+      const r = JSON.parse(e.data);
+      if (r.kind === "world_snapshot" && ++n === 150) { setPreview(r); stop(); }
+    }, 1);
+    return stop;
+  }, [runId]);
 
   const fail = (e: unknown) => { if (e instanceof ApiError && e.status === 401) setNeedLogin(true); setError(e instanceof Error ? e.message : String(e)); };
 
@@ -62,16 +76,16 @@ export function App() {
     () => (source === "replay" ? panelsAtFrame(replayRecords, frame) : panels),
     [source, replayRecords, frame, panels],
   );
-  const snap = source === "fixture" ? fixture : source === "replay" ? frames[frame] ?? null : pb.visible ?? live.snap;
+  const snap = source === "fixture" ? preview ?? fixture : source === "replay" ? frames[frame] ?? null : pb.visible ?? live.snap;
   const conn = source === "live" ? live.conn : "connected";
   const run = (c: string) => { setError(""); sendCommand(runId!, c).catch(fail); };
 
   const scene = ds && sceneAt(ds.t);
   const landing = source === "fixture";
   const startForm = (
-    <form className="row" onSubmit={(e) => { e.preventDefault(); setError(""); startRun(runConfig, +String(new FormData(e.currentTarget).get("seed")))
+    <form className="row" onSubmit={(e) => { e.preventDefault(); setError(""); const seedText = String(new FormData(e.currentTarget).get("seed")); startRun(runConfig, seedText ? +seedText : Math.floor(Math.random() * 1e6))
         .then((r) => { location.search = `?run=${r.run_id}`; }).catch(fail); }}>
-      <label>Random seed <input name="seed" type="number" min={0} step={1} defaultValue={1} required /></label> <button>Start run</button>
+      <label>Map seed <input name="seed" type="number" min={0} max={1000000} step={1} placeholder="random" /></label> <button>Start run</button>
     </form>
   );
 
@@ -79,7 +93,7 @@ export function App() {
     <main>
       {ctl && ds && <DemoControlsOverlay ctl={ctl} state={ds} scene={scene!} lineage={shownPanels.lineage} />}
       <header>
-        <h1>{landing ? "Archipelago" : <a href={location.pathname}>Archipelago</a>}</h1>
+        <h1><img src="/archipelago-logo.svg" alt="" />{landing ? "Archipelago" : <a href={location.pathname}>Archipelago</a>}</h1>
         {!landing && startForm}
       </header>
       {needLogin && (
@@ -89,25 +103,26 @@ export function App() {
       )}
       {landing && (
         <>
-          <p className="lede">A swarm of simulated drones explores an area together, shares what it finds over unreliable radio links, and hands improved flight policies from one drone to another. This page lets you watch a run.</p>
-          <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> <span className="note">Runs in your browser. No backend needed.</span></p>
-          <h2>Getting started</h2>
-          <ol>
-            <li><strong>Watch the demo.</strong> A fast synthetic run. Use the timeline to pause, rewind, or jump to a policy offer.</li>
-            <li><strong>Start your own run.</strong> This needs the API: <code>python3 infra/demo/run_demo.py up --plan demo</code>, then <code>npm run dev</code> in <code>apps/web</code>. The seed fixes the random numbers, so the same seed gives the same run.{startForm}</li>
-            <li><strong>Replay a finished run.</strong> Open <code>?run=&lt;id&gt;&amp;replay=1</code> and drag the frame slider.</li>
-          </ol>
+          <section className="hero">
+            <p className="kicker">No mainland required.</p>
+            <h2>Decentralized learning across UAV squadrons.</h2>
+            <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> </p>
+          </section>
+          <PastRuns />
+          <h2>Start a run</h2>
+          <p>Needs the API: <code>python3 infra/demo/run_demo.py up --plan demo</code>. Leave the map seed blank for new random maps; reuse a seed to get the same maps.</p>
+          {startForm}
           <h2>Reading the map</h2>
           <dl>
-            <dt>Aircraft</dt><dd>One per drone. Select one to see its heading, speed and policy version.</dd>
+            <dt>Aircraft</dt><dd>One per drone. Select one for heading, speed and policy version.</dd>
             <dt>Link</dt><dd>A radio connection between two drones. Links drop and return.</dd>
-            <dt>Coverage</dt><dd>Share of free cells the swarm has sensed so far.</dd>
-            <dt>Policy offer</dt><dd>A drone sends its learned policy to a neighbour, who accepts or rejects it.</dd>
+            <dt>Coverage</dt><dd>Share of free cells sensed so far.</dd>
+            <dt>Policy offer</dt><dd>A drone sends its policy to a neighbour, who accepts or rejects it.</dd>
           </dl>
           <h2>Example snapshot</h2>
         </>
       )}
-      <View spotlight={scene?.spotlight} playback={source === "live" ? pb : undefined} present={present} details={details} source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : shownPanels} now={now} status={source === "live" ? live.status : undefined} />
+      <View spotlight={scene?.spotlight} playback={source === "live" ? pb : undefined} present={present} details={details && !landing} source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : shownPanels} now={now} status={source === "live" ? live.status : undefined} />
       {source === "replay" && frames.length > 0 && (
         <label>Frame {frame + 1}/{frames.length} <input type="range" min={0} max={frames.length - 1} value={frame} onChange={(e) => setFrame(+e.target.value)} /></label>
       )}

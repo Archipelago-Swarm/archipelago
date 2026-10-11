@@ -210,9 +210,17 @@ def create_app(
             except ValueError:
                 raise Rejected(400, "body must be JSON") from None
             config, plan_name = live.resolve_plan(body)
-            run, created = await live.create(idempotency_key, config, plan_name)
+            run, created = await live.create(
+                idempotency_key, config, plan_name, live.map_offset(body)
+            )
             response.status_code = 201 if created else 200
             return run.view()
+
+    @app.get("/v1/runs", dependencies=[Depends(auth)])
+    async def list_runs() -> dict[str, Any]:
+        """Stored runs, newest first, as compact summaries; open one with /events for replay."""
+        keys = ("run_id", "status", "revision", "completion_reason", "tick")
+        return {"runs": [{k: r.view()[k] for k in keys} for r in reversed(mgr.runs.values())]}
 
     @app.get("/v1/runs/{run_id}", dependencies=[Depends(auth)])
     async def get_run(run_id: str) -> dict[str, Any]:
