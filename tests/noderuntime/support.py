@@ -48,6 +48,25 @@ def make_cfg(tmp, node_id="node-01", node_ids=("node-01", "node-02"), **over) ->
     return Config(**kw)
 
 
+def t37_over(**more) -> dict:
+    """Config overrides selecting the T37 ids (A18): v2 shared encoder, rew-v1, sched-t37-v1."""
+    over = dict(
+        encoder_family="grid-flat-v2-visits-shared",
+        reward_id="rew-v1",
+        learner_schedule_id="sched-t37-v1",
+        double_dqn=True,
+        lr=1e-3,
+        capacity=50000,
+        batch=32,
+        target_every=50,
+        eps_start=1.0,
+        eps_end=0.05,
+        eps_decay_episodes=4,
+    )
+    over.update(more)
+    return over
+
+
 def obs_json(run_id: str, tag: str, tick: int, o: dict) -> dict:
     """Contract Observation (as JSON) from a GridWorld.observe dict."""
     return {
@@ -152,11 +171,18 @@ class Client:
 class MiniCoordinator:
     """A tiny real-world driver: GridWorld stepped by actions that the nodes return over HTTP."""
 
-    def __init__(self, clients: dict[str, Client], size=8, run_id="run-t", max_ticks=500):
+    def __init__(
+        self, clients: dict[str, Client], size=8, run_id="run-t", max_ticks=500, reward_id="rew-v0"
+    ):
         self.clients, self.run_id = clients, run_id
         self.ids = sorted(clients)
         self.world = GridWorld(
-            size=size, n_agents=len(self.ids), n_targets=0, max_ticks=max_ticks, sense_radius=2
+            size=size,
+            n_agents=len(self.ids),
+            n_targets=0,
+            max_ticks=max_ticks,
+            sense_radius=2,
+            reward_id=reward_id,
         )
         self.agent = dict(zip(self.ids, self.world.possible_agents, strict=True))
 

@@ -19,7 +19,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from . import checkpoint
+from . import checkpoint, schedules
 from .compat import (
     ACTION_SPACE,
     KEYS,
@@ -34,6 +34,21 @@ ENCODER = "grid-flat-v1-s8-r2"
 CKPT_SCHEMA = "torch-ckpt-v1"
 _PREFIX = "extra."
 MAX_CKPT_EVENTS = 1000  # newest events kept in a checkpoint; bounds size and write time
+
+
+# Identity keys added after the first checkpoints existed: a checkpoint without them was written by
+# the legacy recipe, so it only loads into a learner that is configured the legacy way.
+LEGACY_IDENTITY = {"double_dqn": False, "learner_schedule": schedules.LEGACY}
+
+
+def check_identity(counters: dict, identity: dict) -> None:
+    """Raise ValueError naming the first identity field (encoder, reward id, ...) that differs."""
+    for k, v in identity.items():
+        if k == "node_id":
+            continue
+        have = counters.get(k, LEGACY_IDENTITY.get(k)) if k in LEGACY_IDENTITY else counters.get(k)
+        if have != v:
+            raise ValueError(f"checkpoint {k} mismatch: {have!r} != {v!r}")
 
 
 class InferenceSnapshot:
@@ -71,7 +86,6 @@ def _npz(**arrays) -> bytes:
 
 class TorchLearner:
     backend = "torch-cpu"
-    reward_id = REWARD_ID
     action_space = ACTION_SPACE
 
     def __init__(
@@ -87,8 +101,14 @@ class TorchLearner:
         mode="independent",
         encoder=ENCODER,
         threads=None,
+        reward_id=REWARD_ID,
+        double=False,
+        schedule_id=schedules.LEGACY,
     ):
         """threads=None -> env OMP_NUM_THREADS if set, else 1.
+
+        reward_id / schedule_id are identity (checkpoint and peer headers, A18); ``double`` selects
+        double-DQN targets (action chosen by the online net, valued by the target net).
 
         Thread count and deterministic mode are process-wide. runtime['threads'] is the value at
         construction; a learner built later in the same process with a different count makes it
@@ -113,6 +133,7 @@ class TorchLearner:
             "param_map": PARAM_MAP,
         }
         self.node_id, self.mode, self.encoder = node_id, mode, encoder
+        self.reward_id, self.double, self.schedule_id = reward_id, bool(double), schedule_id
         self.encoder_sha256 = encoder_sha256(encoder)
         self.obs_dim, self.n_actions, self.hidden = obs_dim, n_actions, hidden
         self.lr, self.gamma, self.capacity = lr, gamma, capacity
@@ -222,7 +243,12 @@ class TorchLearner:
         idx = self.rng.integers(size, size=batch)
         o, a, r, o2, d = (torch.from_numpy(self.replay[k][idx]) for k in ("o", "a", "r", "o2", "d"))
         with torch.no_grad():
-            y = r + self.gamma * (1 - d) * self.target_net(o2).max(1).values
+            if self.double:  # y = r + g (1-d) Q_target(s2, argmax_a Q_online(s2, a))
+                best = self.policy(o2).argmax(1, keepdim=True)
+                nxt = self.target_net(o2).gather(1, best).squeeze(1)
+            else:
+                nxt = self.target_net(o2).max(1).values
+            y = r + self.gamma * (1 - d) * nxt
         q = self.policy(o).gather(1, a[:, None]).squeeze(1)
         err = q - y
         loss_t = 0.5 * (err**2).mean()  # same gradient scale as the NumPy baseline
@@ -285,6 +311,8 @@ class TorchLearner:
             "reward_id": self.reward_id,
             "action_space": self.action_space,
             "param_map": PARAM_MAP,
+            "double_dqn": self.double,
+            "learner_schedule": self.schedule_id,
         }
 
     def save_generation(self, root, extra: dict | None = None, _io=None) -> dict:
@@ -336,9 +364,7 @@ class TorchLearner:
             counters = json.loads(files["counters.json"])
             if counters.get("schema") != CKPT_SCHEMA:
                 raise ValueError(f"unknown checkpoint schema {counters.get('schema')!r}")
-            for k, v in self._identity().items():
-                if k != "node_id" and counters.get(k) != v:
-                    raise ValueError(f"checkpoint {k} mismatch: {counters.get(k)!r} != {v!r}")
+            check_identity(counters, self._identity())
             model, opt = _arrays(files["model.npz"]), _arrays(files["optimizer.npz"])
             replay, rng = _arrays(files["replay.npz"]), _arrays(files["rng.npz"])
             prev = _arrays(files["previous.npz"])

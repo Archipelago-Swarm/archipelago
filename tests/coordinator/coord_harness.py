@@ -36,6 +36,7 @@ FEEDBACK_KEYS = {
 CONFIGURE_KEYS = {
     "command", "run_id", "hyperparameters", "epsilon_schedule", "margin", "world_config",
     "gate_seeds", "n_validation_agents", "encoder_id", "exchange_every_ticks", "seed",
+    "learner_schedule_id",
 }  # fmt: skip
 WORLD_CONFIG_KEYS = {
     "size", "n_targets", "obstacle_density", "sense_radius", "max_ticks", "battery_scale",

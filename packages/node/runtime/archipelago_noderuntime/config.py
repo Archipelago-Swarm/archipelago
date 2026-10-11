@@ -11,6 +11,9 @@ from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
+from archipelago_learning import encoders, schedules
+from archipelago_sim.env import REWARD_SPECS
+
 _ID = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
 MIN_TOKEN = 16
 
@@ -45,6 +48,12 @@ class Config:
     eps_start: float = 0.5
     eps_end: float = 0.05
     eps_decay_acts: int = 5000
+    # A18: versioned recipe. sched-v0 = legacy (epsilon per act); a registered id (sched-t37-v1)
+    # fixes the values above, switches epsilon to per training episode and enables double DQN.
+    learner_schedule_id: str = schedules.LEGACY
+    double_dqn: bool = False
+    eps_decay_episodes: int | None = None  # per-episode epsilon span (None: legacy per-act decay)
+    encoder_family: str = "grid-flat-v1"
     mode: str = "independent"
     mix_alpha: float | None = None
     # peer exchange
@@ -72,6 +81,9 @@ class Config:
     ship_interval: float = 0.5
     ship_timeout: float = 2.0
     update_every: int = 25
+    # A18 visited-cell summaries (non-model peer message)
+    summary_timeout: float = 0.5
+    summary_trace: bool = False  # status lists the ticks at which each peer's summary was applied
     # misc
     act_cache: int = 1024
     commit: str = "unknown"
@@ -113,15 +125,38 @@ class Config:
             raise ConfigError("bad train_steps_per_feedback / torch_threads")
         if self.eps_decay_acts < 1:
             raise ConfigError("eps_decay_acts must be >= 1")
+        if self.eps_decay_episodes is not None and self.eps_decay_episodes < 1:
+            raise ConfigError("eps_decay_episodes must be >= 1")
+        if self.reward_id not in REWARD_SPECS:
+            raise ConfigError(f"unknown reward_id {self.reward_id!r}")
+        if encoders.parse(self.encoder_id) is None:
+            raise ConfigError(f"unknown encoder {self.encoder_id!r}")
+        try:
+            schedules.check(
+                self.learner_schedule_id,
+                {
+                    k: getattr(self, k)
+                    for k in (
+                        "lr", "gamma", "hidden", "capacity", "batch", "target_every",
+                        "train_steps_per_feedback",
+                    )
+                },  # fmt: skip
+                {"start": self.eps_start, "end": self.eps_end},
+                self.double_dqn,
+            )
+        except ValueError as e:
+            raise ConfigError(str(e)) from e
+        if self.learner_schedule_id != schedules.LEGACY and self.eps_decay_episodes is None:
+            raise ConfigError(f"{self.learner_schedule_id} needs eps_decay_episodes")
 
     @property
     def obs_dim(self) -> int:
-        return (2 * self.world_sense_radius + 1) ** 2 + 3
+        return encoders.get(self.encoder_id).obs_dim
 
     @property
     def encoder_id(self) -> str:
-        """A6: geometry is part of the id (grid-flat-v1-s{size}-r{radius})."""
-        return f"grid-flat-v1-s{self.world_size}-r{self.world_sense_radius}"
+        """A6: geometry is part of the id (``{family}-s{size}-r{radius}``)."""
+        return f"{self.encoder_family}-s{self.world_size}-r{self.world_sense_radius}"
 
     @property
     def learner_seed(self) -> int:
@@ -152,12 +187,24 @@ class Config:
     def with_run(self, c) -> Config:
         """Apply a ``configure`` command (section 14). Raises ConfigError on inconsistent input."""
         h, e, w = c.hyperparameters, c.epsilon_schedule, c.world_config
-        want = f"grid-flat-v1-s{w.size}-r{w.sense_radius}"
-        if c.encoder_id != want:
-            raise ConfigError(f"encoder_id {c.encoder_id!r} does not match the world ({want})")
-        if w.reward_id != self.reward_id:
+        geometry = f"-s{w.size}-r{w.sense_radius}"
+        enc = encoders.parse(c.encoder_id)
+        if enc is None or not c.encoder_id.endswith(geometry):
+            raise ConfigError(
+                f"encoder_id {c.encoder_id!r} is unknown or does not match the world "
+                f"(geometry {geometry[1:]})"
+            )
+        if w.reward_id not in REWARD_SPECS:
             raise ConfigError(f"unknown reward_id {w.reward_id!r}")
+        sid = c.learner_schedule_id
+        try:
+            schedules.check(sid, h.model_dump(), e.model_dump(), h.double_dqn)
+        except ValueError as ex:
+            raise ConfigError(str(ex)) from ex
         return self.with_(
+            encoder_family=c.encoder_id[: -len(geometry)], reward_id=w.reward_id,
+            learner_schedule_id=sid, double_dqn=h.double_dqn,
+            eps_decay_episodes=e.decay_episodes if sid != schedules.LEGACY else None,
             hidden=h.hidden, lr=h.lr, gamma=h.gamma, capacity=h.capacity, batch=h.batch,
             target_every=h.target_every, train_steps_per_feedback=h.train_steps_per_feedback,
             eps_start=e.start, eps_end=e.end, eps_decay_acts=e.decay_episodes * w.max_ticks,
@@ -216,6 +263,8 @@ class Config:
             raise ConfigError("NODE_CHECKPOINT_DIR is required")
         vmt = get("VALIDATION_MAX_TICKS")
         mix = get("MIX_ALPHA")
+        sid = get("LEARNER_SCHEDULE_ID", schedules.LEGACY)
+        reg = schedules.SCHEDULES.get(sid)  # a registered recipe supplies the defaults
         return cls(
             node_id=node_id,
             node_ids=ids,
@@ -231,15 +280,21 @@ class Config:
             torch_threads=num("TORCH_THREADS", 1, int),
             seed=num("SEED", 0, int),
             hidden=num("HIDDEN", 32, int),
-            lr=num("LR", 1e-2, float),
+            lr=num("LR", reg.lr if reg else 1e-2, float),
             gamma=num("GAMMA", 0.95, float),
-            capacity=num("REPLAY_CAPACITY", 5000, int),
+            capacity=num("REPLAY_CAPACITY", reg.capacity if reg else 5000, int),
             batch=num("BATCH_SIZE", 32, int),
             target_every=num("TARGET_EVERY", 50, int),
             train_steps_per_feedback=num("TRAIN_STEPS_PER_FEEDBACK", 1, int),
-            eps_start=num("EPS_START", 0.5, float),
+            eps_start=num("EPS_START", reg.eps_start if reg else 0.5, float),
             eps_end=num("EPS_END", 0.05, float),
             eps_decay_acts=num("EPS_DECAY_ACTS", 5000, int),
+            learner_schedule_id=sid,
+            double_dqn=get("DOUBLE_DQN", "1" if reg and reg.double_dqn else "0") in ("1", "true"),
+            eps_decay_episodes=num("EPS_DECAY_EPISODES", 200, int) if reg else None,
+            encoder_family=get("ENCODER_FAMILY", "grid-flat-v1"),
+            summary_timeout=num("SUMMARY_TIMEOUT", 0.5, float),
+            summary_trace=get("SUMMARY_TRACE", "0") in ("1", "true"),
             mode=get("LEARNER_MODE", "independent"),
             mix_alpha=float(mix) if mix else None,
             exchange_every_ticks=num("EXCHANGE_EVERY_TICKS", 50, int),

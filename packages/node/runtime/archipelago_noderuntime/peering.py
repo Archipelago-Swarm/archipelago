@@ -8,6 +8,9 @@ from collections.abc import Callable, Iterable
 
 from archipelago_contracts.models import FaultWindow
 from archipelago_peer import PeerServer
+from archipelago_transport import Envelope
+
+from .summary import is_summary
 
 
 class Schedule:
@@ -42,14 +45,35 @@ class Schedule:
 
 
 class GatedPeerServer(PeerServer):
-    """PeerServer whose receive side refuses envelopes on links the node's own schedule cuts."""
+    """PeerServer whose receive side refuses envelopes on links the node's own schedule cuts.
 
-    def __init__(self, *args, gate: Callable[[str], bool], on_cut: Callable[[str], None], **kw):
-        self.gate, self.on_cut = gate, on_cut  # must exist before the server thread starts
+    Two message classes share the authenticated envelope path (bearer token and ``allowed_src``
+    are enforced by PeerServer before ``accept``): model offers (npz payloads, queued for the
+    exchange window) and non-model information messages (JSON payloads, A18). Information
+    messages never enter the model inbox; ``on_info(env) -> status`` handles them. Both classes
+    pass the same cut gate first.
+    """
+
+    def __init__(
+        self,
+        *args,
+        gate: Callable[[str], bool],
+        on_cut: Callable[[str], None],
+        on_info: Callable[[Envelope], int] | None = None,
+        on_info_cut: Callable[[str], None] | None = None,
+        **kw,
+    ):
+        # must exist before the server thread starts
+        self.gate, self.on_cut = gate, on_cut
+        self.on_info, self.on_info_cut = on_info, on_info_cut
         super().__init__(*args, **kw)
 
     def accept(self, env) -> int:
+        info = is_summary(env.payload)
         if self.gate(env.src):
-            self.on_cut(env.src)
+            cb = self.on_info_cut if info and self.on_info_cut else self.on_cut
+            cb(env.src)
             return 403
+        if info:
+            return self.on_info(env) if self.on_info is not None else 404
         return super().accept(env)

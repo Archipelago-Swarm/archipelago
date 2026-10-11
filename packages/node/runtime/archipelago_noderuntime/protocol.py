@@ -81,6 +81,7 @@ class Hyperparameters(Msg):
     batch: Annotated[int, Field(ge=1, le=4096)]
     target_every: Annotated[int, Field(ge=1)]
     train_steps_per_feedback: Annotated[int, Field(ge=0, le=64)]
+    double_dqn: bool = False  # A18: needs a registered learner_schedule_id
 
 
 class EpsilonSchedule(Msg):
@@ -113,6 +114,7 @@ class Configure(Msg):
     encoder_id: str
     exchange_every_ticks: Annotated[int, Field(ge=0)]
     seed: int
+    learner_schedule_id: Annotated[str, Field(min_length=1, max_length=64)] = "sched-v0"  # A18
 
     def canonical(self) -> dict:
         """The run configuration without the command and run id (what the hash covers)."""

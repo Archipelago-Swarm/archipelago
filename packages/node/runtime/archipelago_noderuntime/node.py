@@ -39,19 +39,28 @@ from pathlib import Path
 import numpy as np
 from archipelago_contracts import SCHEMA_VERSION
 from archipelago_contracts.models import Action, LearningEvent, MetricSample
-from archipelago_learning import OfferWindow, PeerError, TorchLearner, decode, encode, offer
+from archipelago_learning import (
+    OfferWindow,
+    PeerError,
+    TorchLearner,
+    decode,
+    encode,
+    offer,
+    schedules,
+)
 from archipelago_learning.checkpoint import CheckpointError, SequenceAllocator, checkpoint_due
 from archipelago_peer import post
 from archipelago_transport import Envelope
 
-from . import ckpt
+from . import ckpt, summary
 from .config import Config, ConfigError
 from .encoder import (
     ACTION_SPACE_VERSION,
     ACTIONS,
     EncodeError,
+    check_observation,
     encode_observation,
-    for_world,
+    for_id,
 )
 from .peering import Schedule
 from .protocol import ActRequest, ActResponse, Configure, FeedbackRequest, FeedbackResponse
@@ -124,6 +133,17 @@ class Node:
         self._build()
         self.seq = SequenceAllocator(cfg.checkpoint_dir / "sequence.json")  # A3 event sequence
         self.peer_seq = SequenceAllocator(cfg.checkpoint_dir / "peer_seq.json")  # peer client seq
+        # A18 visited-cell summaries: own sequence stream (never mixed with model offers)
+        self.summary_seq = SequenceAllocator(cfg.checkpoint_dir / "summary_seq.json")
+        self._sum_seql = threading.Lock()
+        self._sum_cl = threading.Lock()  # counters bumped from the sender threads
+        self._sum_cv = threading.Condition()
+        self._sum_gen = 0
+        self._sum_threads: dict[str, threading.Thread] = {}
+        self._sum_last_seq: dict[str, int] = {}  # per sender: highest summary seq applied
+        self._sum_rx: OrderedDict[int, dict[str, list[int]]] = OrderedDict()  # trace (episode)
+        self.last_summary_reject: str | None = None
+        self._ids_logged = False
         self.spool = Spool(
             cfg.checkpoint_dir / "telemetry", cfg.spool_max_records, cfg.spool_segment_records
         )
@@ -137,6 +157,7 @@ class Node:
         self.fed_tick = -1
         self.fb_inflight: tuple | None = None
         self.mode = "train"
+        self.train_ep = -1  # index of the current TRAINING episode (per-episode epsilon, A18)
         self.train_paused = False
         self.act_count = 0
         self.schedule = Schedule()
@@ -154,7 +175,10 @@ class Node:
                 "received_superseded", "received_duplicate", "decisions_accepted",
                 "decisions_rejected", "decisions_window_limit", "exchanges",
                 "windows_cancelled", "windows_dropped", "checkpoints", "spool_errors",
-                "implicit_episode_advances",
+                "implicit_episode_advances", "summaries_sent", "summaries_cut",
+                "summaries_unreachable", "summaries_refused_by_peer", "summaries_received",
+                "summaries_received_cut", "summaries_applied", "summaries_ignored",
+                "summaries_rejected", "summaries_stale",
             )
         }  # fmt: skip
         self.act_lat: deque[float] = deque(maxlen=4096)
@@ -195,7 +219,8 @@ class Node:
     def _build(self) -> None:
         """(Re)create the learner, encoder, exploration RNG and validation world from self.cfg."""
         cfg = self.cfg
-        self.enc = for_world(cfg.world_size, cfg.world_sense_radius)  # A6
+        self.enc = for_id(cfg.encoder_id, cfg.world_size, cfg.world_sense_radius)  # A6
+        self.memory = self.enc.new_memory() if self.enc.stateful else None  # A18 node-local
         self.learner = TorchLearner(
             cfg.node_id,
             self.enc.obs_dim,
@@ -208,6 +233,9 @@ class Node:
             mode=cfg.mode,
             encoder=self.enc.id,
             threads=cfg.torch_threads,
+            reward_id=cfg.reward_id,
+            double=cfg.double_dqn,
+            schedule_id=cfg.learner_schedule_id,
         )
         assert self.learner.encoder_sha256 == self.enc.sha256
         self.act_rng = np.random.default_rng([cfg.learner_seed, 7919])
@@ -325,7 +353,9 @@ class Node:
                 self._build()
                 self.run_id, self.episode, self.tick, self.fed_tick = None, -1, -1, -1
                 self.act_count, self.loss_ema, self.train_paused = 0, None, False
-                self.mode, self.schedule = "train", Schedule()
+                self.mode, self.schedule, self.train_ep = "train", Schedule(), -1
+                self._sum_last_seq.clear()
+                self._sum_rx.clear()
                 self.act_cache.clear()
                 self.pending.clear()
                 self.fb_cache.clear()
@@ -335,6 +365,8 @@ class Node:
                 self._lu_losses = []
                 self.configured_run, self.run_hash = c.run_id, h
                 self._save_run_conf(c.run_id, h, c.canonical())
+        self._ids_event()
+        self._ids_logged = True
         return {"ok": True, "config_hash": h}
 
     # --- episode control -------------------------------------------------------------------
@@ -342,6 +374,10 @@ class Node:
         self.run_id, self.episode, self.tick, self.fed_tick = run_id, episode, -1, -1
         if mode is not None:
             self.mode = mode
+        if self.mode == "train":
+            self.train_ep += 1
+        if self.memory is not None:
+            self.memory.reset()  # visit counts, buffer and peer flags belong to one episode
         self.act_cache.clear()
         self.pending.clear()
         self.fb_cache.clear()
@@ -387,6 +423,9 @@ class Node:
             if c.fault_schedule is not None:
                 self.schedule = Schedule(c.fault_schedule)
             version = self.learner.version
+        if not self._ids_logged:  # once per boot: a restart without configure still records ids
+            self._ids_logged = True
+            self._ids_event()
         return {"ok": True, "policy_version": version, "duplicate": dup}
 
     def control_set_schedule(self, c) -> dict:
@@ -406,6 +445,10 @@ class Node:
         if self.mode == "eval":
             return 0.0
         c = self.cfg
+        if c.eps_decay_episodes is not None:  # sched-t37-v1: fixed per training episode
+            return schedules.epsilon_at(
+                max(self.train_ep, 0), c.eps_start, c.eps_end, c.eps_decay_episodes
+            )
         frac = min(1.0, self.act_count / c.eps_decay_acts)
         return c.eps_start + (c.eps_end - c.eps_start) * frac
 
@@ -424,10 +467,7 @@ class Node:
 
     def act(self, req: ActRequest) -> dict:
         t0 = time.perf_counter()
-        try:
-            vec = encode_observation(self.enc, req.observation)
-        except EncodeError as e:
-            raise ApiError(422, "bad_observation", str(e)) from e
+        vec = self._precheck(req.observation)
         key = (req.run_id, req.episode, req.tick)
         window_tick = None
         with self.amu:
@@ -446,6 +486,8 @@ class Node:
             if req.tick <= self.tick:
                 self.counters["act_stale"] += 1
                 raise ApiError(409, "stale", f"tick {req.tick} <= last acted {self.tick}")
+            if vec is None:  # v2: fold this tick into the node-local memory, then encode
+                vec = self._encode_locked(req.observation, req.tick)
             eps = self.epsilon()
             snap = self.learner._published  # immutable; replaced atomically by the trainer
             if eps > 0 and self.act_rng.random() < eps:
@@ -490,14 +532,147 @@ class Node:
             self.act_lat.append(time.perf_counter() - t0)
         if window_tick is not None:
             self._enqueue(Job("window", self._next_id("w"), window_tick, req.episode))
+        self._kick_summaries()
         return out
+
+    def _precheck(self, obs) -> np.ndarray | None:
+        """v1: the full (stateless) encoding. v2: a state-free validity check only, because the
+        encoding needs the node-local memory and is built under ``amu`` by ``_encode_locked``."""
+        try:
+            if self.enc.stateful:
+                check_observation(self.enc, obs)
+                return None
+            return encode_observation(self.enc, obs)
+        except EncodeError as e:
+            raise ApiError(422, "bad_observation", str(e)) from e
+
+    def _encode_locked(self, obs, tick: int) -> np.ndarray:
+        """Caller holds amu. Folds the observation of simulation tick ``tick`` into the memory
+        (idempotent per tick) and returns the encoded vector."""
+        try:
+            return encode_observation(self.enc, obs, self.memory, tick)
+        except EncodeError as e:
+            raise ApiError(422, "bad_observation", str(e)) from e
+
+    # --- visited-cell summaries (A18): the non-model information message ----------------------
+    def _bump(self, name: str, n: int = 1) -> None:
+        with self._sum_cl:
+            self.counters[name] += n
+
+    def _kick_summaries(self) -> None:
+        """Called after every act: wake the per-peer sender threads (start them on first use).
+        Never does I/O itself, so the act path cannot wait for a peer."""
+        enc = self.enc
+        if self.memory is None or not getattr(enc, "shared", False):
+            return
+        if not self._sum_threads and not self._closing:
+            with self._sum_cv:
+                for p in sorted(self.cfg.node_ids):
+                    if p != self.cfg.node_id and p not in self._sum_threads:
+                        th = threading.Thread(
+                            target=self._summary_loop, args=(p,), name=f"summary-{p}", daemon=True
+                        )
+                        self._sum_threads[p] = th
+                        th.start()
+        with self._sum_cv:
+            self._sum_gen += 1
+            self._sum_cv.notify_all()
+
+    def _summary_loop(self, peer: str) -> None:
+        last = -1
+        while True:
+            with self._sum_cv:
+                while self._sum_gen == last and not self._closing:
+                    self._sum_cv.wait(1.0)
+                if self._closing:
+                    return
+                last = self._sum_gen
+            try:
+                self._send_summary(peer)
+            except Exception:  # a sender must never die; the failure is visible as a counter
+                self._bump("summaries_unreachable")
+
+    def _send_summary(self, peer: str) -> None:
+        """Latest own state to one peer, honoring the node's own partition schedule (A18)."""
+        url = self.peer_urls.get(peer)
+        mem = self.memory
+        if url is None or mem is None:
+            return
+        with self.amu:
+            run, episode, tick, sched = self.run_id, self.episode, self.eff_tick, self.schedule
+        if run is None:
+            return
+        if sched.cut(self.cfg.node_id, peer, tick):
+            self._bump("summaries_cut")  # nothing leaves the node on a cut link
+            return
+        payload = summary.encode(
+            self.cfg.node_id, run, episode, tick, self.enc.id, self.cfg.world_size, mem.own_cells()
+        )
+        with self._sum_seql:
+            seq = self.summary_seq.next()
+        env = Envelope.make(self.cfg.node_id, peer, seq, payload)
+        status = post(url, env, self.cfg.summary_timeout, 0, self.cfg.peer_token)
+        if status in (200, 202):
+            self._bump("summaries_sent")
+        elif status == 0:
+            self._bump("summaries_unreachable")
+        else:
+            self._bump("summaries_refused_by_peer")
+
+    def receive_summary(self, env: Envelope) -> int:
+        """Peer server callback for a visited-cell summary; returns the HTTP status for the sender.
+
+        Runs after the receive-side cut gate (GatedPeerServer) and the transport's bearer-token and
+        ``allowed_src`` checks. It re-checks the cut with the node's own tick, binds the claimed
+        node to the authenticated sender, and only applies a summary of the CURRENT run and episode.
+        It never touches the model inbox, offer counters, windows or the learner.
+        """
+        self._bump("summaries_received")
+        mem = self.memory
+        if mem is None or not getattr(self.enc, "shared", False):
+            self._bump("summaries_rejected")
+            self.last_summary_reject = "encoder does not use shared visits"
+            return 422
+        if hashlib.sha256(env.payload).hexdigest() != env.digest:
+            self._bump("summaries_rejected")
+            self.last_summary_reject = "digest mismatch"
+            return 422
+        try:
+            s = summary.decode(
+                env.payload, expect_size=self.cfg.world_size, expect_encoder=self.enc.id
+            )
+        except summary.SummaryError as e:
+            self._bump("summaries_rejected")
+            self.last_summary_reject = str(e)
+            return 422
+        if s.node != env.src:
+            self._bump("summaries_rejected")
+            self.last_summary_reject = f"claimed node {s.node!r} != sender {env.src!r}"
+            return 403
+        with self.amu:
+            if self.link_cut(env.src):  # defense in depth: the gate already refused cut links
+                self._bump("summaries_received_cut")
+                return 403
+            if s.run_id != self.run_id or s.episode != self.episode:
+                self._bump("summaries_ignored")  # another run or episode: not information now
+                return 202
+            if env.seq <= self._sum_last_seq.get(env.src, -1):
+                self._bump("summaries_stale")
+                return 202
+            self._sum_last_seq[env.src] = env.seq
+            mem.merge_peer(env.src, s.cells)
+            self._bump("summaries_applied")
+            if self.cfg.summary_trace:
+                ticks = self._sum_rx.setdefault(s.episode, {}).setdefault(env.src, [])
+                if len(ticks) < 2048:
+                    ticks.append(self.eff_tick)
+                while len(self._sum_rx) > 2:
+                    self._sum_rx.popitem(last=False)
+        return 200
 
     # --- feedback + inline training ----------------------------------------------------------
     def feedback(self, req: FeedbackRequest) -> dict:
-        try:
-            nxt = encode_observation(self.enc, req.next_observation)
-        except EncodeError as e:
-            raise ApiError(422, "bad_observation", str(e)) from e
+        nxt = self._precheck(req.next_observation)
         if ACTIONS[req.action_index] != req.executed_command:
             raise ApiError(422, "bad_action", "action_index does not match executed_command")
         key = (req.run_id, req.episode, req.tick)
@@ -515,6 +690,8 @@ class Node:
                     raise ApiError(
                         409, "stale", f"tick {req.tick} <= last feedback {self.fed_tick}"
                     )
+                if nxt is None:  # v2: the next observation is the one of tick + 1
+                    nxt = self._encode_locked(req.next_observation, req.tick + 1)
                 pend = self.pending.pop(key, None)
                 if req.deadline_missed:
                     self.counters["feedback_deadline_missed"] += 1
@@ -950,6 +1127,9 @@ class Node:
             ("peer_offers_cut", c["offers_cut"], "count"),
             ("peer_decisions_accepted", c["decisions_accepted"], "count"),
             ("peer_decisions_rejected", c["decisions_rejected"], "count"),
+            ("peer_summaries_sent", c["summaries_sent"], "count"),
+            ("peer_summaries_applied", c["summaries_applied"], "count"),
+            ("peer_summaries_cut", c["summaries_cut"] + c["summaries_received_cut"], "count"),
         ):
             self._metric(name, val, unit, phase)
 
@@ -960,6 +1140,9 @@ class Node:
         return {
             "boot_id": self.boot_id, "run_id": self.run_id, "episode": self.episode,
             "tick": self.tick, "fed_tick": self.fed_tick, "mode": self.mode,
+            "train_ep": self.train_ep,
+            "memory": self.memory.state() if self.memory is not None else None,
+            "ids": self.ids(),
             "train_paused": self.train_paused, "act_count": self.act_count,
             "loss_ema": self.loss_ema, "counters": dict(self.counters),
             "schedule": self.schedule.as_json(),
@@ -999,6 +1182,15 @@ class Node:
         self.run_id, self.episode = n.get("run_id"), int(n.get("episode", -1))
         self.tick, self.fed_tick = int(n.get("tick", -1)), int(n.get("fed_tick", -1))
         self.mode = n.get("mode", "train")
+        self.train_ep = int(n.get("train_ep", -1))
+        mem_ok = None
+        if self.memory is not None and n.get("memory") is not None:
+            try:
+                self.memory.load_state(n["memory"])
+                mem_ok = True
+            except ValueError:
+                self.memory.reset()  # unreadable memory: start the episode's memory fresh
+                mem_ok = False
         self.train_paused = bool(n.get("train_paused", False))
         self.act_count = int(n.get("act_count", 0))
         self.loss_ema = n.get("loss_ema")
@@ -1015,12 +1207,28 @@ class Node:
         self.restore_info = {
             "restored": True, "generation": info["generation"],
             "prev_boot_id": n.get("boot_id"), "train_steps": self.learner.steps,
-            "pending": len(self.pending),
+            "pending": len(self.pending), "memory": mem_ok,
         }  # fmt: skip
         self._boot_event()
 
     def _boot_event(self) -> None:
         self._metric("node_boot", float(self.checkpoint_generation), "generation", "other")
+
+    def ids(self) -> dict[str, str]:
+        """The versioned ids this node trains and acts under (A18)."""
+        return {
+            "encoder_id": self.enc.id,
+            "encoder_sha256": self.enc.sha256,
+            "reward_id": self.cfg.reward_id,
+            "learner_schedule_id": self.cfg.learner_schedule_id,
+        }
+
+    def _ids_event(self) -> None:
+        """Record the ids in telemetry. Canonical records and the ingest context have no field for
+        them, so they ride in the metric name (Id charset): ``ids:<encoder>:<reward>:<schedule>``."""
+        i = self.ids()
+        name = f"ids:{i['encoder_id']}:{i['reward_id']}:{i['learner_schedule_id']}"
+        self._metric(name, 1.0, "flag", "other")
 
     # --- status ------------------------------------------------------------------------------
     def status(self) -> dict:
@@ -1046,6 +1254,11 @@ class Node:
                 "config_hash": self.config_hash, "configured_run": self.configured_run,
                 "exchange_running": self.exchange_running,
                 "schedule_sha256": self.schedule.sha256, "encoder_id": self.enc.id,
+                "encoder_sha256": self.enc.sha256, "reward_id": self.cfg.reward_id,
+                "learner_schedule_id": self.cfg.learner_schedule_id,
+                "double_dqn": self.cfg.double_dqn, "obs_dim": self.enc.obs_dim,
+                "train_episode": self.train_ep,
+                "summaries": self._summary_status(),
                 "counters": dict(self.counters), "restore": self.restore_info,
                 "validation_evaluations": self.validator.episodes_run,
                 "act_latency_ms": {"n": len(lat), "p50": _pct(lat, 50), "p99": _pct(lat, 99),
@@ -1053,7 +1266,26 @@ class Node:
             }  # fmt: skip
         return st
 
+    def _summary_status(self) -> dict:
+        """Caller holds amu. Peer-flag evidence: which senders' cells the memory holds."""
+        out: dict = {"last_reject": self.last_summary_reject}
+        if self.memory is not None:
+            out["peer_sources"] = self.memory.peer_sources()
+            out["peer_cells"] = len(self.memory.peer_cells())
+            out["own_cells"] = len(self.memory.own_cells())
+        if self.cfg.summary_trace:
+            out["rx_ticks"] = {
+                str(ep): {src: list(t) for src, t in per.items()}
+                for ep, per in self._sum_rx.items()
+            }
+        return out
+
     def close(self) -> None:
+        with self._sum_cv:
+            self._closing = True
+            self._sum_cv.notify_all()
+        for th in list(self._sum_threads.values()):
+            th.join(timeout=self.cfg.summary_timeout + 1.0)
         with self._xcv:
             self._closing = True
             for j in [*self._jobs, *([self._cur] if self._cur is not None else [])]:

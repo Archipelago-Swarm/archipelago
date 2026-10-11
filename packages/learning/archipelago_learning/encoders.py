@@ -1,6 +1,8 @@
-"""Observation encoders (live-runtime.md A6).
+"""Observation encoders (live-runtime.md A6, A18).
 
-Ids carry geometry: ``grid-flat-v1-s{size}-r{radius}``.
+Ids carry geometry: ``grid-flat-v1-s{size}-r{radius}`` (stateless, 28 floats for radius 2) and the
+T37 ids ``grid-flat-v2-visits[-shared]-s{size}-r{radius}`` (57 / 82 floats, see ``visits.py``; they
+need node-local memory).
 
 Vector layout (float32, length (2r+1)^2 + 3): crop flattened row-major, floor(x)/size,
 floor(y)/size, battery. The same vector comes out of the contract ``Observation`` entry point and
@@ -16,6 +18,8 @@ import re
 from dataclasses import dataclass
 
 import numpy as np
+
+from . import visits
 
 _ID = re.compile(r"^grid-flat-v1-s([1-9][0-9]{0,3})-r([0-9]{1,2})$")
 
@@ -37,6 +41,8 @@ def canonical_definition(size: int, radius: int) -> str:
 class GridFlatV1:
     size: int
     radius: int
+
+    stateful = False
 
     @property
     def id(self) -> str:
@@ -72,12 +78,14 @@ class GridFlatV1:
         return self._encode(obs["crop"], x, y, obs["battery"])
 
 
-def parse(enc_id: str) -> GridFlatV1 | None:
+def parse(enc_id: str) -> GridFlatV1 | visits.GridFlatV2 | None:
     m = _ID.match(enc_id)
-    return GridFlatV1(int(m.group(1)), int(m.group(2))) if m else None
+    if m:
+        return GridFlatV1(int(m.group(1)), int(m.group(2)))
+    return visits.parse(enc_id)
 
 
-def get(enc_id: str) -> GridFlatV1:
+def get(enc_id: str) -> GridFlatV1 | visits.GridFlatV2:
     e = parse(enc_id)
     if e is None:
         raise ValueError(f"unknown encoder id {enc_id!r}")
