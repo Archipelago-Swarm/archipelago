@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { WorldSnapshot } from "@archipelago/contracts";
 import { FlightMap } from "./FlightMap";
+import { MISSION_LEGEND, drawMission, objectiveColor } from "./missionOverlay";
 import {
   BASE, SERVER_CMD, applyMessage, decisionText, demoFeed, disruptionLabel, emptyBuffer, explainLink, feedAt, feedText, frameAt, hms, km, loadOfflineReplay, pct,
   type Buffer, type MapSummary, type Meta, type RFLink, type UavState, type View,
@@ -53,18 +54,13 @@ function useObserved(buf: Buffer, meta: Meta | null, t: number) {
   return m.str;
 }
 
-/** Active disruption zones (area denial) as the contract's obstacle polygons, which FlightMap already draws. */
-const hazards = (v: View) => v.floor.disruptions.filter((d) => d.active && d.position && d.radius).map((d) => ({
-  id: d.id, points: Array.from({ length: 36 }, (_, i) => [d.position!.x + d.radius! * Math.cos((i * Math.PI) / 18), d.position!.y + d.radius! * Math.sin((i * Math.PI) / 18)]),
-}));
-
 function snapshotOf(meta: Meta, v: View, seed: number, observed: string): WorldSnapshot {
   const poses = Object.fromEntries(v.uavs.map((u) => [u.id, { x: u.position.x, y: u.position.y, z: 0, heading_rad: u.heading, speed_mps: u.speed }]));
   return {
     schema_version: "0.1.0", event_id: `m-${seed}`, run_id: `mission-${seed}`, source_node_id: null, sim_tick: Math.round(v.t * 100), emitted_at_utc: "1970-01-01T00:00:00Z", sequence: 0,
     kind: "world_snapshot", run_status: "running", poses, obstacles: [], coverage: v.floor.mission.fleetKnowledgeCoverage,
     topology: { links: v.floor.links.filter((l) => l.connected).map((l) => [l.sourceNodeId, l.targetNodeId]) },
-    world: { width_m: meta.world.width, height_m: meta.world.height, cell_m: meta.world.cellMeters, sensor_radius_m: meta.uavSpec.sensor.radiusMeters, shapes: hazards(v), targets_found: v.floor.pois.filter((p) => p.state !== "UNKNOWN").map((p) => ({ x: p.position.x, y: p.position.y, radius: 0 })), terrain: { ...meta.world.terrain, observed } },
+    world: { width_m: meta.world.width, height_m: meta.world.height, cell_m: meta.world.cellMeters, sensor_radius_m: meta.uavSpec.sensor.radiusMeters, shapes: [], targets_found: [], terrain: { ...meta.world.terrain, observed } },
   } as unknown as WorldSnapshot;
 }
 
@@ -178,7 +174,7 @@ export function MissionViewer({ seed, uavs, compare, onBack }: { seed: number; u
       </section>
       <div className="m-grid">
         <div>
-          <FlightMap snap={snap} height="88vh" instant />
+          <FlightMap snap={snap} height="88vh" instant legendRows={MISSION_LEGEND} colors={Object.fromEntries(view.uavs.map((x) => [x.id, objectiveColor(x)]))} overlay={(o) => drawMission(o, { view, showWeak, showRings: rings, selUav, selLink })} />
           <div className="row" role="group" aria-label="Select UAV">{view.uavs.map((x) => <button key={x.id} aria-pressed={x.id === selUav} onClick={() => { setSelUav(x.id); setSelLink(null); }}>{x.id.replace("UAV-", "U")}</button>)}</div>
           <div className="row" role="group" aria-label="Playback">
             <button onClick={() => { if (ended && t >= tmax) setT(0); setPlaying(!playing); }}>{playing ? "Pause" : "Play"}</button>

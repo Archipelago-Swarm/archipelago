@@ -1,3 +1,4 @@
+import type { LegendRow, MapOverlay } from "./missionOverlay";
 import { useEffect, useRef, useState } from "react";
 import type { WorldSnapshot } from "@archipelago/contracts";
 import {
@@ -41,17 +42,30 @@ const LEGEND: [Swatch, string][] = [
   [(g, x, y) => { g.fillStyle = "#1c1c1c"; g.fillRect(x, y, 12, 12); g.strokeStyle = BR.orange; g.lineWidth = 1.5; g.setLineDash([3, 2]); g.beginPath(); g.moveTo(x, y + 6); g.lineTo(x + 12, y + 6); g.stroke(); g.setLineDash([]); }, "EXPLORED EDGE"],
   [hatchSwatch("rgba(244,123,60,0.9)", "rgba(244,123,60,0.18)", -1), "HIDDEN BY TERRAIN"],
 ];
-function legend(g: CanvasRenderingContext2D, notes: string[]) {
+const rowSwatch = ({ kind, color: c }: LegendRow): Swatch => (g, x, y) => {
+  const cx = x + 6, cy = y + 6;
+  g.save(); g.lineWidth = 1.5;
+  if (kind === "zone") { g.fillStyle = `rgba(${c},0.3)`; g.fillRect(x, y, 12, 12); g.strokeStyle = `rgb(${c})`; g.setLineDash([3, 2]); g.strokeRect(x + 0.5, y + 0.5, 11, 11); }
+  else if (kind === "poi-ok" || kind === "poi-unk") { g.beginPath(); g.arc(cx, cy, 5, 0, 2 * Math.PI); g.fillStyle = "#101214"; g.fill(); g.strokeStyle = c; g.lineWidth = 2; g.stroke(); g.fillStyle = c; g.font = `8px ${MONO}`; g.textAlign = "center"; g.fillText(kind === "poi-ok" ? "✓" : "?", cx, cy + 0.5); }
+  else if (kind === "uav") { g.beginPath(); g.moveTo(x + 12, cy); g.lineTo(x + 1, y + 11); g.lineTo(x + 4, cy); g.lineTo(x + 1, y + 1); g.closePath(); g.fillStyle = c; g.fill(); }
+  else if (kind === "group") { g.beginPath(); g.arc(cx, cy, 5, 0, 2 * Math.PI); g.strokeStyle = c; g.lineWidth = 2; g.stroke(); }
+  else if (kind === "skill") { g.beginPath(); g.arc(cx, cy, 5, 0, 2 * Math.PI); g.strokeStyle = c; g.setLineDash([2, 2]); g.stroke(); }
+  else if (kind === "link") { g.beginPath(); g.moveTo(x, y + 10); g.lineTo(x + 12, y + 2); g.strokeStyle = c; g.lineWidth = 2.5; g.stroke(); }
+  else { g.beginPath(); g.arc(cx, cy, 5.5, 0, 2 * Math.PI); g.fillStyle = c + "33"; g.fill(); g.strokeStyle = c + "99"; g.lineWidth = 1; g.stroke(); }
+  g.restore();
+};
+function legend(g: CanvasRenderingContext2D, notes: string[], extra: [Swatch, string][] = []) {
   g.save(); g.font = `10px ${MONO}`; g.textBaseline = "middle";
-  const hgt = (LEGEND.length + notes.length) * 18 + 14;
-  g.fillStyle = "rgba(20,20,20,0.92)"; g.fillRect(10, 40, 212, hgt); g.strokeStyle = BR.border; g.lineWidth = 1; g.strokeRect(10.5, 40.5, 211, hgt - 1);
-  g.fillStyle = BR.orange; g.fillRect(10, 40, 212, 2); // card accent
-  LEGEND.forEach(([sw, label], i) => {
+  const rows = [...LEGEND, ...extra], hgt = (rows.length + notes.length) * 18 + 14;
+  const wd = Math.max(212, 38 + Math.max(...rows.map(([, l]) => g.measureText(l).width), ...notes.map((n) => g.measureText(n.toUpperCase()).width)) + 14); // card grows to fit its longest line
+  g.fillStyle = "rgba(20,20,20,0.92)"; g.fillRect(10, 40, wd, hgt); g.strokeStyle = BR.border; g.lineWidth = 1; g.strokeRect(10.5, 40.5, wd - 1, hgt - 1);
+  g.fillStyle = BR.orange; g.fillRect(10, 40, wd, 2); // card accent
+  rows.forEach(([sw, label], i) => {
     const y = 40 + 17 + i * 18;
     sw(g, 18, y - 6); g.strokeStyle = "rgba(237,231,223,0.35)"; g.lineWidth = 1; g.strokeRect(18.5, y - 5.5, 11, 11);
     g.fillStyle = BR.stone; g.fillText(label, 38, y);
   });
-  g.fillStyle = BR.grey; notes.forEach((n, i) => g.fillText(n.toUpperCase(), 18, 40 + 17 + (LEGEND.length + i) * 18));
+  g.fillStyle = BR.grey; notes.forEach((n, i) => g.fillText(n.toUpperCase(), 18, 40 + 17 + (rows.length + i) * 18));
   g.restore();
 }
 function jet(g: CanvasRenderingContext2D, x: number, y: number, heading: number, size: number, color: string, ring: boolean) {
@@ -69,10 +83,10 @@ function jet(g: CanvasRenderingContext2D, x: number, y: number, heading: number,
 const niceLen = (m: number) => [50, 100, 200, 500, 1000, 2000, 5000, 10000].find((n) => n >= m) ?? 20000;
 const km = (m: number) => `${(m / 1000).toFixed(2)} km`;
 
-export function FlightMap({ snap, panels, height, instant = false, getPoses, focus, spotlight }: { snap: WorldSnapshot; panels?: Panels; height: string; instant?: boolean; getPoses?: () => Record<string, Pose2> | null; focus?: { ids: string[]; n: number }; spotlight?: Spotlight }) {
+export function FlightMap({ snap, panels, height, instant = false, getPoses, focus, spotlight, overlay, colors, legendRows }: { snap: WorldSnapshot; panels?: Panels; height: string; instant?: boolean; getPoses?: () => Record<string, Pose2> | null; focus?: { ids: string[]; n: number }; spotlight?: Spotlight; overlay?: (o: MapOverlay) => void; colors?: Record<string, string>; legendRows?: LegendRow[] }) {
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const snapRef = useRef(snap), panelsRef = useRef(panels), instantRef = useRef(instant), spotRef = useRef(spotlight);
+  const legendRef = useRef<LegendRow[] | undefined>(undefined), colorsRef = useRef<Record<string, string> | undefined>(undefined), overlayRef = useRef<((o: MapOverlay) => void) | undefined>(undefined), snapRef = useRef(snap), panelsRef = useRef(panels), instantRef = useRef(instant), spotRef = useRef(spotlight);
   const buf = useRef(new PoseBuffer());
   const fog = useRef<HTMLCanvasElement | null>(null), fogKey = useRef(""), vsTex = useRef<HTMLCanvasElement | null>(null), vsKey = useRef("");
   const texCache = useRef<Record<string, HTMLCanvasElement>>({}), texPending = useRef<Record<string, boolean>>({}), texKey = useRef(""), glCv = useRef<HTMLCanvasElement>(null), gl3 = useRef<Terrain3D | null>(null), glFail = useRef(false);
@@ -91,7 +105,7 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
   const [following, setFollowing] = useState(false);
   const [, bump] = useState(0);
   const posesRef = useRef(getPoses);
-  snapRef.current = snap; panelsRef.current = panels; instantRef.current = instant; spotRef.current = spotlight; posesRef.current = getPoses;
+  snapRef.current = snap; panelsRef.current = panels; instantRef.current = instant; spotRef.current = spotlight; overlayRef.current = overlay; colorsRef.current = colors; legendRef.current = legendRows; posesRef.current = getPoses;
 
   const world = snap.world;
   const sampled = useRef<Record<string, Pose2>>({});
@@ -287,9 +301,10 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
         g.strokeStyle = BR.orange; g.lineWidth = 2; g.stroke();
       }
 
+      overlayRef.current?.({ g, S, ground: gz, air: Sa, ring }); // caller-drawn layer (e.g. mission hazards and POIs) on the same projection
       const sp = spotRef.current;
       if (sp?.dim) { g.fillStyle = "rgba(10,10,10,0.62)"; g.fillRect(0, 0, W, H); }
-      if (terr) legend(g, [...(styleRef.current === "topo" ? [`Contours ${CONTOUR_M} m, bold every ${CONTOUR_M * INDEX_EVERY} m`, "Blue grid: 1 km squares"] : []), ...(m3 ? [`Vertical scale x${ex}, pitch ${Math.round(pitchFor(zr))} deg (zoom-linked)`] : [])]); // after the demo dim (which dims the map, keeps links and aircraft bright) so the key stays readable
+      if (terr) legend(g, [...(styleRef.current === "topo" ? [`Contours ${CONTOUR_M} m, bold every ${CONTOUR_M * INDEX_EVERY} m`, "Blue grid: 1 km squares"] : []), ...(m3 ? [`Vertical scale x${ex}, pitch ${Math.round(pitchFor(zr))} deg (zoom-linked)`] : [])], (legendRef.current ?? []).map((r) => [rowSwatch(r), r.label] as [Swatch, string])); // after the demo dim (which dims the map, keeps links and aircraft bright) so the key stays readable
       const ids = Object.keys(poses).sort();
       if (zr >= LOD_ICON) { // trails: medium and close only
         for (const id of ids) {
@@ -324,7 +339,7 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
         const p = poses[id], [px, py] = Sa(p.x, p.y), [gx, gy] = Sg(p.x, p.y);
         proj.current[id] = [px, py];
         if (px < -40 || py < -40 || px > W + 40 || py > H + 40) continue;
-        const isSel = id === sel.current, col = BR.stone;
+        const isSel = id === sel.current, col = colorsRef.current?.[id] ?? BR.stone; // caller may colour each aircraft (mission: by objective)
         if (isSel || zr >= LOD_CLOSE) { // sensor footprint: the real perception radius
           ring(p.x, p.y, w.sensor_radius_m);
           g.fillStyle = col + "14"; g.fill(); g.strokeStyle = col + "88"; g.lineWidth = 1; g.setLineDash([6, 4]); g.stroke(); g.setLineDash([]);
