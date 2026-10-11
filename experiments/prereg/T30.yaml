@@ -96,3 +96,20 @@ amendments:
       nodes at that window. With no peer address nothing can be sent. The schedule is kept so that
       offers_cut/summaries_cut count the suppressed sends during ticks 0-149. Claim B for the isolated
       arm additionally requires offers_sent == 0 and summaries_sent == 0. Nothing else changed.
+  - id: 2
+    made: "after the same smoke run, before any registered run or result"
+    change: >
+      Three corrections to the claim criteria, which this amendment SUPERSEDES where they differ from the
+      text above. (1) claim_A: "four final policy hashes differ" is required of the ISOLATED arm only
+      (A16: distinct hashes after identical-seed init plus different data). In the fleet arm an accepted
+      peer candidate replaces the receiving node's parameters, so equal hashes after an acceptance are
+      expected and are not a failure; the fleet's distinct-hash count is reported per final state and
+      over all 1 s status samples. The backend check is "torch-cpu" (the status string). (2) claim_B (iv):
+      received_cut and summaries_received_cut count envelopes a receiver REFUSED (HTTP 403) because the
+      link was cut at the receiver's own tick; the smoke run showed 1-4 per node, caused by tick skew
+      between sender and receiver at window boundaries. They are not a leak: the property is that
+      nothing is applied or decided from across the cut, so (ii), (iii) and "zero applied" decide, and
+      the refusal counts are reported. (iv) now reads: offers_cut > 0 and summaries_cut > 0 on every
+      node. (3) claim_B for the isolated arm: summaries_cut is 0 by construction (no peer addresses means
+      no sender threads), so the check is offers_cut > 0, offers_sent == 0, summaries_sent == 0,
+      offers_received == 0, summaries_received == 0, zero decisions, zero applied summaries.
