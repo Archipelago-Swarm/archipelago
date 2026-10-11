@@ -39,6 +39,7 @@ export type KnownMask = boolean[][];
 export type NeighborSummaries = {
   [k: string]: number;
 }[];
+export type Radar = number[];
 export type RunId1 = string;
 export type SchemaVersion1 = string;
 export type Sequence = number;
@@ -68,7 +69,9 @@ export type SchemaVersion3 = string;
 export type Sequence2 = number;
 export type SimTick2 = number;
 export type SourceNodeId2 = string | null;
+export type Blocked = [unknown, unknown][];
 export type Links = [unknown, unknown][];
+export type Syncing = [unknown, unknown][];
 export type CellM = number;
 export type HeightM = number;
 export type SensorRadiusM = number;
@@ -112,9 +115,14 @@ export type Bytes = number;
 export type CandidateScore = number | null;
 export type EmittedAtUtc4 = string;
 export type EventId4 = string;
+export type FlaggedPeer = string | null;
+export type GenerationCount = number;
 export type Kind5 = "learning_event";
 export type Loss = number | null;
 export type NewVersion = number;
+export type OriginNode = string | null;
+export type ParentIds = string[];
+export type PolicyId = string | null;
 export type PreviousVersion = number;
 export type Reason = string | null;
 export type RunId5 = string;
@@ -205,6 +213,7 @@ export interface Observation {
   known_mask: KnownMask;
   neighbor_summaries?: NeighborSummaries;
   pose: Pose;
+  radar?: Radar;
   run_id: RunId1;
   schema_version: SchemaVersion1;
   sequence: Sequence;
@@ -245,7 +254,9 @@ export interface Poses {
   [k: string]: Pose;
 }
 export interface Topology {
+  blocked?: Blocked;
   links: Links;
+  syncing?: Syncing;
 }
 /**
  * Continuous-flight world description (meters). Absent for the legacy grid world.
@@ -311,9 +322,14 @@ export interface LearningEvent {
   candidate_score?: CandidateScore;
   emitted_at_utc: EmittedAtUtc4;
   event_id: EventId4;
+  flagged_peer?: FlaggedPeer;
+  generation_count?: GenerationCount;
   kind?: Kind5;
   loss: Loss;
   new_version: NewVersion;
+  origin_node?: OriginNode;
+  parent_ids?: ParentIds;
+  policy_id?: PolicyId;
   previous_version: PreviousVersion;
   reason?: Reason;
   run_id: RunId5;

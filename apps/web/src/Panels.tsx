@@ -1,3 +1,4 @@
+import { LineagePanel } from "./Lineage";
 import { freshness, type Curve, type Panels } from "./live";
 
 const MIB = 1024 * 1024;
@@ -72,6 +73,7 @@ export function LivePanels({ p, now, recorded }: { p: Panels; now: number; recor
           )) : <tr><td colSpan={7}>No offers recorded.</td></tr>}
         </tbody>
       </table>
+      <LineagePanel lineage={p.lineage} />
       <h2>Training vs frozen evaluation</h2>
       <Curves train={p.train} ev={p.eval} />
       <h2>Resources</h2>

@@ -24,7 +24,13 @@ export interface Offer {
   sequence: number; at: number; tick: number; node: string; sender: string | null; version: number;
   transfer: "accepted" | "rejected"; reason: string | null; score: number | null; bytes: number | null;
 }
+// Policy lineage DAG built from learning events; holders = policy each node currently runs.
+export interface LineageNode { id: string; parents: string[]; origin: string; gen: number }
+export interface Adoption { policy: string; state: "adopted" | "rejected" | "flagged"; tick: number; reason: string | null }
+export interface Lineage { dag: Record<string, LineageNode>; holders: Record<string, string>; status: Record<string, Adoption>; flagged: string[] }
+export const MAX_DAG = 200;
 export interface Panels {
+  lineage: Lineage;
   runId: string | null; lastSequence: number; lastEventAt: number | null;
   nodes: Record<string, NodeCard>; offers: Offer[]; envelopes: Envelope[]; links: [string, string][];
   positions: Record<string, { x: number; y: number }>;
@@ -36,6 +42,7 @@ export interface Panels {
 export type PanelAction = { t: "record"; record: unknown; at: number } | { t: "reset" };
 
 export const emptyPanels = (): Panels => ({
+  lineage: { dag: {}, holders: {}, status: {}, flagged: [] },
   runId: null, lastSequence: 0, lastEventAt: null, nodes: {}, offers: [], envelopes: [], links: [], positions: {},
   runStatus: null, coverage: null, tick: null, faultPhase: null,
   train: { unit: "", points: [] }, eval: { unit: "", points: [] },
@@ -93,9 +100,22 @@ function applyEnvelope(s: Panels, r: Record<string, unknown>): Panels {
   return { ...s, envelopes: bounded([...s.envelopes, e], MAX_OFFERS * 4) };
 }
 
+function applyLineage(s: Panels, r: LearningEvent): Panels {
+  const id = r.policy_id;
+  if (!id || r.transfer === "none") return s;
+  const L = s.lineage, node = r.source_node_id!;
+  const dag = { ...L.dag, [id]: { id, parents: r.parent_ids ?? [], origin: r.origin_node ?? node, gen: r.generation_count ?? 0 } };
+  const ids = Object.keys(dag);
+  if (ids.length > MAX_DAG) delete dag[ids[0]]; // insertion order: drop the oldest
+  const flagged = r.flagged_peer ? [...new Set([...L.flagged, r.flagged_peer])] : L.flagged;
+  const state = r.transfer === "accepted" ? "adopted" : r.flagged_peer ? "flagged" : "rejected";
+  const holders = r.transfer === "accepted" ? { ...L.holders, [node]: id } : L.holders;
+  return { ...s, lineage: { dag, flagged, holders, status: { ...L.status, [node]: { policy: id, state, tick: r.sim_tick, reason: r.reason ?? null } } } };
+}
+
 function applyLearning(s: Panels, r: LearningEvent, at: number): Panels {
   if (!r.source_node_id) return s;
-  const next = touch(s, r.source_node_id, at, { policyVersion: r.new_version, updateCount: r.update_count, loss: r.loss ?? undefined });
+  const next = applyLineage(touch(s, r.source_node_id, at, { policyVersion: r.new_version, updateCount: r.update_count, loss: r.loss ?? undefined }), r);
   if (r.transfer === "none") return next;
   // Newest earlier envelope addressed to the deciding node for this model version.
   const env = [...next.envelopes].reverse().find((e) => e.recipient === r.source_node_id && e.version === r.new_version && e.sequence < r.sequence);

@@ -97,6 +97,7 @@ class Observation(Event):
     battery: Unit01
     visible_markers: list[tuple[Finite, Finite]]
     neighbor_summaries: list[dict[str, Finite]] = []
+    radar: list[Finite] = []  # own radar/altimeter features (8 ray probes, altitude, slope)
 
 
 class Action(Event):
@@ -107,7 +108,9 @@ class Action(Event):
 
 
 class Topology(Strict):
-    links: list[tuple[Id, Id]]
+    links: list[tuple[Id, Id]]  # usable links (a syncing link is also listed here)
+    blocked: list[tuple[Id, Id]] = []  # terrain-occluded (RF) pairs
+    syncing: list[tuple[Id, Id]] = []  # just reconnected: capability handshake in progress
 
 
 class Shape(Strict):
@@ -187,6 +190,12 @@ class LearningEvent(Event):
     candidate_score: Finite | None = None
     bytes: Annotated[int, Field(ge=0)] = 0
     wall_seconds: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 0.0
+    # Policy lineage DAG node of the policy this event concerns (candidate if rejected, adopted if accepted).
+    policy_id: Id | None = None
+    parent_ids: list[Id] = []
+    origin_node: Id | None = None
+    generation_count: Annotated[int, Field(ge=0)] = 0
+    flagged_peer: Id | None = None  # set when the candidate failed a safety check
 
 
 class MetricSample(Event):

@@ -100,6 +100,14 @@
     "pose": {
       "$ref": "#/$defs/Pose"
     },
+    "radar": {
+      "default": [],
+      "items": {
+        "type": "number"
+      },
+      "title": "Radar",
+      "type": "array"
+    },
     "run_id": {
       "maxLength": 128,
       "minLength": 1,
