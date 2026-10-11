@@ -4,6 +4,12 @@ Branch: `handoff/skills-missions-pipeline` (= `origin/main` at PR #45 + the skil
 
 **Scope.** We built and wired the backend: engines, contracts, telemetry, API and the web *data layer*. **We are NOT building the UI.** The frontend owner implements everything visible, and this document is the complete spec for doing it. The target is the landing page's **"Example snapshot"** (`apps/web/src/App.tsx`, shown when there is no `?run=`): a frozen frame of the finished engine, i.e. a **3D terrain simulation, scaled up** (400 x 500 km mission world), with mission, skill and learning panels around it.
 
+> ## CRITICAL: the new engines do NOT use the 2.5D Example snapshot / fixture
+>
+> **None of the engines described in this document (the skills engine, the missions + dynamic-map engine, `packages/mission`, `packages/swarm`) currently feeds the 2.5D "Example snapshot" on the landing page.** That snapshot is a frozen frame of a hard-coded synthetic generator (`startDemo()` in `apps/web/src/demo.ts`, the 150th `world_snapshot`, a fake 10 x 6 km world with fake terrain, **no mission, no skills, no lineage, no metrics**) rendered by the existing 2.5D terrain renderer (`View` / `FlightMap` / `Terrain3D`). The new engines produce their data on separate paths (the live pipeline via the API, or the standalone mission server) and **nothing connects them to that fixture**.
+>
+> **The required outcome:** the Example snapshot must show what the real engines produce: the 2.5D terrain renderer driven by engine output (mission status, objectives, map seed, moving targets, per-node skills, adoptions and lineage), at the scaled-up world size, instead of the synthetic frame. Until the frontend wires this, the engines are invisible on the landing page. Every part below ends with a "backend field -> UI element in the Example snapshot" table and a "demo.ts must additionally emit" list; implement those against the existing 2.5D renderer. Do not build a second renderer.
+
 ## What exists after merging this branch
 
 | Area | State | Where to read |
