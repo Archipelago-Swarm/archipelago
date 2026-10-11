@@ -64,7 +64,6 @@ class Sim2DAdapter:
             pose=Pose(x=x + 0.5, y=y + 0.5),
             battery=o["battery"],
             visible_markers=[(a + 0.5, b + 0.5) for a, b in o["visible_markers"]],
-            radar=o.get("radar", []),
         )
 
     def reset(self, config: RunConfig, episode: int = 0) -> dict[str, Observation]:
@@ -145,11 +144,7 @@ class Sim2DAdapter:
         return sorted(c for c, v in known.items() if v == WALL and c in w.obstacles)  # type: ignore[union-attr]
 
     def _snapshot(
-        self,
-        obstacles: list[tuple[int, int]],
-        links: Iterable[tuple[str, str]],
-        blocked: Iterable[tuple[str, str]] = (),
-        syncing: Iterable[tuple[str, str]] = (),
+        self, obstacles: list[tuple[int, int]], links: Iterable[tuple[str, str]]
     ) -> WorldSnapshot:
         s = self.world.world_state()  # type: ignore[union-attr]
         poses = {n: Pose(x=p[0] + 0.5, y=p[1] + 0.5) for n, p in s["poses"].items()}
@@ -182,7 +177,7 @@ class Sim2DAdapter:
             poses=poses,
             obstacles=obstacles,
             coverage=s["coverage"],
-            topology=Topology(links=list(links), blocked=list(blocked), syncing=list(syncing)),
+            topology=Topology(links=list(links)),
             world=geometry,
         )
 
@@ -191,11 +186,9 @@ class Sim2DAdapter:
         s = self.world.world_state()  # type: ignore[union-attr]
         return self._snapshot([tuple(o) for o in s["obstacles"]], links)  # type: ignore[misc]
 
-    def public_snapshot(
-        self, links: Iterable[tuple[str, str]] = (), blocked=(), syncing=()
-    ) -> WorldSnapshot:
+    def public_snapshot(self, links: Iterable[tuple[str, str]] = ()) -> WorldSnapshot:
         """Public view: poses, coverage, links and only the obstacles some node has discovered."""
-        return self._snapshot(self.discovered_obstacles(), links, blocked, syncing)
+        return self._snapshot(self.discovered_obstacles(), links)
 
     def privileged_extras(self) -> dict:
         """Hidden state that has no place in the contract snapshot: targets, found, battery."""

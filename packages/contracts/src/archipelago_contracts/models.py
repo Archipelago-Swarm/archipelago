@@ -97,7 +97,6 @@ class Observation(Event):
     battery: Unit01
     visible_markers: list[tuple[Finite, Finite]]
     neighbor_summaries: list[dict[str, Finite]] = []
-    radar: list[Finite] = []  # own radar/altimeter features (8 ray probes, altitude, slope)
 
 
 class Action(Event):
@@ -108,9 +107,7 @@ class Action(Event):
 
 
 class Topology(Strict):
-    links: list[tuple[Id, Id]]  # usable links (a syncing link is also listed here)
-    blocked: list[tuple[Id, Id]] = []  # terrain-occluded (RF) pairs
-    syncing: list[tuple[Id, Id]] = []  # just reconnected: capability handshake in progress
+    links: list[tuple[Id, Id]]
 
 
 class Shape(Strict):

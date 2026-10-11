@@ -1,0 +1,23 @@
+{
+  "name": "archipelago-remotion",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts ArchipelagoLoop out/archipelago-loop.mp4",
+    "still": "remotion still src/index.ts ArchipelagoLoop",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.534",
+    "@types/three": "^0.169.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.534",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  }
+}

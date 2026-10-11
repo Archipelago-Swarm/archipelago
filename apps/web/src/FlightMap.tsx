@@ -180,19 +180,11 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
         }
       }
       g.lineWidth = 1; g.strokeStyle = "rgba(90,160,255,0.22)"; // topology links follow the moving aircraft
-      const topo = s.topology as { links: [string, string][]; blocked?: [string, string][]; syncing?: [string, string][] };
-      const sync = new Set((topo.syncing ?? []).map(([a, b]) => `${a}|${b}`));
-      const drawLink = (a: string, b: string, style: string, dash: number[]) => {
-        const p = poses[a], q = poses[b]; if (!p || !q) return;
+      for (const [a, b] of s.topology.links as [string, string][]) {
+        const p = poses[a], q = poses[b]; if (!p || !q) continue;
         const [x1, y1] = S(p.x, p.y), [x2, y2] = S(q.x, q.y);
-        g.strokeStyle = style; g.setLineDash(dash);
-        g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.setLineDash([]);
-      };
-      for (const [a, b] of topo.links) { // active; syncing (just reconnected) is amber
-        if (sync.has(`${a}|${b}`)) { g.lineWidth = 2.5; drawLink(a, b, "rgba(255,193,7,0.9)", []); g.lineWidth = 1; }
-        else drawLink(a, b, "rgba(90,160,255,0.22)", []);
+        g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
       }
-      for (const [a, b] of topo.blocked ?? []) drawLink(a, b, "rgba(230,70,70,0.35)", [4, 6]); // terrain-occluded
       const wall = Date.now();
       for (const o of panelsRef.current?.offers ?? []) { // real offer decisions only; never synthesised
         const age = wall - o.at;

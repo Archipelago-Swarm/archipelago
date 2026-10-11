@@ -20,12 +20,9 @@ REWARD_SPECS = {  # reward_id -> (new_cell, target, step, collision, invalid)
     "rew-v0": (1.0, 5.0, -0.01, -0.5, -0.1),
     # rew-v1 (T37): collisions 4x stronger, new-cell bonus halved, revisit penalty, no spawn credit.
     "rew-v1": (0.5, 5.0, -0.01, -2.0, -0.1),
-    # rew-terrain-v1: rew-v1 plus per-zone shaping (see _shape) so canyon and lowland skills differ.
-    "rew-terrain-v1": (0.5, 5.0, -0.01, -2.0, -0.1),
 }
 # reward_id -> (revisit_penalty, pay_spawn_targets). rew-v0 is the frozen original (0.0, True).
-REWARD_EXTRA = {"rew-v0": (0.0, True), "rew-v1": (-0.25, False), "rew-terrain-v1": (-0.25, False)}
-CANYON_WALL, CANYON_JERK, LOWLAND_PACE = -0.15, -0.02, 0.03
+REWARD_EXTRA = {"rew-v0": (0.0, True), "rew-v1": (-0.25, False)}
 VISIT_CAP = 4  # visit counts are clipped to this before normalisation in observation encoders
 MOVE_COST, STAY_COST = 0.004, 0.001
 
@@ -63,7 +60,6 @@ class GridWorld:
         reward_id: str = "rew-v0",
         terrain_seed: int | None = None,
         height: int | None = None,
-        canyon_target_frac: float = 0.0,
     ):
         if reward_id not in REWARD_SPECS:
             raise ValueError(f"unknown reward_id {reward_id!r}")
@@ -71,7 +67,6 @@ class GridWorld:
             REWARD_SPECS[reward_id]
         )
         self.reward_id = reward_id
-        self.canyon_target_frac = canyon_target_frac  # share of targets forced into canyon country
         self.terrain_seed = terrain_seed  # None = uniform world (the pre-terrain behaviour)
         self.terrain: Terrain | None = None
         self.eval_p: dict[
@@ -95,7 +90,6 @@ class GridWorld:
         self.action_spaces = {a: len(ACTIONS) for a in self.possible_agents}
         self.events: list[dict] = []
         self.tick = 0
-        self._last_cmd: dict[str, str] = {}
 
     def reset(self, seed: int = 0, starts: dict[str, tuple[int, int]] | None = None):
         rng = random.Random(seed)
@@ -117,10 +111,7 @@ class GridWorld:
             a: Drone(starts.get(a) or next(picks), self.battery_scale) for a in self.possible_agents
         }
         taken = {d.pos for d in self.drones.values()}
-        cand = [c for c in free if c not in taken]
-        k = round(self.canyon_target_frac * self.n_targets) if self.terrain else 0
-        high = [c for c in cand if self.terrain.region(c) == "canyon"][:k] if k else []
-        self.targets = (high + [c for c in cand if c not in high])[: self.n_targets]
+        self.targets = [c for c in free if c not in taken][: self.n_targets]
         self.visited = set(taken)
         self.found_targets: set[tuple[int, int]] = set()
         self.tick, self.events = 0, []
@@ -132,7 +123,6 @@ class GridWorld:
         self.spawn_visited = len(self.visited - self.obstacles)
         if not self.pay_spawn_targets:  # targets already in sensing range at reset earn nothing
             self.found_targets |= self.spawn_found
-        self._last_cmd = {}
         self.counters = dict.fromkeys(
             ("new_cells", "revisits", "wall_collisions", "agent_collisions", "agent_ticks"), 0
         )
@@ -210,8 +200,6 @@ class GridWorld:
             "battery": min(1.0, max(0.0, d.battery)),
             "visible_markers": sorted(d.found),
         }
-        if self.terrain is not None:
-            obs["radar"] = self.terrain.probes(d.pos)  # own radar/altimeter, not the hidden map
         if (
             self.terrain is not None
         ):  # (biome, rel_alt_m, dist_cells, detected) per known marker in range
@@ -316,7 +304,6 @@ class GridWorld:
                 if self.r_revisit:
                     rewards[a] += self.r_revisit
             d.visits[d.pos] = d.visits.get(d.pos, 0) + 1
-            rewards[a] += self._shape(a, cmds[a])
             self.found_targets |= d.found
         for _ in self.found_targets - before:
             for a in self.agents:
@@ -350,33 +337,6 @@ class GridWorld:
     def coverage(self) -> float:
         free = self.size * self.height - len(self.obstacles)
         return len(self.visited - self.obstacles) / free
-
-    def _shape(self, a: str, cmd: str) -> float:
-        """rew-terrain-v1 behavioural specialisation: in canyons punish wall proximity and jerky
-        re-commanding (precise control); in open lowland pay for keeping moving (efficiency)."""
-        prev, self._last_cmd[a] = self._last_cmd.get(a), cmd
-        if self.reward_id != "rew-terrain-v1" or self.terrain is None:
-            return 0.0
-        pos = self.drones[a].pos
-        zone = self.terrain.region(pos)
-        if zone == "canyon":
-            clear = min(self.terrain.probes(pos)[:8])
-            return CANYON_WALL * max(0.0, 1 - 2 * clear) + (
-                CANYON_JERK if prev not in (None, cmd) else 0.0
-            )
-        return LOWLAND_PACE if zone == "lowland" and cmd != "stay" else 0.0
-
-    def rf_links(self) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
-        """(clear, blocked) node pairs among living drones; no terrain means every link is clear."""
-        ids = sorted(self.agents)
-        pairs = [(a, b) for i, a in enumerate(ids) for b in ids[i + 1 :]]
-        t = self.terrain
-        ok = [
-            p
-            for p in pairs
-            if t is None or t.rf_clear(self.drones[p[0]].pos, self.drones[p[1]].pos)
-        ]
-        return ok, [p for p in pairs if p not in ok]
 
     def world_state(self) -> dict:
         """Privileged snapshot (hidden cells included). Never hand to a node."""
