@@ -6,6 +6,7 @@ import { Timeline } from "./Timeline";
 import type { Playback } from "./replay";
 import { Curves, LivePanels } from "./Panels";
 import { panelLabel, type Panels } from "./live";
+import type { Spotlight } from "./demoScriptController";
 import { sourceLabel, type Conn, type Source } from "./status";
 
 const CELL = 24;
@@ -36,7 +37,7 @@ function draw(c: HTMLCanvasElement, s: WorldSnapshot, actions: Record<string, st
   for (const [id, p] of Object.entries(s.poses)) g.fillText(`${id}${actions[id] ? `: ${actions[id]}` : ""}`, (p.x + 1) * CELL, (p.y + 0.4) * CELL);
 }
 
-export function View({ playback, source, conn, snap, runId, learning = {}, status, panels, now = 0, present = false, details = true }: { playback?: Playback; present?: boolean; details?: boolean; panels?: Panels; now?: number; status?: string; source: Source; conn: Conn; snap: WorldSnapshot | null; runId?: string | null; learning?: Record<string, LearningEvent> }) {
+export function View({ playback, source, conn, snap, runId, learning = {}, status, panels, now = 0, present = false, details = true, spotlight }: { spotlight?: Spotlight; playback?: Playback; present?: boolean; details?: boolean; panels?: Panels; now?: number; status?: string; source: Source; conn: Conn; snap: WorldSnapshot | null; runId?: string | null; learning?: Record<string, LearningEvent> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [focus, setFocus] = useState({ ids: [] as string[], n: 0 });
   const actions = Object.fromEntries(Object.entries(panels?.nodes ?? {}).map(([id, n]) => [id, n.lastAction]));
@@ -52,7 +53,7 @@ export function View({ playback, source, conn, snap, runId, learning = {}, statu
           <p>Run: {runId ?? snap.run_id} · status: {snap.run_status} · tick: {snap.sim_tick} · coverage: {(snap.coverage * 100).toFixed(1)}% of free cells</p>
           {snap.world
             ? <div style={{ width: "min(96vw, 1800px)", position: "relative", left: "50%", transform: "translateX(-50%)" }}>
-                <FlightMap snap={snap} panels={panels} instant={source === "replay"} height={present ? "74vh" : "66vh"} getPoses={playback?.getPoses} focus={focus} />
+                <FlightMap snap={snap} panels={panels} instant={source === "replay"} height={present ? "74vh" : "66vh"} getPoses={playback?.getPoses} focus={focus} spotlight={spotlight} />
                 {playback && <Timeline pb={playback} offers={panels?.offers ?? []} onFocus={(ids) => setFocus((f) => ({ ids, n: f.n + 1 }))} />}
               </div>
             : <canvas ref={canvas} width={20 * CELL} height={20 * CELL} aria-label="World map: drones, obstacles, links" style={{ maxWidth: "100%" }} />}

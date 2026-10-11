@@ -29,7 +29,19 @@ export interface LineageNode { id: string; parents: string[]; origin: string; ge
 export interface Adoption { policy: string; state: "adopted" | "rejected" | "flagged"; tick: number; reason: string | null }
 export interface Lineage { dag: Record<string, LineageNode>; holders: Record<string, string>; status: Record<string, Adoption>; flagged: string[] }
 export const MAX_DAG = 200;
+// Search & rescue feed (metric samples target_found / targets_total). finds[i].tick is the global sim tick.
+export interface Mission { total: number | null; finds: { tick: number; node: string }[]; adoptTick: number | null }
+// Search-speed change after the first accepted P2P policy: finds/tick after vs before. null until both windows exist.
+// shortcut: single-episode run (baseline window starts at tick 0); upgrade: track the episode start tick.
+export function searchBoost(m: Mission, now: number): number | null {
+  const a = m.adoptTick;
+  if (a === null || a <= 0 || now <= a) return null;
+  const before = m.finds.filter((f) => f.tick < a).length;
+  if (!before) return null;
+  return Math.round(((m.finds.length - before) / (now - a) / (before / a) - 1) * 100);
+}
 export interface Panels {
+  mission: Mission;
   lineage: Lineage;
   runId: string | null; lastSequence: number; lastEventAt: number | null;
   nodes: Record<string, NodeCard>; offers: Offer[]; envelopes: Envelope[]; links: [string, string][];
@@ -42,6 +54,7 @@ export interface Panels {
 export type PanelAction = { t: "record"; record: unknown; at: number } | { t: "reset" };
 
 export const emptyPanels = (): Panels => ({
+  mission: { total: null, finds: [], adoptTick: null },
   lineage: { dag: {}, holders: {}, status: {}, flagged: [] },
   runId: null, lastSequence: 0, lastEventAt: null, nodes: {}, offers: [], envelopes: [], links: [], positions: {},
   runStatus: null, coverage: null, tick: null, faultPhase: null,
@@ -85,6 +98,9 @@ function applyMetric(s: Panels, r: MetricSample, at: number): Panels {
     // The phase field of a fault_phase sample names the phase: partition / recovery / anything else = connected.
     case "fault_phase": return { ...s, faultPhase: r.phase === "partition" ? "partitioned" : r.phase === "recovery" ? "recovering" : "connected" };
     case "coverage": return { ...s, coverage: v };
+    case "targets_total": return { ...s, mission: { ...s.mission, total: v } };
+    // value = targets found so far this episode, so 1 means a new episode began.
+    case "target_found": return { ...s, mission: { ...s.mission, finds: [...(v === 1 ? [] : s.mission.finds), { tick: r.sim_tick, node: id }] } };
     case CURVE_METRIC: {
       const key = r.phase === "train" ? "train" : r.phase === "eval" ? "eval" : null;
       if (!key) return s;
@@ -110,7 +126,8 @@ function applyLineage(s: Panels, r: LearningEvent): Panels {
   const flagged = r.flagged_peer ? [...new Set([...L.flagged, r.flagged_peer])] : L.flagged;
   const state = r.transfer === "accepted" ? "adopted" : r.flagged_peer ? "flagged" : "rejected";
   const holders = r.transfer === "accepted" ? { ...L.holders, [node]: id } : L.holders;
-  return { ...s, lineage: { dag, flagged, holders, status: { ...L.status, [node]: { policy: id, state, tick: r.sim_tick, reason: r.reason ?? null } } } };
+  const adoptTick = r.transfer === "accepted" ? s.mission.adoptTick ?? r.sim_tick : s.mission.adoptTick;
+  return { ...s, mission: { ...s.mission, adoptTick }, lineage: { dag, flagged, holders, status: { ...L.status, [node]: { policy: id, state, tick: r.sim_tick, reason: r.reason ?? null } } } };
 }
 
 function applyLearning(s: Panels, r: LearningEvent, at: number): Panels {
