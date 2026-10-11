@@ -74,3 +74,6 @@ figcaption { color: var(--muted); font-size: .8125rem; }
 .m-bars > div i { position: absolute; inset: 0 auto 0 0; opacity: .5; } .m-bars i.on { background: #3ddc84; } .m-bars i.off { background: #ef6a4c; }
 .m-bars > div { padding-left: .3rem; }
 .m-err pre { background: var(--elevated); padding: .5rem; overflow-x: auto; }
+
+.m-demo { margin: .5rem 0; padding: .4rem 1rem; border: 1px solid; font-family: var(--mono); font-size: .8rem; }
+.m-demo.skilled { border-color: #3ddc84; color: #3ddc84; } .m-demo.unskilled { border-color: #ef6a4c; color: #ef6a4c; }

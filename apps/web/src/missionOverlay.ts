@@ -34,10 +34,10 @@ export interface MapOverlay {
   ring(x: number, y: number, r: number): void; // path of a circle lying on the ground
 }
 
-export interface MissionDraw { view: View; showWeak: boolean; showRings: boolean; selUav: string | null; selLink: string | null }
+export interface MissionDraw { view: View; showWeak: boolean; showRings: boolean; selUav: string | null; selLink: string | null; skilled: boolean }
 
 /** Hazard zones, RF links, sensor rings and POI markers of the mission viewer, drawn over FlightMap's terrain. */
-export function drawMission({ g, S, ground, air, ring }: MapOverlay, { view, showWeak, showRings, selUav, selLink }: MissionDraw): void {
+export function drawMission({ g, S, ground, air, ring }: MapOverlay, { view, showWeak, showRings, selUav, selLink, skilled }: MissionDraw): void {
   const P = (x: number, y: number, agl: number) => S(x, y, ground(x, y) + agl);
   for (const d of view.floor.disruptions) { // area-denial zones: nav = blue, comms = amber
     if (!d.active || !d.position || !d.radius) continue;
@@ -73,4 +73,8 @@ export function drawMission({ g, S, ground, air, ring }: MapOverlay, { view, sho
     g.fillStyle = col; g.font = `10px ${MONO}`; g.textAlign = "center"; g.fillText(ok ? "✓" : "?", x, y + 3.5); g.textAlign = "left";
     g.fillStyle = "#EDE7DF"; g.font = `9px ${MONO}`; g.fillText(`${p.id} ${label}`, x + 10, y + 3);
   }
+  const label = skilled ? "SKILLED DEMO" : "UNSKILLED DEMO (BASELINE)", w = g.canvas.clientWidth, col = skilled ? "#3ddc84" : "#ef6a4c"; // always visible on the map, also in recordings
+  g.font = `bold 11px ${MONO}`; const tw = g.measureText(label).width + 20;
+  g.fillStyle = "rgba(20,20,20,0.92)"; g.fillRect(w - tw - 10, 10, tw, 24); g.strokeStyle = col; g.lineWidth = 1.5; g.strokeRect(w - tw - 9.5, 10.5, tw - 1, 23);
+  g.fillStyle = col; g.textBaseline = "middle"; g.fillText(label, w - tw, 22); g.textBaseline = "alphabetic";
 }
