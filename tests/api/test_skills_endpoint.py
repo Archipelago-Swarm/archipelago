@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from test_api import make, mgr, start
@@ -14,7 +15,7 @@ def metric(seq: int, node: str, name: str, value: float, unit: str) -> dict[str,
     }
 
 
-def test_skills_endpoint_folds_metrics_and_adoptions_per_node(tmp_path) -> None:
+def test_skills_endpoint_folds_metrics_and_adoptions_per_node(tmp_path: Path) -> None:
     with make(tmp_path) as c:
         rid = start(c)["run_id"]
         mgr(c).get(rid).events.extend(

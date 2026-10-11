@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-import threading
 import sys
+import threading
 from pathlib import Path
 
 from support import PEER_TOKEN, TOKEN, Client
@@ -60,7 +60,7 @@ class NodeProc:
             cwd=str(self.tmp),
         )
         assert self.proc.stdout is not None and self.proc.stderr is not None
-        # A node that never prints its ready line (hangs at startup, e.g. Windows) must fail fast, not block the suite.
+        # No ready line (hung startup, e.g. Windows) must fail fast, not block the suite.
         box: list[str] = []
         t = threading.Thread(target=lambda: box.append(self.proc.stdout.readline()), daemon=True)
         t.start()

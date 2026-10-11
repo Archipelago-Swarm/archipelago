@@ -54,7 +54,9 @@ def test_idle_return_is_the_revisit_plus_step_penalty_only():
 
 
 def test_rule_explorer_beats_idle_and_is_deterministic():
-    cfg, kw, rule = one_episode(A.rule_policy, ticks=40, seed=1)  # seed 1: maps are now derived from (seed, episode)
+    cfg, kw, rule = one_episode(
+        A.rule_policy, ticks=40, seed=1
+    )  # seed 1: maps are now derived from (seed, episode)
     assert rule["coverage_gain"] > 0.2 and rule["ref_return"] > -0.26 * 40
     assert A.play_policy(cfg, kw, A.rule_policy) == rule
 
