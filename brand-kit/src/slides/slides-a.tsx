@@ -2,7 +2,7 @@ import { FixedWing } from "../components/FixedWing";
 import { Icon, Card, SectionTitle, Tag } from "../components/motifs";
 import { StraitScenario } from "../components/Scenario";
 import { BrandLogo, Canvas, Wordmark } from "../components/primitives";
-import { c, mono, TAGLINE, TAGLINE_CAPS } from "../tokens";
+import { c, DESC, mono, TAGLINE, TAGLINE_CAPS } from "../tokens";
 import { H, P, Slide, W } from "./frame";
 
 const fadeLeft = (x: number, w: number) => <div style={{ position: "absolute", left: x, top: 0, width: w, height: H, background: `linear-gradient(90deg, ${c.bg}, rgba(10,10,10,0))` }} />;
@@ -15,8 +15,8 @@ export const S1Hero = () => (
     <div style={{ position: "absolute", left: 110, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 36 }}>
       <BrandLogo size={230} />
       <Wordmark size={118} />
-      <P size={34} w={780} style={{ opacity: 0.92 }}>Autonomous platforms that transfer validated capabilities peer to peer.</P>
-      <div style={{ fontSize: 34, fontWeight: 700, color: c.orange, maxWidth: 820, lineHeight: 1.2 }}>{TAGLINE}</div>
+      <P size={34} w={780} style={{ opacity: 0.92 }}>{DESC}</P>
+      <div style={{ fontFamily: mono, fontSize: 24, letterSpacing: 6, color: c.orange }}>{TAGLINE}</div>
     </div>
     <div style={{ position: "absolute", left: 110, bottom: 40, fontFamily: mono, fontSize: 14, letterSpacing: 2, color: c.grey }}>ILLUSTRATIVE SCENARIO · TAIWAN STRAIT TERRAIN FROM DEMO MAP</div>
   </Canvas>

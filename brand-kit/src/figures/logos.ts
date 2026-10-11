@@ -14,7 +14,7 @@ export const logoSvg = (layout: Layout, theme: Theme) => {
   if (layout === "stacked" || layout === "primary") {
     w = 3600; h = layout === "stacked" ? 1930 : 2230;
     body = mark(1100, 0) + word(1800, 1336 + 150 + 360, 500, "middle");
-    if (layout === "primary") body += `<text x="1800" y="2130" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="105" letter-spacing="14" fill="${accent}">DECENTRALIZED LEARNING ACROSS UAV SQUADRONS.</text>`;
+    if (layout === "primary") body += `<text x="1800" y="2130" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="170" letter-spacing="60" fill="${accent}">NO MAINLAND REQUIRED.</text>`;
   }
   const pad = layout === "icon" ? 0 : 40;
   return { w: w + pad * 2, h: h + pad * 2, svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-pad} ${-pad} ${w + pad * 2} ${h + pad * 2}" width="${w + pad * 2}" height="${h + pad * 2}"><title>ARCHIPELAGO ${layout} (${theme})</title>${body}</svg>` };

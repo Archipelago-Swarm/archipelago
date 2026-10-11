@@ -183,7 +183,7 @@ export const S11End = () => (
     <div style={{ position: "absolute", left: 110, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 34 }}>
       <BrandLogo size={170} />
       <Wordmark size={96} />
-      <div style={{ fontSize: 34, fontWeight: 700, color: c.orange, maxWidth: 820, lineHeight: 1.2 }}>{TAGLINE}</div>
+      <div style={{ fontFamily: mono, fontSize: 24, letterSpacing: 6, color: c.orange }}>{TAGLINE}</div>
       <P size={30} w={780}>Autonomous platforms that transfer learned capabilities, adapt collectively and keep operating without central AI infrastructure.</P>
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
         {[["GITHUB", "github.com/Archipelago-Swarm/archipelago"], ["DEVPOST", "devpost.com/software/archipelago-wpa5k9"], ["DEMO", "COMING SOON"]].map(([k, v]) => (

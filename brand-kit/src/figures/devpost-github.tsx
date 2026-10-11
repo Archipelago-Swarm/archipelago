@@ -3,7 +3,7 @@ import { FixedWing } from "../components/FixedWing";
 import { StraitScenario } from "../components/Scenario";
 import { Tag } from "../components/motifs";
 import { ArrowDefs, BrandLogo, Canvas, GridBackground, Wordmark } from "../components/primitives";
-import { c, mono, TAGLINE, TAGLINE_CAPS } from "../tokens";
+import { c, DESC, mono, TAGLINE, TAGLINE_CAPS } from "../tokens";
 
 const fade = (x: number, w: number, h: number) => <div style={{ position: "absolute", left: x, top: 0, width: w, height: h, background: `linear-gradient(90deg, ${c.bg} 10%, rgba(10,10,10,0))` }} />;
 
@@ -15,7 +15,8 @@ export const DevpostThumb = ({ w = 1500, h = 1000 }: { w?: number; h?: number })
     <div style={{ position: "absolute", left: 80, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 34 }}>
       <BrandLogo size={210} />
       <Wordmark size={100} />
-      <div style={{ fontSize: 40, fontWeight: 700, lineHeight: 1.2, color: c.white, maxWidth: 600 }}>{TAGLINE}</div>
+      <div style={{ fontFamily: mono, fontSize: 25, letterSpacing: 6, color: c.orange }}>{TAGLINE}</div>
+      <div style={{ fontSize: 34, lineHeight: 1.25, color: c.stone, maxWidth: 560 }}>{DESC}</div>
     </div>
     <div style={{ position: "absolute", right: 56, top: 52 }}><Tag tone="orange" size={18}>UAV squadrons · contested comms</Tag></div>
   </Canvas>
@@ -29,8 +30,8 @@ export const GithubSocial = ({ w = 1280, h = 640 }: { w?: number; h?: number }) 
     <div style={{ position: "absolute", left: 70, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 26 }}>
       <BrandLogo size={150} />
       <Wordmark size={80} />
-      <div style={{ fontSize: 28, color: c.stone, maxWidth: 520, lineHeight: 1.3 }}>Autonomous platforms that transfer validated capabilities peer to peer.</div>
-      <div style={{ fontSize: 26, fontWeight: 700, color: c.orange, maxWidth: 520, lineHeight: 1.2 }}>{TAGLINE}</div>
+      <div style={{ fontSize: 28, color: c.stone, maxWidth: 520, lineHeight: 1.3 }}>{DESC}</div>
+      <div style={{ fontFamily: mono, fontSize: 20, letterSpacing: 5, color: c.orange }}>{TAGLINE}</div>
     </div>
   </Canvas>
 );
@@ -45,8 +46,8 @@ export const ReadmeBanner = ({ w = 1600, h = 400 }: { w?: number; h?: number }) 
       <BrandLogo size={190} />
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         <Wordmark size={74} />
-        <div style={{ fontSize: 24, color: c.stone, maxWidth: 520, lineHeight: 1.3 }}>Autonomous platforms that transfer validated capabilities peer to peer.</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: c.orange }}>{TAGLINE}</div>
+        <div style={{ fontSize: 24, color: c.stone, maxWidth: 520, lineHeight: 1.3 }}>{DESC}</div>
+        <div style={{ fontFamily: mono, fontSize: 17, letterSpacing: 5, color: c.orange }}>{TAGLINE}</div>
       </div>
     </div>
   </Canvas>

@@ -48,7 +48,7 @@ export const BrandGuide = () => (
 
     <Sec n="03" title="Typography" top={1950}>
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 24 }}>
-        <Card label="DISPLAY · ARIAL BOLD, TIGHT TRACKING"><div style={{ fontSize: 96, fontWeight: 700, letterSpacing: -5, color: c.white, lineHeight: 1 }}>Decentralized<br />learning.</div></Card>
+        <Card label="DISPLAY · ARIAL BOLD, TIGHT TRACKING"><div style={{ fontSize: 96, fontWeight: 700, letterSpacing: -5, color: c.white, lineHeight: 1 }}>No mainland<br />required.</div></Card>
         <Card label="BODY · ARIAL"><div style={{ fontSize: 26, lineHeight: 1.4, color: c.stone }}>Learned capabilities move between autonomous platforms and are validated by the receiver before adoption.</div></Card>
         <Card label="LABELS + TELEMETRY · CONSOLAS"><div style={{ fontFamily: mono, fontSize: 20, letterSpacing: 3, color: c.orange }}>CANDIDATE ACCEPTED</div><div style={{ fontFamily: mono, fontSize: 16, color: c.grey, marginTop: 14, letterSpacing: 1.5 }}>NODE-02 · TICK 4812 · LINK LOST</div></Card>
       </div>
