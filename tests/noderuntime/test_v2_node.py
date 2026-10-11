@@ -457,7 +457,7 @@ def test_validation_world_scores_a_v2_policy_deterministically(tmp_path):
     assert v.world.reward_id == "rew-v1" and v.episodes_run == 4
 
 
-# --- the node reads no privileged world state ---------------------------------------------------------
+# --- the node reads no privileged world state ---------------------------------------
 def test_node_side_encoding_and_memory_never_import_the_simulator():
     """The v2 observation is built from the node's own observations and received summaries only:
     the modules that build it (and the node's act/feedback path) do not import the world."""
