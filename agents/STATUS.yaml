@@ -1,10 +1,10 @@
 # Machine-readable project status. Written by the orchestrator only. Read this before surveying the repo.
-updated_at: "2026-10-10T21:30:00Z"
+updated_at: "2026-10-11T01:45:00Z"
 goal: "Live decentralized-learning demo on Vultr + TigerData: 4 node containers each train their own PyTorch policy, exchange validated model candidates over a partitionable peer network, live authenticated dashboard, reproducible evidence."
 deadline: "2026-10-11T05:00:00Z"   # 01:00 America/New_York
 architecture:
   processes: [coordinator(world, Sim2DAdapter), node x4 (TorchLearner, act/feedback/control/peer/telemetry), api (FastAPI, ingest, persistence), web (React), grafana, timescaledb/TigerData, proxy(Caddy)]
-  interface_doc: agents/architecture/live-runtime.md   # section 13 amendments A1-A17 win
+  interface_doc: agents/architecture/live-runtime.md   # sections 13-15 (A1-A18) win
   channels: [coordinator<->node control/obs/action, node<->node peer, telemetry node->api ingest]
 owners:
   A_sim_learning: {paths: [packages/learning, packages/node, packages/transport, packages/sim, packages/adapters/sim2d, services/coordinator, experiments, tests/noderuntime, tests/coordinator, tests/learning, tests/experiments], invariant: "nodes learn independently, exchange validated state, measurable adaptation, reproducible experiment"}
@@ -13,27 +13,35 @@ owners:
   E_integration: {owner: orchestrator, paths: [pyproject.toml, uv.lock, .github, scripts, Makefile, agents/TASKS.yaml, agents/STATUS.yaml, root docs]}
 critical_path: [coordinator+nodes run a learning cycle locally, peer transfer under partition, telemetry persisted+queryable, make demo, Vultr deploy, artifacts]
 state:
-  merged_on_main: [T01-T09 (legacy), T12, T13, T14/T15 content via PR #7, T10 infra packaging, control plane (PR #8), live-runtime agreement + torch dep group (PR #10)]
-  on_integration_branch_pr12: [T26 TorchLearner (verified), T27 node runtime (verified vs old agreement; amendments pending), T28 coordinator (verified; amendments in T39), T32 experiments (verified), T33 panels (verified), T34 ops tooling (verified), T35 Grafana (verified locally), T36 telemetry ingest (verified locally, not yet mounted)]
-  in_flight: [owner B (T29) data/api live mode, owner C (T42) infra/demo, T39 coordinator amendments (re-dispatch: first attempt answered a user question instead), T27 amendments repair]
-  not_started: [T37 variant study, T38 live adoption, T30 live pilot+sweep, T31 Vultr deploy]
-  merged_on_integration_branch: [T40 encoders+window_limit (verified), T22 controller/launcher hardening (verifier gate now by agent identity; DENIED is a prefix list, branch protection unavailable)]
-  retired: [legacy two-computer runner stack (driver.py, night.py, watchdog.py, cleanup_branches.py, overnight/night-runner/driver-recovery docs, run-config example); machine A/B roles - all agents run on ONE computer; T20, T23, T25 obsolete]
+  merged_on_main:
+    - "live runtime end to end (PRs 12, 22, 23, 24, 25, 26, 27): coordinator + 4 node processes with TorchLearner, validation-gated peer exchange honoring partitions, checkpoint restore, telemetry spool and shipping"
+    - "live-mode API with telemetry ingest and persistence queries; Compose stack, demo driver, artifact generator"
+    - "T37 variant study; T38 live adoption of the T37 variant (A18); T30 local live pilot; parallel CI slices"
+  in_flight: []
+  not_started:
+    - "T31 Vultr + TigerData deployment (blocked: session network policy denies api.vultr.com and the TigerData host; credentials are held outside the repo by the operator session)"
+    - "clean-machine make demo; CPU-wheel memory measurement"
+    - "ledger reconciliation (many merged tasks still show QUEUED/INTEGRATION)"
+  retired:
+    - "legacy two-computer runner stack; machine A/B roles - all agents run on ONE computer"
+evidence:
+  t37_study: "experiments/out/T37/summary.md - learning beats idle/random/untrained on frozen test seeds (paired CI excludes 0); does NOT beat the rule explorer on return"
+  t30_live_pilot: "experiments/out/T30/summary.md - 4 real node processes: independent optimizer updates, no cross-cut offers/summaries during the cut, SIGKILL restart (supplementary run only); fleet vs isolated is not good evidence that exchange helps"
 test_status:
-  last_local: "SKIP_DOCKER gate: 434 passed, 5 skipped (full suite with torch)"
-  ci_pr12: "bootstrap failing on one timing-sensitive coordinator test (feedback accounting) being rewritten by T39"
+  ci_main: "all slices (fast, py-live, py-rest, docker, web) and container-smoke green on the T38 merge; T30 merge (#27) green on PR"
+  not_run: "full docker slice in one local run (sandbox disk), real Vultr/TigerData calls, CPU-wheel node memory"
 known_failures_and_gaps:
-  - "node runtime exchange only at episode_end (A1 requires tick cadence) - partitions would not bite until repaired"
-  - "learners at floor under v0 observation; info sharing inert (experiments/diagnosis/idle_vs_learners.md); T37/T38 address"
-  - "node memory ~668 MiB on CUDA wheel; CPU-wheel number unmeasured; 512 MB limit unproven"
-  - "coordinator and node runtime packages not in mypy files (74 strict errors); linted+tested only"
-  - "download.pytorch.org unreachable from the authoring sandbox (policy); CPU wheel installs in CI/images"
+  - "a fault window cannot cover a whole episode (coordinator rejects windows ending past max_ticks; the episode-end exchange runs at that tick) - decision needed"
+  - "learner does not beat the rule explorer; fleet vs isolated nodes not shown to differ on validation curves"
+  - "node memory only measured on the CUDA wheel (~390-400 MiB per node before the 50k replay); 1g compose limit provisional"
+  - "coordinator and node runtime packages are not in the mypy file list; run_demo.py still sends rew-v0 (plan reward_id overrides)"
+  - "task ledger lags reality: T26-T30, T32-T40, T42 merged but not COMPLETE"
 commands:
   local_gate: "SKIP_DOCKER=1 scripts/check.sh   # needs: uv sync --frozen --group torch"
   ledger: "python agents/controller.py status|next|validate"
   guard_cloud: "uv run python -m archipelago_ops.guard --help   # infra/vultr"
 deployment:
-  vultr: "not provisioned; blocked on operator connections (single consolidated request after local readiness)"
-  tigerdata: "not connected; local Timescale test passes in CI"
+  vultr: "not provisioned; session network policy blocks api.vultr.com (403 from the proxy) even after the operator widened the environment; a fresh session is probably needed"
+  tigerdata: "not connected from the authoring session (host does not resolve there); local Timescale tests pass in CI"
 budgets: {vultr_cumulative_usd: 100, vultr_monthly_usd: 200, vultr_instances: 5, tigerdata_credits_usd: 1000, subagent_tokens_planned: "see agents/operations/token-budget.md"}
 decisions_recent: ["ADR-0008 live runtime", "ADR-0009 worker cap -> orchestrator-paced", "section 13 amendments from independent review", "harness renamed protocol_harness (module collision)"]
