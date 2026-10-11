@@ -71,8 +71,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._stream(_cfg(q), float(q.get("tps", ["4"])[0]))
             else:
                 self._send(404, b'{"error":"not found"}')
-        except (ValueError, BrokenPipeError, ConnectionResetError) as e:
-            if not isinstance(e, (BrokenPipeError, ConnectionResetError)):
+        except (
+            ValueError,
+            ConnectionError,
+        ) as e:  # ConnectionError covers broken pipe, reset and Windows abort (10053)
+            if not isinstance(e, ConnectionError):
                 self._send(400, json.dumps({"error": str(e)}).encode())
 
     def _stream(self, cfg: MissionConfig, tps: float) -> None:
