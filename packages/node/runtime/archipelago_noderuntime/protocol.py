@@ -29,6 +29,7 @@ class ActRequest(Msg):
     tick: Tick
     deadline_ms: Annotated[int, Field(gt=0, le=600_000)] = 500
     observation: Observation
+    rf_blocked: list[Id] = []  # peers whose radio path the terrain currently occludes
 
 
 class ActResponse(Msg):

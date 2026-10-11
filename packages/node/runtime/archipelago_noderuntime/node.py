@@ -170,7 +170,7 @@ class Node:
                 "acts", "act_duplicates", "act_stale", "act_fb_wait_timeouts", "feedbacks",
                 "feedback_duplicates", "feedback_stale", "feedback_no_pending",
                 "feedback_executed_differs", "feedback_deadline_missed", "train_deferred",
-                "offers_sent", "offers_cut", "offers_unchanged", "offers_unreachable",
+                "offers_sent", "offers_cut", "handshakes_triggered", "offers_unchanged", "offers_unreachable",
                 "offers_refused_by_peer", "offers_received", "received_cut",
                 "received_superseded", "received_duplicate", "decisions_accepted",
                 "decisions_rejected", "decisions_window_limit", "exchanges",
@@ -202,6 +202,7 @@ class Node:
         self.results: OrderedDict[str, dict] = OrderedDict()  # window id -> result (bounded)
         self.dedupe: OrderedDict[str, None] = OrderedDict()
         self.last_sent: dict[str, tuple[int, str]] = {}
+        self.rf_blocked: frozenset[str] = frozenset()  # peers behind terrain right now
         self._xcv = threading.Condition()
         self._jobs: deque[Job] = deque()
         self._cur: Job | None = None
@@ -273,7 +274,16 @@ class Node:
         return max(ep, 0) * self.cfg.world_max_ticks + max(tick, 0)
 
     def link_cut(self, other: str) -> bool:
-        return self.schedule.cut(self.cfg.node_id, other, self.eff_tick)
+        return other in self.rf_blocked or self.schedule.cut(self.cfg.node_id, other, self.eff_tick)
+
+    def _set_rf_blocked(self, blocked) -> None:
+        """Capability handshake trigger: a peer that just came back into radio line of sight
+        gets our current policy again even if its version/digest is what we last sent it."""
+        new = frozenset(blocked)
+        for p in self.rf_blocked - new:
+            self.last_sent.pop(p, None)
+            self.counters["handshakes_triggered"] += 1
+        self.rf_blocked = new
 
     def _alloc_locked(self) -> tuple[int, str]:
         seq = self.seq.next()  # block-reserved: persisted ceiling is ahead of every issued number
@@ -472,6 +482,7 @@ class Node:
         window_tick = None
         with self.amu:
             self._check_run(req.run_id, req.episode, advance=True)
+            self._set_rf_blocked(req.rf_blocked)
             hit = self.act_cache.get(key)
             if hit is not None:
                 self.counters["act_duplicates"] += 1
@@ -998,7 +1009,7 @@ class Node:
         for p in sorted(cfg.node_ids):
             if p == me:
                 continue
-            if sched.cut(me, p, tick):
+            if sched.cut(me, p, tick) or p in self.rf_blocked:
                 self.counters["offers_cut"] += 1
                 res["cut"].append(p)
             elif p not in self.peer_urls:
@@ -1028,7 +1039,7 @@ class Node:
         arrived: list[Envelope] = []
         while self.peer is not None and (env := self.peer.receive()) is not None:
             self.counters["offers_received"] += 1
-            if sched.cut(env.src, me, tick):
+            if sched.cut(env.src, me, tick) or env.src in self.rf_blocked:
                 self.counters["received_cut"] += 1
                 continue
             arrived.append(env)

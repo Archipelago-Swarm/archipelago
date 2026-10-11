@@ -78,10 +78,53 @@ class GridFlatV1:
         return self._encode(obs["crop"], x, y, obs["battery"])
 
 
+_ID3 = re.compile(r"^grid-flat-v3-terrain-s([1-9][0-9]{0,3})-r([0-9]{1,2})$")
+N_TERRAIN = 10  # 8 ray probes, altitude, slope (archipelago_sim.terrain.N_TERRAIN)
+
+
+@dataclass(frozen=True)
+class GridFlatV3Terrain(GridFlatV1):
+    """v1 vector followed by the node's own terrain features (radar probes, altitude, slope)."""
+
+    @property
+    def id(self) -> str:
+        return f"grid-flat-v3-terrain-s{self.size}-r{self.radius}"
+
+    @property
+    def obs_dim(self) -> int:
+        return super().obs_dim + N_TERRAIN
+
+    @property
+    def definition(self) -> str:
+        n = 2 * self.radius + 1
+        return (
+            f"{self.id}: float32[{self.obs_dim}] = grid-flat-v1 layout (crop {n}x{n}, x, y, "
+            f"battery) + 8 compass ray probes (free fraction of 4 cells), altitude/1km, slope/0.5"
+        )
+
+    def _terrain(self, t) -> list[float]:
+        if len(t) != N_TERRAIN:
+            raise ValueError(f"{self.id} needs {N_TERRAIN} terrain features, got {len(t)}")
+        return list(t)
+
+    def encode_observation(self, obs) -> np.ndarray:
+        return np.concatenate(
+            [super().encode_observation(obs), np.float32(self._terrain(obs.radar))]
+        )
+
+    def encode_raw(self, obs: dict) -> np.ndarray:
+        return np.concatenate(
+            [super().encode_raw(obs), np.float32(self._terrain(obs.get("radar", [])))]
+        )
+
+
 def parse(enc_id: str) -> GridFlatV1 | visits.GridFlatV2 | None:
     m = _ID.match(enc_id)
     if m:
         return GridFlatV1(int(m.group(1)), int(m.group(2)))
+    m = _ID3.match(enc_id)
+    if m:
+        return GridFlatV3Terrain(int(m.group(1)), int(m.group(2)))
     return visits.parse(enc_id)
 
 

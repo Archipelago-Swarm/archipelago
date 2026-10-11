@@ -29,8 +29,13 @@ LEARNER_SCHEDULES: dict[str, dict[str, Any]] = {
         "eps_start": 1.0, "eps_end": 0.05, "eps_decay_fraction": 0.5,
     }
 }  # fmt: skip
-ENCODER_FAMILIES = ("grid-flat-v1", "grid-flat-v2-visits", "grid-flat-v2-visits-shared")
-_ENCODER_ID = re.compile(r"^(grid-flat-v1|grid-flat-v2-visits(?:-shared)?)-s([0-9]+)-r([0-9]+)$")
+ENCODER_FAMILIES = (
+    "grid-flat-v1",
+    "grid-flat-v2-visits",
+    "grid-flat-v2-visits-shared",
+    "grid-flat-v3-terrain",
+)
+_ENCODER_ID = re.compile(r"^(grid-flat-v1|grid-flat-v3-terrain|grid-flat-v2-visits(?:-shared)?)-s([0-9]+)-r([0-9]+)$")
 
 
 class Hyperparameters(Strict):

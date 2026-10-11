@@ -19,6 +19,16 @@ BASE_VEG = (0.10, 0.55, 0.90)
 CONCEALMENT = 0.9  # fraction of ground-target detectability removed at vegetation density 1.0
 DIST_LOSS = 0.35  # detectability lost at the edge of the sensor footprint
 TARGET_H_M = 2.0  # ground-level entity height
+CANYON_FRAC = 0.6  # cells above this fraction of the map's peak are high-elevation canyon country
+PROBE_CELLS = 4
+PROBE_DIRS = ((1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1))
+N_TERRAIN = len(PROBE_DIRS) + 2
+# Per-zone physics: sensor reach scale, max turn-rate scale, crosswind (m/s, turbulence amplitude).
+REGION_MODS = {
+    "lowland": {"sensor": 1.0, "turn": 1.0, "wind": 0.0},
+    "forest": {"sensor": 0.7, "turn": 1.0, "wind": 2.0},
+    "canyon": {"sensor": 0.8, "turn": 0.5, "wind": 12.0},
+}
 
 
 def _lat(seed: int, salt: int, ix: int, iy: int) -> float:
@@ -55,6 +65,7 @@ class Terrain:
             agl_m,
         )  # size = width in cells
         self.elev, self.biome, self.veg = elev, biome, veg  # [x][y] arrays
+        self._max_elev = max(map(max, elev)) or 1.0
 
     @classmethod
     def flat(
@@ -146,9 +157,70 @@ class Terrain:
                 return False
         return True
 
+    def height_at(self, x_m: float, y_m: float) -> float:
+        """Bilinear ground elevation (m) at a world position; clamped to the map."""
+        gx = min(max(x_m / self.cell_m - 0.5, 0.0), self.size - 1.0)
+        gy = min(max(y_m / self.cell_m - 0.5, 0.0), self.height - 1.0)
+        i, j = min(int(gx), self.size - 2), min(int(gy), self.height - 2)
+        fx, fy = gx - i, gy - j
+        e = self.elev
+        top = e[i][j] * (1 - fx) + e[i + 1][j] * fx
+        bot = e[i][j + 1] * (1 - fx) + e[i + 1][j + 1] * fx
+        return top * (1 - fy) + bot * fy
+
+    def slope_at(self, x_m: float, y_m: float) -> float:
+        """Terrain gradient magnitude (rise/run) by central difference over one cell."""
+        d = self.cell_m
+        gx = (self.height_at(x_m + d, y_m) - self.height_at(x_m - d, y_m)) / (2 * d)
+        gy = (self.height_at(x_m, y_m + d) - self.height_at(x_m, y_m - d)) / (2 * d)
+        return math.hypot(gx, gy)
+
+    def probes(self, c: tuple[int, int]) -> list[float]:
+        """Terrain-awareness features a flying node could get from radar/DB: 8 compass ray probes
+        (fraction of PROBE_CELLS flown before ground rises to flight altitude; 1.0 = clear), own
+        altitude (km, clipped) and local slope (clipped)."""
+        h0 = self.drone_alt(c)
+        out = []
+        for dx, dy in PROBE_DIRS:
+            f = 1.0
+            for k in range(1, PROBE_CELLS + 1):
+                x, y = c[0] + dx * k, c[1] + dy * k
+                if not (0 <= x < self.size and 0 <= y < self.height):
+                    f = (k - 1) / PROBE_CELLS  # map edge is a wall
+                    break
+                if self.elev[x][y] >= h0:
+                    f = (k - 1) / PROBE_CELLS
+                    break
+            out.append(f)
+        sl = self.slope_at((c[0] + 0.5) * self.cell_m, (c[1] + 0.5) * self.cell_m)
+        return [*out, min(h0 / 1000.0, 1.0), min(sl / 0.5, 1.0)]
+
+    def region(self, c: tuple[int, int]) -> str:
+        """Zone of a cell: canyon (high ground), forest (low, wooded) or lowland (open)."""
+        if self.elev[c[0]][c[1]] >= CANYON_FRAC * self._max_elev:
+            return "canyon"
+        return "lowland" if self.biome[c[0]][c[1]] == GRASS else "forest"
+
+    def mods(self, c: tuple[int, int]) -> dict[str, float]:
+        return REGION_MODS[self.region(c)]
+
+    def rf_clear(self, a: tuple[int, int], b: tuple[int, int]) -> bool:
+        """RF line of sight between two airborne nodes (both at agl above their own cell)."""
+        n = max(abs(b[0] - a[0]), abs(b[1] - a[1]))
+        h0, h1 = self.drone_alt(a), self.drone_alt(b)
+        for k in range(1, n):
+            t = k / n
+            x, y = round(a[0] + (b[0] - a[0]) * t), round(a[1] + (b[1] - a[1]) * t)
+            if self.elev[x][y] > h0 + (h1 - h0) * t:
+                return False
+        return True
+
     def detect_p(self, a: tuple[int, int], b: tuple[int, int], radius: int) -> float:
         """True probability that a drone over `a` detects a ground entity in `b` this tick."""
         if not self.los_clear(a, b):
             return 0.0
         d = max(abs(b[0] - a[0]), abs(b[1] - a[1]))
-        return (1 - CONCEALMENT * self.veg[b[0]][b[1]]) * (1 - DIST_LOSS * d / (radius + 1))
+        r = radius * self.mods(a)["sensor"]  # the zone the sensor flies in shrinks its reach
+        if d > r:
+            return 0.0
+        return (1 - CONCEALMENT * self.veg[b[0]][b[1]]) * (1 - DIST_LOSS * d / (r + 1))

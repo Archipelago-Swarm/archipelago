@@ -66,6 +66,13 @@ ACTIVE = frozenset({"created", "starting", "running", "paused", "stopping"})
 TERMINAL = frozenset({"completed", "failed", "interrupted"})
 
 
+def _no_radar(o):
+    return None if o.radar else {"radar"}  # keep the wire format unchanged for terrain-less worlds
+
+
+SYNC_TICKS = 3  # ticks a reconnected link is shown (and handshaken) as syncing
+
+
 class _Stop(Exception):
     pass
 
@@ -131,6 +138,9 @@ class Run:
         self.schedule_hash = canonical_hash(self.schedule)
         self.cond = threading.Condition(threading.RLock())
         self.world_lock = threading.Lock()
+        self._blocked: list[tuple[str, str]] = []
+        self._was_down: set[frozenset[str]] = set()
+        self._sync_until: dict[frozenset[str], int] = {}
         self.status = "created"
         self.revision = 0
         self.stop_reason: str | None = None
@@ -299,18 +309,34 @@ class Run:
         """A7: simulation time across the run is `episode * max_ticks + tick`."""
         return max(self.episode_index, 0) * self.max_ticks + tick
 
-    def _allowed_links(self, tick: int) -> list[tuple[str, str]]:
+    def _link_state(self, tick: int):
+        """(up, blocked): fault-schedule cuts and terrain RF occlusion both take a link down.
+        Caller holds world_lock (reads the live world)."""
         cut: set[frozenset[str]] = set()
         for w in self.plan.fault_schedule:
             if w.start_tick <= tick < w.end_tick:
                 cut |= {frozenset(link) for link in w.cut_links}
         alive = [n for n in self.nodes if self.health[n].state != "killed"]
-        return [(a, b) for a, b in combinations(alive, 2) if frozenset((a, b)) not in cut]
+        world = self.adapter.world if self.adapter else None
+        rf_down = {frozenset(p) for p in world.rf_links()[1]} if hasattr(world, "rf_links") else set()
+        pairs = list(combinations(alive, 2))
+        up = [p for p in pairs if frozenset(p) not in cut | rf_down]
+        return up, [p for p in pairs if frozenset(p) in rf_down]
+
+    def _allowed_links(self, tick: int) -> list[tuple[str, str]]:
+        return self._link_state(tick)[0]
 
     def _emit_snapshot(self, tick: int) -> None:
-        links = self._allowed_links(tick)
         with self.world_lock:
-            snap = self.adapter.public_snapshot(links)  # A10: only discovered obstacles
+            links, blocked = self._link_state(tick)
+            # a link that was down last snapshot and is up now is mid-handshake for SYNC_TICKS
+            now = {frozenset(p) for p in links}
+            for p in self._was_down & now:
+                self._sync_until[p] = tick + SYNC_TICKS
+            self._was_down = {frozenset(p) for p in combinations(self.nodes, 2)} - now
+            syncing = [p for p in links if self._sync_until.get(frozenset(p), -1) > tick]
+            self._blocked = blocked
+            snap = self.adapter.public_snapshot(links, blocked, syncing)  # A10: only discovered obstacles
         self.spool.emit(
             self.run_id,
             self._global_tick(tick),
@@ -321,7 +347,7 @@ class Run:
                 poses=snap.poses,
                 obstacles=snap.obstacles,
                 coverage=snap.coverage,
-                topology=Topology(links=links),
+                topology=snap.topology,
                 world=snap.world,
             ),
         )
@@ -586,8 +612,10 @@ class Run:
                 "episode": ep.index,
                 "tick": t,
                 "deadline_ms": ms,
-                "observation": obs[n].model_dump(mode="json"),
+                "observation": obs[n].model_dump(mode="json", exclude=_no_radar(obs[n])),
             }
+            if blocked := sorted({q for p in self._blocked if n in p for q in p} - {n}):
+                body["rf_blocked"] = blocked  # only when terrain occludes a peer
             url = self.plan.node_urls[n]
             return lambda: self.client.call(url, "POST", "/v1/act", body, deadline_s + 0.05)
 
@@ -647,7 +675,9 @@ class Run:
                 "episode": ep.index,
                 "tick": t,
                 "reward": result.rewards[n],
-                "next_observation": result.observations[n].model_dump(mode="json"),
+                "next_observation": result.observations[n].model_dump(
+                    mode="json", exclude=_no_radar(result.observations[n])
+                ),
                 "terminated": result.terminations[n],
                 "truncated": result.truncations[n],
                 "executed_command": cmd,
