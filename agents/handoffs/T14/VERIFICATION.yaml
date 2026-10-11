@@ -1,0 +1,16 @@
+task: T14
+status: PASS
+verified_commit: cfb02ed
+verifier: cloud/verifier
+checked_at: "2026-10-10T21:40:00Z"
+commands:
+  - command: uv run pytest tests/api -q
+    expected_exit_code: 0
+    actual_exit_code: 0
+    log: "Run locally on main before the verdict: 43 passed. Also inside the full CI run below."
+  - command: uv run pytest tests/infra/test_smoke_and_replay.py -q
+    expected_exit_code: 0
+    actual_exit_code: 0
+    log: "Not run locally (no Docker daemon in this container). Evidence is CI: workflow_dispatch run https://github.com/Archipelago-Swarm/archipelago/actions/runs/38087173946 on main 4e2dcae, job bootstrap runs scripts/check.sh without SKIP_DOCKER: 239 passed, 3 skipped, success; the docker-marked tests ran there (~2.5 min block). The three skips are in the first tests of the run (not identified per test from the log). container-smoke job also succeeded."
+failures: []
+required_actions: []
