@@ -30,8 +30,8 @@ export const GithubSocial = ({ w = 1280, h = 640 }: { w?: number; h?: number }) 
     <div style={{ position: "absolute", left: 70, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 26 }}>
       <BrandLogo size={150} />
       <Wordmark size={80} />
-      <div style={{ fontSize: 28, color: c.stone, maxWidth: 520, lineHeight: 1.3 }}>{DESC}</div>
-      <div style={{ fontFamily: mono, fontSize: 20, letterSpacing: 5, color: c.orange }}>{TAGLINE}</div>
+      <div style={{ fontFamily: mono, fontSize: 30, fontWeight: 700, letterSpacing: 6, color: c.orange }}>{TAGLINE}</div>
+      <div style={{ fontSize: 22, color: c.grey, maxWidth: 520, lineHeight: 1.3 }}>{DESC}</div>
     </div>
   </Canvas>
 );
@@ -46,8 +46,8 @@ export const ReadmeBanner = ({ w = 1600, h = 400 }: { w?: number; h?: number }) 
       <BrandLogo size={190} />
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         <Wordmark size={74} />
-        <div style={{ fontSize: 24, color: c.stone, maxWidth: 520, lineHeight: 1.3 }}>{DESC}</div>
-        <div style={{ fontFamily: mono, fontSize: 17, letterSpacing: 5, color: c.orange }}>{TAGLINE}</div>
+        <div style={{ fontFamily: mono, fontSize: 32, fontWeight: 700, letterSpacing: 6, color: c.orange }}>{TAGLINE}</div>
+        <div style={{ fontSize: 20, color: c.grey, maxWidth: 520, lineHeight: 1.3 }}>{DESC}</div>
       </div>
     </div>
   </Canvas>
