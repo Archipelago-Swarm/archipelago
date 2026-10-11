@@ -80,7 +80,9 @@ class MissionDynamics(Strict):
 
     targets_move_every: Annotated[int, Field(ge=0, le=100_000)] = 0
     targets_appear: Annotated[int, Field(ge=0, le=200)] = 0
-    appear_window: tuple[Annotated[float, Field(ge=0, le=1)], Annotated[float, Field(ge=0, le=1)]] = (0.2, 0.7)
+    appear_window: tuple[
+        Annotated[float, Field(ge=0, le=1)], Annotated[float, Field(ge=0, le=1)]
+    ] = (0.2, 0.7)
     obstacles_shift_every: Annotated[int, Field(ge=0, le=100_000)] = 0
 
 

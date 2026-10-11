@@ -16,7 +16,10 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from .env import GridWorld
 
-MISSION_TYPES = ("search_rescue", "coverage")  # shortcut: no "relocate" yet; add a goal-zone objective
+MISSION_TYPES = (
+    "search_rescue",
+    "coverage",
+)  # shortcut: no "relocate" yet; add a goal-zone objective
 OBJECTIVE_KINDS = ("find_targets", "cover_fraction")
 _ID = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
 MAX_TARGETS = 200

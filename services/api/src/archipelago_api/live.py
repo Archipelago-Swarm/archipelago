@@ -179,7 +179,7 @@ class LiveBackend:
 
     @staticmethod
     def mission(body: Any) -> dict[str, Any] | None:
-        """Optional `mission` in a POST /v1/runs body: forwarded as-is; the coordinator validates."""
+        """Optional `mission` in a POST /v1/runs body, forwarded (the coordinator validates)."""
         v = body.get("mission") if isinstance(body, dict) else None
         if v is not None and not isinstance(v, dict):
             raise Rejected(422, "mission must be a JSON object")

@@ -106,7 +106,7 @@ class GridWorld:
         cells = [(x, y) for x in range(n) for y in range(self.height)]
         starts = starts or {}
         self.map_seed, self._keep_clear = seed, set(starts.values())
-        self.obstacles =self._gen_obstacles(rng, cells, starts)
+        self.obstacles = self._gen_obstacles(rng, cells, starts)
         self.terrain = (
             None
             if self.terrain_seed is None
@@ -191,7 +191,12 @@ class GridWorld:
                 if opts:
                     self.targets[i] = r.choice(opts)
                     self.events.append(
-                        {"tick": t, "event": "target_moved", "from": list(c), "to": list(self.targets[i])}
+                        {
+                            "tick": t,
+                            "event": "target_moved",
+                            "from": list(c),
+                            "to": list(self.targets[i]),
+                        }
                     )
         for sp in [s for s in self._spawns if s[0] <= t]:
             occupied = set(self.targets) | {dr.pos for dr in self.drones.values()}

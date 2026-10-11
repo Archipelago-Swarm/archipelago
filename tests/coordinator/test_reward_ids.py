@@ -40,7 +40,8 @@ def harness_rewards(seed: int, reward_id: str, seqs: dict[str, list[int]]):
     The coordinator derives each episode map from (env seed, episode index); episode 0 here."""
     env = H.make_env(H.OBS_ID, reward_id)
     nodes = sorted(seqs)
-    env.reset(seed=derive_map_seed(seed, 0), options={"starts": {n: (i, 0) for i, n in enumerate(nodes)}})
+    starts = {n: (i, 0) for i, n in enumerate(nodes)}
+    env.reset(seed=derive_map_seed(seed, 0), options={"starts": starts})
     out: dict[str, list[float]] = {n: [] for n in nodes}
     t = 0
     while env.agents and t < TICKS:

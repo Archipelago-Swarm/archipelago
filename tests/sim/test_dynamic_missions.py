@@ -61,7 +61,9 @@ def test_targets_move_appear_and_obstacles_shift_on_the_seeded_schedule():
     n0, obstacles0, targets0 = len(w.targets), set(w.obstacles), list(w.targets)
     assert (n0, len(appear)) == (4, 2)
     fly(ad, 40, "stay")
-    events = [e for rec in ad.replay for e in rec["events"] if e["event"].startswith(("target", "obst"))]
+    events = [
+        e for rec in ad.replay for e in rec["events"] if e["event"].startswith(("target", "obst"))
+    ]
     ticks = lambda name: [e["tick"] for e in events if e["event"] == name]  # noqa: E731
     assert ticks("target_appeared") == appear  # exactly the scheduled ticks
     assert set(ticks("target_moved")) <= set(range(5, 41, 5))
@@ -102,7 +104,9 @@ def test_search_rescue_completion_and_time_to_complete():
         w.found_targets.add(t)
     w._update_mission()
     s = w.mission_status()
-    assert s["status"] == "active" and s["objectives"][0]["progress"] == pytest.approx(2 / 3, abs=1e-3)
+    assert s["status"] == "active" and s["objectives"][0]["progress"] == pytest.approx(
+        2 / 3, abs=1e-3
+    )
     w.tick = 17
     w.found_targets.add(w.targets[2])
     w._update_mission()
@@ -114,7 +118,9 @@ def test_search_rescue_completion_and_time_to_complete():
 
 
 def test_episode_terminates_on_success_and_fails_on_budgets():
-    w = GridWorld(size=8, n_agents=1, max_ticks=50, mission={"n_targets": 1, "time_budget_ticks": 6})
+    w = GridWorld(
+        size=8, n_agents=1, max_ticks=50, mission={"n_targets": 1, "time_budget_ticks": 6}
+    )
     w.reset(seed=1)
     for _ in range(5):
         _, _, term, _, _ = w.step({"node-0": "stay"})
@@ -131,14 +137,16 @@ def test_episode_terminates_on_success_and_fails_on_budgets():
 
 
 def test_coverage_mission_succeeds_at_its_fraction_and_not_before():
-    w = GridWorld(size=8, n_agents=2, obstacle_density=0.0, sense_radius=2, max_ticks=300,
-                  mission={"type": "coverage", "n_targets": 0,
-                           "objectives": [{"id": "cov", "kind": "cover_fraction", "target": 0.5}]})  # fmt: skip
+    cover = {"id": "cov", "kind": "cover_fraction", "target": 0.5}
+    mission = {"type": "coverage", "n_targets": 0, "objectives": [cover]}
+    w = GridWorld(size=8, n_agents=2, obstacle_density=0.0, max_ticks=300, mission=mission)
     w.reset(seed=2)
     assert w.mission_status()["status"] == "active" and w.coverage < 0.5
     rng, ended = random.Random(5), None
     for _ in range(300):
-        _, _, term, _, _ = w.step({a: rng.choice(("north", "east", "south", "west")) for a in w.agents})
+        _, _, term, _, _ = w.step(
+            {a: rng.choice(("north", "east", "south", "west")) for a in w.agents}
+        )
         if not w.agents:
             ended = w.mission_status()
             break
