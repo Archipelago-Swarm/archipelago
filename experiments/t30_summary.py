@@ -237,11 +237,11 @@ def write_summary(out: Path, res: dict[str, Any], ev: dict, tables: dict, pre: d
         )
     w("")
     w(
-        f"Pointers: {ptr(out, 'decisions.jsonl', line=first_cross)} (first cross-cut decision after a cut ended: exchange resumed), "
+        f"Pointers: {ptr(out, 'decisions.jsonl', line=first_cross)} (last cross-cut decision after a cut ended: exchange resumed), "
         f"{ptr(out, 'decisions.jsonl', line=first_acc)} (first accepted), {ptr(out, 'decisions.jsonl', line=first_rej)} (first rejected, with reason), "
         f"{ptr(out, 'results.json', '"B_decisions"', 1)} (fleet) and {ptr(out, 'results.json', '"B_decisions"', 2)} (isolated), "
         f"{ptr(out, 'results.json', '"B_summaries"', 1)}, {ptr(out, 'raw/fleet/samples.jsonl', '"fault_phase": "partition"')} (first 1 s status sample inside a cut), "
-        f"{ptr(out, 'spool_excerpt.jsonl', '"why": "first cross-cut decision after a cut"')} (node-local spool record of the same decision)."
+        f"{ptr(out, 'spool_excerpt.jsonl', '"why": "last cross-cut decision after a cut"')} (node-local spool record of the same decision)."
     )
     w("")
     # claim C
@@ -250,7 +250,9 @@ def write_summary(out: Path, res: dict[str, Any], ev: dict, tables: dict, pre: d
     for arm in ARMS:
         cl = res["claims"][arm]["C"]
         if not cl.get("kill_executed"):
-            w(f"**{arm}**: kill NOT executed (run ended before the trigger).")
+            w(
+                f"**{arm}**: kill NOT executed in the registered run: the trigger (episode index 70 AND tick >= 60) never fired because episode 70 ended before tick 60 (episodes end once all targets are found). This is a defect of the registered trigger, found only after the run; see the supplementary run below."
+            )
             continue
         w(
             f"**{arm}**: {cl['node']} SIGKILLed at episode {cl['pre']['episode']} tick {cl['pre']['tick']} (pid {cl['pids'][0]} -> {cl['pids'][1]}), restart-to-ready {cl['restart_seconds']} s; checkpoint pointer before {cl['ckpt_pre'].get('current')}."
@@ -284,6 +286,37 @@ def write_summary(out: Path, res: dict[str, Any], ev: dict, tables: dict, pre: d
     )
     w("")
     # unsupported
+    sp = out / "supplement" / "results.json"
+    if sp.exists():
+        sr = json.loads(sp.read_text())
+        w(
+            "## Supplementary run (NOT pre-registered): claims B-summaries and C on a short fleet run"
+        )
+        w("")
+        w(
+            "Why: in the registered run the node keeps its visit-summary trace (`summaries.rx_ticks`) for only the last 2 episodes, which were test episodes ending before tick 40, so evidence (iii) and the positive control (v') above rest on almost no in-window ticks; and the SIGKILL trigger never fired (see C). "
+            "The supplement is a separate 20-episode training-only fleet run (same cluster, ids, fault schedule, seeds 1000-1019; no test seeds, no outcome claims) that merges `rx_ticks` over every 1 s poll (`supplement/fleet/rx_merged.json`) and SIGKILLs node-03 at the first poll after episode 8 starts. "
+            "It was added after seeing the registered results, and only because those two items had not been exercised; it is a deviation from the plan and is labelled as such."
+        )
+        w("")
+        for k, v in sr["B"]["checks"].items():
+            w(f"- {'PASS' if v else 'FAIL'} B: {k}")
+        w(f"- summaries (merged trace): {sr['B_summaries']}")
+        w(
+            f"- decisions: {sr['B_decisions']['decisions']} (cross-cut inside window: {len(sr['B_decisions']['cross_inside_cut'])}, cross-cut outside window: {sr['B_decisions']['cross_outside_cut']}, reasons {sr['B_decisions']['by_reason']})"
+        )
+        c = sr["C"]
+        w(
+            f"- C: {c['node']} killed at episode {c['pre']['episode']} tick {c['pre']['tick']}; before: boot {c['pre']['boot_id']}, train_steps {c['pre']['train_steps']}, replay {c['pre']['replay_size']}; after restart: boot {c['post']['boot_id']}, train_steps {c['post']['train_steps']}, replay {c['post']['replay_size']}; sequence ranges {c['sequence_continuity']['boots']}; max train_steps later {c['train_steps_after_restart_max']}"
+        )
+        w(
+            "- C checks: "
+            + "; ".join(f"{'PASS' if v else 'FAIL'} {k}" for k, v in c["checks"].items())
+        )
+        w(
+            f"- Pointers: {ptr(out, 'supplement/results.json', '"C"')}, {ptr(out, 'supplement/fleet/kill.json', '"pre"')}, {ptr(out, 'supplement/fleet/kill.json', '"post"')}, {ptr(out, 'supplement/decisions.jsonl')}"
+        )
+        w("")
     w("## Unsupported claims and limits")
     w("")
     items = []

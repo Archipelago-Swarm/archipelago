@@ -167,6 +167,8 @@ def arm_evidence(arm: str, raw: Path, pre: dict, cfg_faults: list[dict]) -> dict
     ev["B_local_learning_in_cut"] = local_learning(samples, cfg_faults, {kill_ep})
     ev["B_decisions"] = A.split_decisions(recs, halves, cfg_faults, MAX_TICKS)
     rx = {n: final[n]["summaries"].get("rx_ticks", {}) for n in NODES}
+    if (raw / "rx_merged.json").exists():  # supplement: merged over all polls
+        rx = json.loads((raw / "rx_merged.json").read_text())
     ev["B_summaries"] = A.summary_rx_evidence(rx, halves, cfg_faults)
     ev["B_counters"] = {n: {k: final[n]["counters"][k] for k in (
         "offers_sent", "offers_cut", "offers_received", "received_cut", "exchanges",
@@ -319,7 +321,16 @@ def analyze(out: Path, smoke: bool = False) -> dict[str, Any]:
         for a in ARMS:
             for r in tables[a]:
                 w.writerow({"arm": a, **r})
+    sup_raw = out / "supplement" / "fleet"
     excerpt = spool_excerpt(raws, rows)
+    if (
+        sup_raw.exists()
+    ):  # the registered run's kill never fired: the restart boundary is in the supplement
+        sup_rows = [
+            json.loads(x) for x in (out / "supplement" / "decisions.jsonl").read_text().splitlines()
+        ]
+        for x in spool_excerpt({"supplement": sup_raw}, sup_rows):
+            excerpt.append(x)
     with (out / "spool_excerpt.jsonl").open("w") as f:
         for x in excerpt:
             f.write(json.dumps(x) + "\n")
@@ -353,16 +364,60 @@ def spool_excerpt(raws: dict[str, Path], rows: list[dict]) -> list[dict]:
                         }
                     )
                 break
+        else:  # shipped segments are deleted: only the newest records survive in the spool
+            if lines and kill.get("done"):
+                for j in [*range(min(3, len(lines))), len(lines) - 1]:
+                    out.append(
+                        {
+                            "arm": arm,
+                            "node": node,
+                            "why": "retained spool of the restarted node (post-restart boot only)",
+                            "spool_line": j + 1,
+                            **lines[j],
+                        }
+                    )
         first = next(
-            (r for r in rows if r["arm"] == arm and r["cross_cut"] and not r["tick_in_cut_window"]),
+            (
+                r
+                for r in reversed(rows)
+                if r["arm"] == arm and r["cross_cut"] and not r["tick_in_cut_window"]
+            ),
             None,
-        )
+        )  # the spool is capped (20000 records): use the LAST such decision, it is still retained
         if first is not None:
             lines = jl(raw / "node_local" / first["node"] / "spool.jsonl.gz")
             for j, x in enumerate(lines):
                 if x["event_id"] == first["event_id"]:
                     for k in range(max(0, j - 2), min(len(lines), j + 3)):
-                        out.append({"arm": arm, "node": first["node"], "why": "first cross-cut decision after a cut",
+                        out.append({"arm": arm, "node": first["node"], "why": "last cross-cut decision after a cut",
                                     "spool_line": k + 1, **lines[k]})  # fmt: skip
                     break
     return out
+
+
+def analyze_supplement(out: Path) -> dict[str, Any]:
+    """Supplementary short fleet run (not pre-registered): complete summary trace + executed SIGKILL."""
+    import yaml as _y
+    from t30_live import arm_config
+
+    pre = _y.safe_load(PREREG.read_text())
+    raw = out / "supplement" / "fleet"
+    faults = arm_config(pre, "fleet", False)["faults"]
+    ev = arm_evidence("fleet", raw, pre, faults)
+    rows = ev.pop("_rows")
+    ev.pop("_records")
+    res = {
+        "A": claim_a("fleet", ev), "B": claim_b("fleet", ev), "C": ev["C"],
+        "B_decisions": ev["B_decisions"], "B_summaries": ev["B_summaries"],
+        "B_counters": ev["B_counters"], "B_local_learning_in_cut": ev["B_local_learning_in_cut"],
+        "n_decisions": len(rows),
+    }  # fmt: skip
+    (out / "supplement" / "results.json").write_text(json.dumps(res, indent=1, default=str))
+    (out / "supplement" / "decisions.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    print(
+        json.dumps(
+            {"B": res["B"], "C_checks": res["C"].get("checks"), "summ": res["B_summaries"]},
+            indent=1,
+        )
+    )
+    return res

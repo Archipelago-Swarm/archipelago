@@ -1,0 +1,108 @@
+{
+  "config_hash": "256d28424bd36302945789f5d3ba2828faf1cc839e226f0d57135103b16a0084",
+  "final_state_hash": "e0e7c49aad5be94f3a7de86684a745c306d28684b8860700133528eeafcc5d1a",
+  "removed_nodes": [],
+  "replay_sha256": "54947fb48592af79410e68492d12d6415ab1e5b0c42652bbf8fb96edd3863a0f",
+  "run_config": {
+    "action_id": "act-v0",
+    "budgets": {
+      "max_ticks": 150,
+      "max_wall_seconds": 600.0
+    },
+    "fault_schedule": [
+      {
+        "cut_links": [
+          [
+            "node-01",
+            "node-02"
+          ],
+          [
+            "node-01",
+            "node-03"
+          ],
+          [
+            "node-01",
+            "node-04"
+          ],
+          [
+            "node-02",
+            "node-03"
+          ],
+          [
+            "node-02",
+            "node-04"
+          ],
+          [
+            "node-03",
+            "node-04"
+          ]
+        ],
+        "end_tick": 150,
+        "start_tick": 0
+      }
+    ],
+    "kind": "run_config",
+    "learner": "peer_dqn",
+    "mode": "distributed",
+    "nodes": [
+      {
+        "node_id": "node-01",
+        "start_pose": {
+          "heading_rad": 0.0,
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      {
+        "node_id": "node-02",
+        "start_pose": {
+          "heading_rad": 0.0,
+          "x": 15.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      {
+        "node_id": "node-03",
+        "start_pose": {
+          "heading_rad": 0.0,
+          "x": 0.0,
+          "y": 15.0,
+          "z": 0.0
+        }
+      },
+      {
+        "node_id": "node-04",
+        "start_pose": {
+          "heading_rad": 0.0,
+          "x": 15.0,
+          "y": 15.0,
+          "z": 0.0
+        }
+      }
+    ],
+    "observation_id": "obs-v0",
+    "reward_id": "rew-v1",
+    "run_id": "t30-isolated-e113",
+    "scenario_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "schema_version": "0.1.0",
+    "seeds": {
+      "env": 1107,
+      "exploration": 0,
+      "learner": 0,
+      "topology": 0
+    },
+    "simulator": "sim2d",
+    "simulator_version": "0.1.0"
+  },
+  "run_id": "t30-isolated-e113",
+  "seed": 1107,
+  "simulator_version": "0.1.0",
+  "ticks": 55,
+  "world_kwargs": {
+    "battery_scale": 4.0,
+    "n_targets": 8,
+    "size": 16
+  }
+}

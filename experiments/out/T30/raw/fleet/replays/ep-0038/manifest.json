@@ -1,0 +1,100 @@
+{
+  "config_hash": "4dbd9cf61da2c4e1abfa8130d4d298c0de9ea76b94498483fbdece5da7b6fcb7",
+  "final_state_hash": "f3d71c564a40e8e88fc21e5b6666859a059b43b1c5e8b1b2c779f930271ced22",
+  "removed_nodes": [],
+  "replay_sha256": "05ac67869425b19332c88119c74908b36a4c8bb7341401e16c1c6ebd99d64bbe",
+  "run_config": {
+    "action_id": "act-v0",
+    "budgets": {
+      "max_ticks": 150,
+      "max_wall_seconds": 600.0
+    },
+    "fault_schedule": [
+      {
+        "cut_links": [
+          [
+            "node-01",
+            "node-03"
+          ],
+          [
+            "node-01",
+            "node-04"
+          ],
+          [
+            "node-02",
+            "node-03"
+          ],
+          [
+            "node-02",
+            "node-04"
+          ]
+        ],
+        "end_tick": 90,
+        "start_tick": 40
+      }
+    ],
+    "kind": "run_config",
+    "learner": "peer_dqn",
+    "mode": "distributed",
+    "nodes": [
+      {
+        "node_id": "node-01",
+        "start_pose": {
+          "heading_rad": 0.0,
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      {
+        "node_id": "node-02",
+        "start_pose": {
+          "heading_rad": 0.0,
+          "x": 15.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      {
+        "node_id": "node-03",
+        "start_pose": {
+          "heading_rad": 0.0,
+          "x": 0.0,
+          "y": 15.0,
+          "z": 0.0
+        }
+      },
+      {
+        "node_id": "node-04",
+        "start_pose": {
+          "heading_rad": 0.0,
+          "x": 15.0,
+          "y": 15.0,
+          "z": 0.0
+        }
+      }
+    ],
+    "observation_id": "obs-v0",
+    "reward_id": "rew-v1",
+    "run_id": "t30-fleet-e38",
+    "scenario_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "schema_version": "0.1.0",
+    "seeds": {
+      "env": 1038,
+      "exploration": 0,
+      "learner": 0,
+      "topology": 0
+    },
+    "simulator": "sim2d",
+    "simulator_version": "0.1.0"
+  },
+  "run_id": "t30-fleet-e38",
+  "seed": 1038,
+  "simulator_version": "0.1.0",
+  "ticks": 75,
+  "world_kwargs": {
+    "battery_scale": 4.0,
+    "n_targets": 8,
+    "size": 16
+  }
+}

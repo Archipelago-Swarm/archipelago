@@ -1,0 +1,10 @@
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "a8e0cb6e5c9076852a753f98cefe4649a4f6773116b48c42c5ed34e39a8e7653", "tick": 1}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "east", "node-04": "west"}, "events": [], "state_hash": "5bb278bf7be8bb9670254f6f357d368449ce6b7e8bf8c6757f1c92bf6cd4c89e", "tick": 2}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "ec2efd43c4700ba80f1d530a600114218c9ac2c23f48dcd1ed2ab208012e1ec1", "tick": 3}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "36c6fa26d393cac5373a34f4373636d7511022900b1307429c60faa958c32d07", "tick": 4}
+{"actions": {"node-01": "east", "node-02": "east", "node-03": "east", "node-04": "north"}, "events": [{"event": "wall_collision", "node": "node-02", "tick": 5}], "state_hash": "fd60ec69ce0239ee02d89fb121453e7600fb10a6df043bc1b138f39e603b8024", "tick": 5}
+{"actions": {"node-01": "south", "node-02": "south", "node-03": "east", "node-04": "west"}, "events": [], "state_hash": "2a574de970a7fdc810fcabf079355f004c05bb525ea55f7fea3c59524295dc0a", "tick": 6}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "0cff3d05747fad444956d49df5635d7a2b06de2df7358cc40466d3a3ea445207", "tick": 7}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "east", "node-04": "south"}, "events": [], "state_hash": "922a0dd2f2aca9ea832977100c84d366840c338a8de08ea13a59ff5a4b77abe8", "tick": 8}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "east", "node-04": "west"}, "events": [], "state_hash": "45872463544735d90a39a1b82ac3d1a94dac04fa17cda79678d89b104ce1aaf0", "tick": 9}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "95e1fcb13bf47c93cf8fb8e7d0fca8b18b9b0efd29ef73970ecaa5b3d4037c27", "tick": 10}

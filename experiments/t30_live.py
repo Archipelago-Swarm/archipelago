@@ -101,18 +101,22 @@ def checkpoint_current(c, node: str) -> dict:
     return {"current": cur, "counters_json_steps": steps}
 
 
-def run_arm(arm: str, out: Path, smoke: bool) -> int:
+def run_arm(arm: str, out: Path, smoke: bool, supplement: bool = False) -> int:
     from t30_cluster import LiveCluster
 
     pre = load_prereg()
     cfg = arm_config(pre, arm, smoke)
-    raw = out / "raw" / arm
+    if supplement:  # SUPPLEMENT (not pre-registered, see summary): short fleet run, no test seeds
+        cfg["episodes"] = [{"kind": "train", "seed": 1000, "count": 20}]
+        cfg["kill"] = {**cfg["kill"], "at_episode_index": 8, "at_tick_min": 60}
+    raw = out / ("supplement" if supplement else "raw") / arm
     if raw.exists() and (raw / "DONE").exists():
         raise SystemExit(f"{raw} already holds a finished {arm} run; the test seeds are used once")
     shutil.rmtree(raw, ignore_errors=True)
     raw.mkdir(parents=True)
     tmp = Path(tempfile.mkdtemp(prefix=f"t30-{arm}-"))
-    run_id = f"t30-{arm}" + ("-smoke" if smoke else "")
+    run_id = f"t30-{arm}" + ("-smoke" if smoke else "") + ("-supp" if supplement else "")
+    rx_merge: dict = {}
     kill = cfg["kill"]
     c = LiveCluster(
         tmp, exchange_every=pre["plan"]["node_config"]["exchange_every_ticks"],
@@ -131,7 +135,19 @@ def run_arm(arm: str, out: Path, smoke: bool) -> int:
             nodes: dict = {}
             for n in c.nodes:
                 try:
-                    nodes[n] = lean_status(c.node_status(n))
+                    full = c.node_status(n)
+                    nodes[n] = lean_status(full)
+                    if (
+                        supplement
+                    ):  # node keeps rx_ticks for the last 2 episodes only: merge each poll
+                        for ep, per in full["summaries"].get("rx_ticks", {}).items():
+                            for src, ticks in per.items():
+                                tgt = (
+                                    rx_merge.setdefault(n, {})
+                                    .setdefault(ep, {})
+                                    .setdefault(src, [])
+                                )
+                                tgt.extend(t for t in ticks if t not in tgt)
                 except Exception as e:  # noqa: BLE001 - a killed node is expected to be unreachable
                     nodes[n] = {"error": repr(e)}
             samples.write(
@@ -145,8 +161,13 @@ def run_arm(arm: str, out: Path, smoke: bool) -> int:
             if (
                 not kill_rec["done"]
                 and view["status"] == "running"
-                and view["episode"] == kill["at_episode_index"]
-                and view["tick"] >= kill["at_tick_min"]
+                and (
+                    (
+                        view["episode"] == kill["at_episode_index"]
+                        and view["tick"] >= kill["at_tick_min"]
+                    )
+                    or (supplement and view["episode"] > kill["at_episode_index"])
+                )
             ):
                 kill_rec = do_kill(c, kill, view, t0)
             if view["status"] in ("completed", "failed", "interrupted"):
@@ -159,6 +180,8 @@ def run_arm(arm: str, out: Path, smoke: bool) -> int:
         final = c.run_status(run_id)
         wait_telemetry_drained(c)
         collect(c, raw, run_id, final, kill_rec)
+        if supplement:
+            (raw / "rx_merged.json").write_text(json.dumps(rx_merge))
         (raw / "DONE").write_text(json.dumps({"status": status, "wall_s": time.monotonic() - t0}))
         print(f"[{arm}] {status} in {time.monotonic() - t0:.0f}s", flush=True)
         return 0 if status == "completed" else 1
@@ -236,11 +259,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("cmd", choices=["arm", "analyze", "all"])
     ap.add_argument("arm_name", nargs="?", choices=["fleet", "isolated"])
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument(
+        "--supplement", action="store_true", help="short fleet run for claims B(summaries) and C"
+    )
     a = ap.parse_args(argv)
     out = SMOKE_OUT if a.smoke else OUT
     if a.cmd == "arm":
         assert a.arm_name, "arm needs fleet|isolated"
-        return run_arm(a.arm_name, out, a.smoke)
+        code = run_arm(a.arm_name, out, a.smoke, a.supplement)
+        if a.supplement and code == 0:
+            import t30_report
+
+            t30_report.analyze_supplement(out)
+        return code
     if a.cmd == "all":
         extra = ["--smoke"] if a.smoke else []
         procs = [

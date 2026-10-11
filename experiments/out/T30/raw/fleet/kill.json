@@ -1,0 +1,11 @@
+{
+ "planned": {
+  "node": "node-03",
+  "at_episode_index": 70,
+  "at_tick_min": 60,
+  "signal": "SIGKILL",
+  "restart": "immediately, same checkpoint directory and ports",
+  "both_arms": true
+ },
+ "done": false
+}

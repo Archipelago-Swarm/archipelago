@@ -1,0 +1,897 @@
+{
+ "id": "T30",
+ "smoke": false,
+ "prereg_commit": "d41d7d061682c8e6e765cbc7bf90ee6e08aa9f97",
+ "code_commit": "4e504bc1d7df8dcb80cbf802042b4d5e0c7d72dc",
+ "git_dirty": true,
+ "test_seeds": [
+  200,
+  201,
+  202,
+  203,
+  204,
+  205,
+  206,
+  207,
+  208,
+  209,
+  210,
+  211,
+  212,
+  213,
+  214,
+  215,
+  216,
+  217,
+  218,
+  219
+ ],
+ "outcomes": {
+  "means": {
+   "fleet": {
+    "ref_return": 17.76325,
+    "coverage_gain": 0.7222496785646786,
+    "targets_after_spawn": 6.9,
+    "wall_collisions": 2.9,
+    "revisit_rate": 0.16144134241497357,
+    "ticks": 24.3
+   },
+   "isolated": {
+    "ref_return": -24.896250000000002,
+    "coverage_gain": 0.7699595474491243,
+    "targets_after_spawn": 6.45,
+    "wall_collisions": 15.1,
+    "revisit_rate": 0.40455104071292397,
+    "ticks": 72.75
+   },
+   "idle": {
+    "ref_return": -39.0,
+    "coverage_gain": 0.0,
+    "targets_after_spawn": 0.0,
+    "wall_collisions": 0.0,
+    "revisit_rate": 1.0,
+    "ticks": 150.0
+   },
+   "rule": {
+    "ref_return": 28.75725,
+    "coverage_gain": 0.7962561911347406,
+    "targets_after_spawn": 7.0,
+    "wall_collisions": 0.0,
+    "revisit_rate": 0.10293996351969144,
+    "ticks": 44.9
+   }
+  },
+  "paired": {
+   "fleet-idle": {
+    "ref_return": {
+     "mean_diff": 56.763250000000006,
+     "ci95": [
+      38.925784375,
+      66.57681562500002
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 19,
+     "worlds_negative": 1,
+     "verdict": "better"
+    },
+    "coverage_gain": {
+     "mean_diff": 0.7222496785646786,
+     "ci95": [
+      0.6844639940393292,
+      0.75919490509388
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 20,
+     "worlds_negative": 0,
+     "verdict": "better"
+    },
+    "targets_after_spawn": {
+     "mean_diff": 6.9,
+     "ci95": [
+      6.5,
+      7.3
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 20,
+     "worlds_negative": 0,
+     "verdict": "better"
+    },
+    "wall_collisions": {
+     "mean_diff": 2.9,
+     "ci95": [
+      0.4,
+      6.4
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 4,
+     "worlds_negative": 0,
+     "verdict": "better"
+    },
+    "revisit_rate": {
+     "mean_diff": -0.8385586575850266,
+     "ci95": [
+      -0.9168665271247215,
+      -0.7396229449606625
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 0,
+     "worlds_negative": 20,
+     "verdict": "worse"
+    },
+    "ticks": {
+     "mean_diff": -125.7,
+     "ci95": [
+      -134.85,
+      -110.8
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 0,
+     "worlds_negative": 19,
+     "verdict": "worse"
+    }
+   },
+   "fleet-rule": {
+    "ref_return": {
+     "mean_diff": -10.993999999999998,
+     "ci95": [
+      -28.796903125,
+      -1.1392187499999984
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 6,
+     "worlds_negative": 14,
+     "verdict": "worse"
+    },
+    "coverage_gain": {
+     "mean_diff": -0.07400651257006186,
+     "ci95": [
+      -0.11998654792262908,
+      -0.0239363697013433
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 5,
+     "worlds_negative": 14,
+     "verdict": "worse"
+    },
+    "targets_after_spawn": {
+     "mean_diff": -0.1,
+     "ci95": [
+      -0.3,
+      0.0
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 0,
+     "worlds_negative": 1,
+     "verdict": "inconclusive"
+    },
+    "wall_collisions": {
+     "mean_diff": 2.9,
+     "ci95": [
+      0.4,
+      6.4
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 4,
+     "worlds_negative": 0,
+     "verdict": "better"
+    },
+    "revisit_rate": {
+     "mean_diff": 0.05850137889528213,
+     "ci95": [
+      -0.019190423107543902,
+      0.16087584445060216
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 11,
+     "worlds_negative": 9,
+     "verdict": "inconclusive"
+    },
+    "ticks": {
+     "mean_diff": -20.6,
+     "ci95": [
+      -35.85125,
+      -0.7
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 2,
+     "worlds_negative": 18,
+     "verdict": "worse"
+    }
+   },
+   "fleet-isolated": {
+    "ref_return": {
+     "mean_diff": 42.659499999999994,
+     "ci95": [
+      14.864478125000002,
+      74.78610000000002
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 15,
+     "worlds_negative": 5,
+     "verdict": "better"
+    },
+    "coverage_gain": {
+     "mean_diff": -0.04770986888444565,
+     "ci95": [
+      -0.08706131951892816,
+      -0.007756437975240997
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 5,
+     "worlds_negative": 15,
+     "verdict": "worse"
+    },
+    "targets_after_spawn": {
+     "mean_diff": 0.45,
+     "ci95": [
+      0.2,
+      0.7
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 8,
+     "worlds_negative": 0,
+     "verdict": "better"
+    },
+    "wall_collisions": {
+     "mean_diff": -12.2,
+     "ci95": [
+      -33.552499999999995,
+      3.1512500000000045
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 3,
+     "worlds_negative": 6,
+     "verdict": "inconclusive"
+    },
+    "revisit_rate": {
+     "mean_diff": -0.24310969829795043,
+     "ci95": [
+      -0.38460060736121476,
+      -0.1018655445794179
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 4,
+     "worlds_negative": 13,
+     "verdict": "worse"
+    },
+    "ticks": {
+     "mean_diff": -48.45,
+     "ci95": [
+      -75.50125,
+      -20.95
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 5,
+     "worlds_negative": 14,
+     "verdict": "worse"
+    }
+   },
+   "isolated-idle": {
+    "ref_return": {
+     "mean_diff": 14.103750000000002,
+     "ci95": [
+      -23.66453125,
+      46.683640625
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 14,
+     "worlds_negative": 6,
+     "verdict": "inconclusive"
+    },
+    "coverage_gain": {
+     "mean_diff": 0.7699595474491244,
+     "ci95": [
+      0.7371930849181241,
+      0.7996592778690331
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 20,
+     "worlds_negative": 0,
+     "verdict": "better"
+    },
+    "targets_after_spawn": {
+     "mean_diff": 6.45,
+     "ci95": [
+      5.95,
+      6.9
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 20,
+     "worlds_negative": 0,
+     "verdict": "better"
+    },
+    "wall_collisions": {
+     "mean_diff": 15.1,
+     "ci95": [
+      0.7,
+      35.85
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 6,
+     "worlds_negative": 0,
+     "verdict": "better"
+    },
+    "revisit_rate": {
+     "mean_diff": -0.595448959287076,
+     "ci95": [
+      -0.7468250906608414,
+      -0.4461445204651058
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 0,
+     "worlds_negative": 20,
+     "verdict": "worse"
+    },
+    "ticks": {
+     "mean_diff": -77.25,
+     "ci95": [
+      -104.60125,
+      -49.64749999999999
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 0,
+     "worlds_negative": 12,
+     "verdict": "worse"
+    }
+   },
+   "isolated-rule": {
+    "ref_return": {
+     "mean_diff": -53.653499999999994,
+     "ci95": [
+      -90.92939375,
+      -21.520109374999983
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 3,
+     "worlds_negative": 17,
+     "verdict": "worse"
+    },
+    "coverage_gain": {
+     "mean_diff": -0.0262966436856162,
+     "ci95": [
+      -0.06202757624945806,
+      0.007948373337275825
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 9,
+     "worlds_negative": 11,
+     "verdict": "inconclusive"
+    },
+    "targets_after_spawn": {
+     "mean_diff": -0.55,
+     "ci95": [
+      -0.95,
+      -0.25
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 0,
+     "worlds_negative": 8,
+     "verdict": "worse"
+    },
+    "wall_collisions": {
+     "mean_diff": 15.1,
+     "ci95": [
+      0.7,
+      35.85
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 6,
+     "worlds_negative": 0,
+     "verdict": "better"
+    },
+    "revisit_rate": {
+     "mean_diff": 0.3016110771932326,
+     "ci95": [
+      0.15245737502343526,
+      0.4527328276760639
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 13,
+     "worlds_negative": 7,
+     "verdict": "better"
+    },
+    "ticks": {
+     "mean_diff": 27.85,
+     "ci95": [
+      -4.35,
+      60.30125
+     ],
+     "n_worlds": 20,
+     "worlds_positive": 9,
+     "worlds_negative": 11,
+     "verdict": "inconclusive"
+    }
+   }
+  }
+ },
+ "episode_kinds": {
+  "fleet": {
+   "train": 150,
+   "validation": 9,
+   "test": 20
+  },
+  "isolated": {
+   "train": 150,
+   "validation": 9,
+   "test": 20
+  }
+ },
+ "run": {
+  "fleet": {
+   "status": "completed",
+   "wall_s": 880.2808845639993
+  },
+  "isolated": {
+   "status": "completed",
+   "wall_s": 1026.3591928389997
+  }
+ },
+ "coordinator": {
+  "fleet": {
+   "node-01": {
+    "health": "ready",
+    "consecutive_misses": 0,
+    "deadline_misses": 0,
+    "feedback_failures": 0
+   },
+   "node-02": {
+    "health": "ready",
+    "consecutive_misses": 0,
+    "deadline_misses": 0,
+    "feedback_failures": 0
+   },
+   "node-03": {
+    "health": "ready",
+    "consecutive_misses": 0,
+    "deadline_misses": 0,
+    "feedback_failures": 0
+   },
+   "node-04": {
+    "health": "ready",
+    "consecutive_misses": 0,
+    "deadline_misses": 0,
+    "feedback_failures": 0
+   }
+  },
+  "isolated": {
+   "node-01": {
+    "health": "ready",
+    "consecutive_misses": 0,
+    "deadline_misses": 0,
+    "feedback_failures": 0
+   },
+   "node-02": {
+    "health": "ready",
+    "consecutive_misses": 0,
+    "deadline_misses": 0,
+    "feedback_failures": 0
+   },
+   "node-03": {
+    "health": "ready",
+    "consecutive_misses": 0,
+    "deadline_misses": 0,
+    "feedback_failures": 0
+   },
+   "node-04": {
+    "health": "ready",
+    "consecutive_misses": 0,
+    "deadline_misses": 0,
+    "feedback_failures": 0
+   }
+  }
+ },
+ "claims": {
+  "fleet": {
+   "A": {
+    "checks": {
+     "every node train_steps > 0": true,
+     "every node own replay non-empty": true,
+     "local_update telemetry events on every node": true,
+     "backend is torch-cpu": true
+    },
+    "supported": true,
+    "detail": {
+     "node-01": {
+      "train_steps_final": 7763,
+      "replay_size_final": 8587,
+      "policy_sha256": "713206c269633f519e02d38c5260bec9f325a0ebbdc2e34f3b305aee7d472e92",
+      "policy_version": 7955,
+      "boot_id": "6537b775",
+      "local_update_events": 389,
+      "checkpoint_generation": 221,
+      "epsilon_final": 0.0,
+      "encoder_id": "grid-flat-v2-visits-shared-s16-r2",
+      "reward_id": "rew-v1",
+      "learner_schedule_id": "sched-t37-v1",
+      "backend": "torch-cpu",
+      "torch_version": "2.14.1+cu130"
+     },
+     "node-02": {
+      "train_steps_final": 7816,
+      "replay_size_final": 8587,
+      "policy_sha256": "89c9ed30c8c6fddc376b527e38895c1b76911ec6bc5c66bd634e16c248eecfa0",
+      "policy_version": 8092,
+      "boot_id": "a3989e78",
+      "local_update_events": 392,
+      "checkpoint_generation": 221,
+      "epsilon_final": 0.0,
+      "encoder_id": "grid-flat-v2-visits-shared-s16-r2",
+      "reward_id": "rew-v1",
+      "learner_schedule_id": "sched-t37-v1",
+      "backend": "torch-cpu",
+      "torch_version": "2.14.1+cu130"
+     },
+     "node-03": {
+      "train_steps_final": 7801,
+      "replay_size_final": 8587,
+      "policy_sha256": "d001d764c7a9b5e51a20168e540e6de8dd72d079be5da83d078674c4ca9a825a",
+      "policy_version": 8018,
+      "boot_id": "de9ef7d1",
+      "local_update_events": 388,
+      "checkpoint_generation": 221,
+      "epsilon_final": 0.0,
+      "encoder_id": "grid-flat-v2-visits-shared-s16-r2",
+      "reward_id": "rew-v1",
+      "learner_schedule_id": "sched-t37-v1",
+      "backend": "torch-cpu",
+      "torch_version": "2.14.1+cu130"
+     },
+     "node-04": {
+      "train_steps_final": 7847,
+      "replay_size_final": 8587,
+      "policy_sha256": "d001d764c7a9b5e51a20168e540e6de8dd72d079be5da83d078674c4ca9a825a",
+      "policy_version": 8120,
+      "boot_id": "bbf79c7c",
+      "local_update_events": 393,
+      "checkpoint_generation": 221,
+      "epsilon_final": 0.0,
+      "encoder_id": "grid-flat-v2-visits-shared-s16-r2",
+      "reward_id": "rew-v1",
+      "learner_schedule_id": "sched-t37-v1",
+      "backend": "torch-cpu",
+      "torch_version": "2.14.1+cu130"
+     }
+    },
+    "distinct_hashes": 3,
+    "hash_samples": {
+     "n_samples": 863,
+     "share_with_4_distinct": 0.8667439165701043,
+     "min_distinct": 1,
+     "max_distinct": 4
+    }
+   },
+   "B": {
+    "checks": {
+     "(i) train_steps rose inside the cut window in every sampled episode, every node": true,
+     "(ii) no cross-cut offer decided inside the cut window": true,
+     "(iii) no cross-cut visit summary applied inside the cut window": true,
+     "(iv) offers_cut>0 and summaries_cut>0 on every node (receiver refusals are reported, amendment 2)": true,
+     "(v) cross-cut offers decided after the cut ended (exchange resumed), with reasons": true,
+     "(v') open same-side peers kept exchanging inside the cut (positive control)": false,
+     "cross-cut summaries do flow outside the window (positive control)": true
+    },
+    "supported": false,
+    "B_local_learning_in_cut": {
+     "node-01": {
+      "episodes_with_growth_in_window": 57,
+      "episodes_flat_in_window": 0
+     },
+     "node-02": {
+      "episodes_with_growth_in_window": 57,
+      "episodes_flat_in_window": 0
+     },
+     "node-03": {
+      "episodes_with_growth_in_window": 57,
+      "episodes_flat_in_window": 0
+     },
+     "node-04": {
+      "episodes_with_growth_in_window": 57,
+      "episodes_flat_in_window": 0
+     }
+    },
+    "B_decisions": {
+     "decisions": 3279,
+     "accepted": 958,
+     "rejected": 2321,
+     "cross_inside_cut": [],
+     "cross_outside_cut": 1863,
+     "same_side_inside_cut": 470,
+     "same_side_outside_cut": 946,
+     "unknown_source": 0,
+     "by_reason": {
+      "candidate": 1310,
+      "accepted": 958,
+      "window_limit": 1011
+     }
+    },
+    "B_summaries": {
+     "cross_applied_inside_cut": 0,
+     "cross_applied_outside_cut": 136,
+     "same_side_applied_inside_cut": 0,
+     "same_side_applied_outside_cut": 68
+    },
+    "B_counters": {
+     "node-01": {
+      "offers_sent": 918,
+      "offers_cut": 284,
+      "offers_received": 917,
+      "received_cut": 11,
+      "exchanges": 405,
+      "decisions_accepted": 192,
+      "decisions_rejected": 651,
+      "decisions_window_limit": 210,
+      "summaries_sent": 23158,
+      "summaries_cut": 5454,
+      "summaries_received": 23160,
+      "summaries_received_cut": 0,
+      "summaries_applied": 23160,
+      "feedback_deadline_missed": 0,
+      "feedbacks": 8587
+     },
+     "node-02": {
+      "offers_sent": 915,
+      "offers_cut": 284,
+      "offers_received": 920,
+      "received_cut": 9,
+      "exchanges": 405,
+      "decisions_accepted": 276,
+      "decisions_rejected": 559,
+      "decisions_window_limit": 299,
+      "summaries_sent": 23154,
+      "summaries_cut": 5454,
+      "summaries_received": 23160,
+      "summaries_received_cut": 0,
+      "summaries_applied": 23160,
+      "feedback_deadline_missed": 0,
+      "feedbacks": 8587
+     },
+     "node-03": {
+      "offers_sent": 911,
+      "offers_cut": 284,
+      "offers_received": 920,
+      "received_cut": 13,
+      "exchanges": 405,
+      "decisions_accepted": 217,
+      "decisions_rejected": 609,
+      "decisions_window_limit": 239,
+      "summaries_sent": 23160,
+      "summaries_cut": 5454,
+      "summaries_received": 23159,
+      "summaries_received_cut": 0,
+      "summaries_applied": 23159,
+      "feedback_deadline_missed": 0,
+      "feedbacks": 8587
+     },
+     "node-04": {
+      "offers_sent": 928,
+      "offers_cut": 284,
+      "offers_received": 914,
+      "received_cut": 28,
+      "exchanges": 405,
+      "decisions_accepted": 273,
+      "decisions_rejected": 502,
+      "decisions_window_limit": 263,
+      "summaries_sent": 23162,
+      "summaries_cut": 5454,
+      "summaries_received": 23158,
+      "summaries_received_cut": 3,
+      "summaries_applied": 23155,
+      "feedback_deadline_missed": 0,
+      "feedbacks": 8587
+     }
+    }
+   },
+   "C": {
+    "node": "node-03",
+    "kill_executed": false
+   }
+  },
+  "isolated": {
+   "A": {
+    "checks": {
+     "every node train_steps > 0": true,
+     "every node own replay non-empty": true,
+     "local_update telemetry events on every node": true,
+     "backend is torch-cpu": true,
+     "four distinct final policy hashes": true
+    },
+    "supported": true,
+    "detail": {
+     "node-01": {
+      "train_steps_final": 9839,
+      "replay_size_final": 9870,
+      "policy_sha256": "50e6244f48546a2fcc6754e76f6060a19417a675c3c10684f66f03016b9de136",
+      "policy_version": 9839,
+      "boot_id": "02b5cb66",
+      "local_update_events": 451,
+      "checkpoint_generation": 228,
+      "epsilon_final": 0.0,
+      "encoder_id": "grid-flat-v2-visits-shared-s16-r2",
+      "reward_id": "rew-v1",
+      "learner_schedule_id": "sched-t37-v1",
+      "backend": "torch-cpu",
+      "torch_version": "2.14.1+cu130"
+     },
+     "node-02": {
+      "train_steps_final": 9839,
+      "replay_size_final": 9870,
+      "policy_sha256": "60a3ea92820b6234029bf31f6b08445267f6af1396244a3f4c62278a52c2901a",
+      "policy_version": 9839,
+      "boot_id": "a478cb98",
+      "local_update_events": 452,
+      "checkpoint_generation": 228,
+      "epsilon_final": 0.0,
+      "encoder_id": "grid-flat-v2-visits-shared-s16-r2",
+      "reward_id": "rew-v1",
+      "learner_schedule_id": "sched-t37-v1",
+      "backend": "torch-cpu",
+      "torch_version": "2.14.1+cu130"
+     },
+     "node-03": {
+      "train_steps_final": 9839,
+      "replay_size_final": 9870,
+      "policy_sha256": "ef1d08298e73013cd8b9d727bcf9ad0e156a5a97f69becb37d7a9b9a79d0a43e",
+      "policy_version": 9839,
+      "boot_id": "483e2695",
+      "local_update_events": 451,
+      "checkpoint_generation": 228,
+      "epsilon_final": 0.0,
+      "encoder_id": "grid-flat-v2-visits-shared-s16-r2",
+      "reward_id": "rew-v1",
+      "learner_schedule_id": "sched-t37-v1",
+      "backend": "torch-cpu",
+      "torch_version": "2.14.1+cu130"
+     },
+     "node-04": {
+      "train_steps_final": 9839,
+      "replay_size_final": 9870,
+      "policy_sha256": "5e0794900a61654e00d248537aa79cba323d41b7b1716963b0ed542c23d77ae2",
+      "policy_version": 9839,
+      "boot_id": "0a4d5135",
+      "local_update_events": 452,
+      "checkpoint_generation": 228,
+      "epsilon_final": 0.0,
+      "encoder_id": "grid-flat-v2-visits-shared-s16-r2",
+      "reward_id": "rew-v1",
+      "learner_schedule_id": "sched-t37-v1",
+      "backend": "torch-cpu",
+      "torch_version": "2.14.1+cu130"
+     }
+    },
+    "distinct_hashes": 4,
+    "hash_samples": {
+     "n_samples": 1008,
+     "share_with_4_distinct": 1.0,
+     "min_distinct": 4,
+     "max_distinct": 4
+    }
+   },
+   "B": {
+    "checks": {
+     "train_steps rose in every sampled episode, every node": true,
+     "zero model decisions from any peer": true,
+     "zero visit summaries applied from any peer": true,
+     "offers_cut>0; nothing sent, nothing received": true
+    },
+    "supported": true,
+    "B_local_learning_in_cut": {
+     "node-01": {
+      "episodes_with_growth_in_window": 130,
+      "episodes_flat_in_window": 0
+     },
+     "node-02": {
+      "episodes_with_growth_in_window": 130,
+      "episodes_flat_in_window": 0
+     },
+     "node-03": {
+      "episodes_with_growth_in_window": 131,
+      "episodes_flat_in_window": 0
+     },
+     "node-04": {
+      "episodes_with_growth_in_window": 131,
+      "episodes_flat_in_window": 0
+     }
+    },
+    "B_decisions": {
+     "decisions": 0,
+     "accepted": 0,
+     "rejected": 0,
+     "cross_inside_cut": [],
+     "cross_outside_cut": 0,
+     "same_side_inside_cut": 0,
+     "same_side_outside_cut": 0,
+     "unknown_source": 0,
+     "by_reason": {}
+    },
+    "B_summaries": {
+     "cross_applied_inside_cut": 0,
+     "cross_applied_outside_cut": 0,
+     "same_side_applied_inside_cut": 0,
+     "same_side_applied_outside_cut": 0
+    },
+    "B_counters": {
+     "node-01": {
+      "offers_sent": 0,
+      "offers_cut": 1281,
+      "offers_received": 0,
+      "received_cut": 0,
+      "exchanges": 451,
+      "decisions_accepted": 0,
+      "decisions_rejected": 0,
+      "decisions_window_limit": 0,
+      "summaries_sent": 0,
+      "summaries_cut": 0,
+      "summaries_received": 0,
+      "summaries_received_cut": 0,
+      "summaries_applied": 0,
+      "feedback_deadline_missed": 0,
+      "feedbacks": 9870
+     },
+     "node-02": {
+      "offers_sent": 0,
+      "offers_cut": 1281,
+      "offers_received": 0,
+      "received_cut": 0,
+      "exchanges": 451,
+      "decisions_accepted": 0,
+      "decisions_rejected": 0,
+      "decisions_window_limit": 0,
+      "summaries_sent": 0,
+      "summaries_cut": 0,
+      "summaries_received": 0,
+      "summaries_received_cut": 0,
+      "summaries_applied": 0,
+      "feedback_deadline_missed": 0,
+      "feedbacks": 9870
+     },
+     "node-03": {
+      "offers_sent": 0,
+      "offers_cut": 1281,
+      "offers_received": 0,
+      "received_cut": 0,
+      "exchanges": 451,
+      "decisions_accepted": 0,
+      "decisions_rejected": 0,
+      "decisions_window_limit": 0,
+      "summaries_sent": 0,
+      "summaries_cut": 0,
+      "summaries_received": 0,
+      "summaries_received_cut": 0,
+      "summaries_applied": 0,
+      "feedback_deadline_missed": 0,
+      "feedbacks": 9870
+     },
+     "node-04": {
+      "offers_sent": 0,
+      "offers_cut": 1281,
+      "offers_received": 0,
+      "received_cut": 0,
+      "exchanges": 451,
+      "decisions_accepted": 0,
+      "decisions_rejected": 0,
+      "decisions_window_limit": 0,
+      "summaries_sent": 0,
+      "summaries_cut": 0,
+      "summaries_received": 0,
+      "summaries_received_cut": 0,
+      "summaries_applied": 0,
+      "feedback_deadline_missed": 0,
+      "feedbacks": 9870
+     }
+    }
+   },
+   "C": {
+    "node": "node-03",
+    "kill_executed": false
+   }
+  }
+ },
+ "decisions_D": {
+  "fleet_beats_idle_all_three": true,
+  "isolated_beats_idle_all_three": false,
+  "fleet_beats_rule_on_ref_return": false,
+  "fleet_vs_rule_ref_return": "worse",
+  "fleet_beats_isolated_on_ref_return": true,
+  "fleet_vs_isolated_ref_return": "better"
+ }
+}

@@ -1,0 +1,19 @@
+{"actions": {"node-01": "east", "node-02": "north", "node-03": "north", "node-04": "west"}, "events": [{"event": "wall_collision", "node": "node-02", "tick": 1}], "state_hash": "cd54ea07fdf6d730458a383309e7053a52c805d265fd195dea1c19707d4c1eb3", "tick": 1}
+{"actions": {"node-01": "south", "node-02": "stay", "node-03": "north", "node-04": "west"}, "events": [], "state_hash": "e251309ef9f489331dc274f2588c8b9bf04f2d7dd190276303c0fbf322090e64", "tick": 2}
+{"actions": {"node-01": "south", "node-02": "south", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "6d80c2ec6b49af495b4a828511213fa3100a7e537f258b5b54e47fd823769c12", "tick": 3}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "east", "node-04": "north"}, "events": [{"event": "wall_collision", "node": "node-03", "tick": 4}], "state_hash": "0a2df7e12771c8e4f5335901556db08db8d71ef65417cebe92b090eb4022df7d", "tick": 4}
+{"actions": {"node-01": "south", "node-02": "south", "node-03": "north", "node-04": "west"}, "events": [], "state_hash": "66fbb6c041c9d94a181a453cd2a691a124118f94f482f4e47859e4523a6e669b", "tick": 5}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "301f71db77dcd757fcdbce56ca6ed391524a8a08f24150ff26871143b5b4bbe0", "tick": 6}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "east", "node-04": "west"}, "events": [], "state_hash": "bc6ba4e95f7f67beedb60c977056427f86d75b428f5417b8d20735f1a10e5e37", "tick": 7}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "east", "node-04": "west"}, "events": [], "state_hash": "3a6c71a334a334d38de4be20fb2aad1726973bea4d8d9cb8191bedb35ceeb01f", "tick": 8}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "north", "node-04": "west"}, "events": [], "state_hash": "1788c4f023a81661dbe29c87934e65ece6efe3260dc003eea0244c3b2fe10204", "tick": 9}
+{"actions": {"node-01": "south", "node-02": "south", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "99bca27c0ad1cd2f2c01c4ddb73861e90e921ef010dcc7617a18837dbfbcac5e", "tick": 10}
+{"actions": {"node-01": "south", "node-02": "south", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "dec831ac9e6b6014447e711a933456eea5919193dda3cc89b69510d67321c61d", "tick": 11}
+{"actions": {"node-01": "south", "node-02": "east", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "71be9d237dff8bb0725bc3047d4482d896676c37c1814e6343dada95aa11de17", "tick": 12}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "west", "node-04": "north"}, "events": [], "state_hash": "1a72021d84eae5c29d83fedfa820119af92b09e16e933838f0cbf7bc8000f93c", "tick": 13}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "fb50267a755b14d8787122919e44569116bd2f66358bd457715a7cbcb3b90d76", "tick": 14}
+{"actions": {"node-01": "north", "node-02": "south", "node-03": "west", "node-04": "north"}, "events": [], "state_hash": "23da30968ce771f99d9cbc2b2afc739a477cdaa5f1f21a1d3e7d9fb6a1304c02", "tick": 15}
+{"actions": {"node-01": "north", "node-02": "south", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "5eeb28b7841a0551915849189b867a3003a90818df0ba1c8fce9bd430518b7bb", "tick": 16}
+{"actions": {"node-01": "north", "node-02": "south", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "c54cd24443215155c2cc19cd99524a8ec0747a5f5e0a99fa9f9191ba51025d02", "tick": 17}
+{"actions": {"node-01": "north", "node-02": "east", "node-03": "west", "node-04": "north"}, "events": [], "state_hash": "46c866129372eec0353c72078293fc6038a0bc45d86d53c7989371a894e45c49", "tick": 18}
+{"actions": {"node-01": "north", "node-02": "south", "node-03": "south", "node-04": "north"}, "events": [], "state_hash": "79ea40db0c1bfeaf69f8713726ee823d117ade1dff1580b15cdd35a283f3ad2d", "tick": 19}

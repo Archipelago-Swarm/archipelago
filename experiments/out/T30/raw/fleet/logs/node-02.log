@@ -1,0 +1,1 @@
+{"event": "node_ready", "node_id": "node-02", "boot_id": "a3989e78", "control_url": "http://127.0.0.1:43413", "peer_url": "http://127.0.0.1:40583", "restore": {"restored": false}}

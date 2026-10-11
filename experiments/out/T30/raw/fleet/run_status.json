@@ -1,0 +1,5076 @@
+{
+ "run_id": "t30-fleet",
+ "status": "completed",
+ "revision": 3,
+ "episode": 178,
+ "episode_kind": "test",
+ "episodes_total": 179,
+ "tick": 8,
+ "phase": "eval",
+ "fault_phase": "none",
+ "nodes": {
+  "node-01": {
+   "health": "ready",
+   "consecutive_misses": 0,
+   "deadline_misses": 0,
+   "feedback_failures": 0
+  },
+  "node-02": {
+   "health": "ready",
+   "consecutive_misses": 0,
+   "deadline_misses": 0,
+   "feedback_failures": 0
+  },
+  "node-03": {
+   "health": "ready",
+   "consecutive_misses": 0,
+   "deadline_misses": 0,
+   "feedback_failures": 0
+  },
+  "node-04": {
+   "health": "ready",
+   "consecutive_misses": 0,
+   "deadline_misses": 0,
+   "feedback_failures": 0
+  }
+ },
+ "config_hash": "7509a33d5fd0fd14a810532734d6e7139f8f5d2a4e3c564dcb0101308886a9ac",
+ "ids": {
+  "reward_id": "rew-v1",
+  "reward_source": "plan",
+  "encoder_id": "grid-flat-v2-visits-shared-s16-r2",
+  "learner_schedule_id": "sched-t37-v1"
+ },
+ "plan_name": "t30-fleet",
+ "plan_file_sha256": "3ba6a0d2b2c053c35cb8e15696bf76467f9d9b3f3a4535d81602ee55c4337355",
+ "node_config_hashes": {
+  "node-02": "7bb024ab4cb5dc0158471c51c156a7826fe4cfd630a5141451f2d0f774acdc45",
+  "node-01": "7bb024ab4cb5dc0158471c51c156a7826fe4cfd630a5141451f2d0f774acdc45",
+  "node-03": "7bb024ab4cb5dc0158471c51c156a7826fe4cfd630a5141451f2d0f774acdc45",
+  "node-04": "7bb024ab4cb5dc0158471c51c156a7826fe4cfd630a5141451f2d0f774acdc45"
+ },
+ "fault_schedule_hash": "5934b1d03930fd87774c19d06b382195d877dd318529a9ce651ff05d78f20330",
+ "commit": "t30",
+ "events_dropped": 0,
+ "latest_sequence": 20259,
+ "timing": {
+  "last_tick_ms": 48.08433300058823,
+  "max_tick_ms": 256.3465220009675
+ },
+ "stop_reason": "plan_complete",
+ "error": null,
+ "episodes_done": [
+  {
+   "episode": 0,
+   "kind": "train",
+   "seed": 1000,
+   "ticks": 150,
+   "final_state_hash": "f02d8f1001c4ef4a3eaa104d918f8973e1e798a4f355d68267d9d16316b46479",
+   "coverage": 0.9356223175965666,
+   "returns": {
+    "node-01": -65.9999999999999,
+    "node-02": -43.74999999999983,
+    "node-03": -44.49999999999995,
+    "node-04": -45.99999999999997
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0000/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e0",
+    "node-02": "node-02-a3989e78-e0",
+    "node-03": "node-03-de9ef7d1-e0",
+    "node-04": "node-04-bbf79c7c-e0"
+   }
+  },
+  {
+   "episode": 1,
+   "kind": "train",
+   "seed": 1001,
+   "ticks": 137,
+   "final_state_hash": "3bb0d03104281745d09f442e0b8828f04aad4621f47751adc3bb32c9ed4e8f87",
+   "coverage": 0.9112149532710281,
+   "returns": {
+    "node-01": -68.87000000000013,
+    "node-02": -56.61999999999999,
+    "node-03": -52.119999999999834,
+    "node-04": -66.86999999999989
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0001/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e1",
+    "node-02": "node-02-a3989e78-e1",
+    "node-03": "node-03-de9ef7d1-e1",
+    "node-04": "node-04-bbf79c7c-e1"
+   }
+  },
+  {
+   "episode": 2,
+   "kind": "train",
+   "seed": 1002,
+   "ticks": 150,
+   "final_state_hash": "b01be41d8abd63574ab26568a9b5235d8db8bcbac8c2226abbc1e26b859d6a0e",
+   "coverage": 0.9644444444444444,
+   "returns": {
+    "node-01": -52.499999999999844,
+    "node-02": -75.00000000000016,
+    "node-03": -54.74999999999994,
+    "node-04": -7.999999999999975
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0002/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e2",
+    "node-02": "node-02-a3989e78-e2",
+    "node-03": "node-03-de9ef7d1-e2",
+    "node-04": "node-04-bbf79c7c-e2"
+   }
+  },
+  {
+   "episode": 3,
+   "kind": "train",
+   "seed": 1003,
+   "ticks": 95,
+   "final_state_hash": "07e43e66a689c1415223769e54b6a228b966b293fa9a81165020e1556264dfcf",
+   "coverage": 0.9652173913043478,
+   "returns": {
+    "node-01": -28.200000000000003,
+    "node-02": -18.699999999999985,
+    "node-03": -3.4499999999999984,
+    "node-04": -9.949999999999982
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0003/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e3",
+    "node-02": "node-02-a3989e78-e3",
+    "node-03": "node-03-de9ef7d1-e3",
+    "node-04": "node-04-bbf79c7c-e3"
+   }
+  },
+  {
+   "episode": 4,
+   "kind": "train",
+   "seed": 1004,
+   "ticks": 82,
+   "final_state_hash": "3048759a1474d499d3f993c7014990b9d7370f18af680d6849da35d6e901749e",
+   "coverage": 0.8311111111111111,
+   "returns": {
+    "node-01": -28.070000000000046,
+    "node-02": -15.569999999999986,
+    "node-03": -11.069999999999986,
+    "node-04": -31.070000000000032
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0004/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e4",
+    "node-02": "node-02-a3989e78-e4",
+    "node-03": "node-03-de9ef7d1-e4",
+    "node-04": "node-04-bbf79c7c-e4"
+   }
+  },
+  {
+   "episode": 5,
+   "kind": "train",
+   "seed": 1005,
+   "ticks": 150,
+   "final_state_hash": "5ca448691e60e3f9f1a8d3ab288020e7de5158b4ef157589ce4f449dab600bd7",
+   "coverage": 0.8634361233480177,
+   "returns": {
+    "node-01": -49.74999999999995,
+    "node-02": -81.25000000000014,
+    "node-03": -52.24999999999997,
+    "node-04": -37.75000000000004
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0005/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e5",
+    "node-02": "node-02-a3989e78-e5",
+    "node-03": "node-03-de9ef7d1-e5",
+    "node-04": "node-04-bbf79c7c-e5"
+   }
+  },
+  {
+   "episode": 6,
+   "kind": "train",
+   "seed": 1006,
+   "ticks": 115,
+   "final_state_hash": "5110d2f9e12b364a135fad786d516a5ab7c5427f38a87c79aad33c0de0c54285",
+   "coverage": 0.9330357142857143,
+   "returns": {
+    "node-01": -33.65000000000005,
+    "node-02": -15.149999999999986,
+    "node-03": -31.90000000000004,
+    "node-04": -21.400000000000023
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0006/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e6",
+    "node-02": "node-02-a3989e78-e6",
+    "node-03": "node-03-de9ef7d1-e6",
+    "node-04": "node-04-bbf79c7c-e6"
+   }
+  },
+  {
+   "episode": 7,
+   "kind": "train",
+   "seed": 1007,
+   "ticks": 94,
+   "final_state_hash": "0c266298363b860a3764c39e15e091e7fb255dd4e067474998ad496b1bc9305d",
+   "coverage": 0.9276018099547512,
+   "returns": {
+    "node-01": -1.1899999999999882,
+    "node-02": 1.3100000000000163,
+    "node-03": -126.69000000000017,
+    "node-04": 7.060000000000012
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0007/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e7",
+    "node-02": "node-02-a3989e78-e7",
+    "node-03": "node-03-de9ef7d1-e7",
+    "node-04": "node-04-bbf79c7c-e7"
+   }
+  },
+  {
+   "episode": 8,
+   "kind": "train",
+   "seed": 1008,
+   "ticks": 43,
+   "final_state_hash": "c71ca744d50192cb47f480b9127c7ea129453d6f50882f52f4cfa655e3dab10b",
+   "coverage": 0.7654867256637168,
+   "returns": {
+    "node-01": 6.31999999999999,
+    "node-02": -4.679999999999993,
+    "node-03": -11.179999999999993,
+    "node-04": 23.819999999999986
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0008/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e8",
+    "node-02": "node-02-a3989e78-e8",
+    "node-03": "node-03-de9ef7d1-e8",
+    "node-04": "node-04-bbf79c7c-e8"
+   }
+  },
+  {
+   "episode": 9,
+   "kind": "train",
+   "seed": 1009,
+   "ticks": 71,
+   "final_state_hash": "c791c54345bfea3d952e5d9338b331e106c770d561bc61bb347e7da92782b9e8",
+   "coverage": 0.8738738738738738,
+   "returns": {
+    "node-01": 7.539999999999985,
+    "node-02": -2.7099999999999893,
+    "node-03": -34.96000000000003,
+    "node-04": 1.0400000000000043
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0009/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e9",
+    "node-02": "node-02-a3989e78-e9",
+    "node-03": "node-03-de9ef7d1-e9",
+    "node-04": "node-04-bbf79c7c-e9"
+   }
+  },
+  {
+   "episode": 10,
+   "kind": "train",
+   "seed": 1010,
+   "ticks": 137,
+   "final_state_hash": "7808f2fa752d10b47aecc8e5ba6a5b323ca93bda7ea24bea14b28ca884b76d0e",
+   "coverage": 0.8818181818181818,
+   "returns": {
+    "node-01": -85.37000000000012,
+    "node-02": -10.86999999999998,
+    "node-03": -108.87000000000032,
+    "node-04": -67.62000000000015
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0010/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e10",
+    "node-02": "node-02-a3989e78-e10",
+    "node-03": "node-03-de9ef7d1-e10",
+    "node-04": "node-04-bbf79c7c-e10"
+   }
+  },
+  {
+   "episode": 11,
+   "kind": "train",
+   "seed": 1011,
+   "ticks": 93,
+   "final_state_hash": "fc6585823d4367826d06a1d2d390f65fa9f7988275b2cff64c5fd48e962048b5",
+   "coverage": 0.9292035398230089,
+   "returns": {
+    "node-01": -22.930000000000003,
+    "node-02": -40.17999999999998,
+    "node-03": -26.430000000000003,
+    "node-04": 0.8200000000000116
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0011/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e11",
+    "node-02": "node-02-a3989e78-e11",
+    "node-03": "node-03-de9ef7d1-e11",
+    "node-04": "node-04-bbf79c7c-e11"
+   }
+  },
+  {
+   "episode": 12,
+   "kind": "train",
+   "seed": 1012,
+   "ticks": 85,
+   "final_state_hash": "1a839b29725a68037d9c4500692863ffc49b7312c0bbff4ae17bb5c2ded7f4eb",
+   "coverage": 0.991304347826087,
+   "returns": {
+    "node-01": 12.650000000000016,
+    "node-02": -16.84999999999999,
+    "node-03": 16.649999999999984,
+    "node-04": -12.599999999999987
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0012/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e12",
+    "node-02": "node-02-a3989e78-e12",
+    "node-03": "node-03-de9ef7d1-e12",
+    "node-04": "node-04-bbf79c7c-e12"
+   }
+  },
+  {
+   "episode": 13,
+   "kind": "train",
+   "seed": 1013,
+   "ticks": 30,
+   "final_state_hash": "1e11cf1056f79c773533789d98922a41236ff70097ae45721ab441803d1235af",
+   "coverage": 0.6828193832599119,
+   "returns": {
+    "node-01": 1.9500000000000037,
+    "node-02": 2.2000000000000037,
+    "node-03": 13.450000000000003,
+    "node-04": 0.2000000000000044
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0013/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e13",
+    "node-02": "node-02-a3989e78-e13",
+    "node-03": "node-03-de9ef7d1-e13",
+    "node-04": "node-04-bbf79c7c-e13"
+   }
+  },
+  {
+   "episode": 14,
+   "kind": "train",
+   "seed": 1014,
+   "ticks": 150,
+   "final_state_hash": "f7b8b497c2076d11b3c57fd1c0bf5db926814ee73d42f1df25572b6e86ff297e",
+   "coverage": 0.9508928571428571,
+   "returns": {
+    "node-01": -17.750000000000032,
+    "node-02": -35.999999999999986,
+    "node-03": -76.9999999999999,
+    "node-04": -26.25000000000003
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0014/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e14",
+    "node-02": "node-02-a3989e78-e14",
+    "node-03": "node-03-de9ef7d1-e14",
+    "node-04": "node-04-bbf79c7c-e14"
+   }
+  },
+  {
+   "episode": 15,
+   "kind": "train",
+   "seed": 1015,
+   "ticks": 150,
+   "final_state_hash": "b2042e8b3a8a694a24d4e0a23cf79d306f1f3af77707c72325309c22335c4973",
+   "coverage": 0.8831168831168831,
+   "returns": {
+    "node-01": -28.50000000000003,
+    "node-02": -16.500000000000057,
+    "node-03": -83.00000000000004,
+    "node-04": -41.49999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0015/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e15",
+    "node-02": "node-02-a3989e78-e15",
+    "node-03": "node-03-de9ef7d1-e15",
+    "node-04": "node-04-bbf79c7c-e15"
+   }
+  },
+  {
+   "episode": 16,
+   "kind": "train",
+   "seed": 1016,
+   "ticks": 38,
+   "final_state_hash": "29994cd72f7dd90942e9dd6ff2a000d10f6326e7e3c4a9c8a5169fc23de84890",
+   "coverage": 0.8506787330316742,
+   "returns": {
+    "node-01": 15.619999999999987,
+    "node-02": 2.8700000000000054,
+    "node-03": 24.12,
+    "node-04": -2.6299999999999955
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0016/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e16",
+    "node-02": "node-02-a3989e78-e16",
+    "node-03": "node-03-de9ef7d1-e16",
+    "node-04": "node-04-bbf79c7c-e16"
+   }
+  },
+  {
+   "episode": 17,
+   "kind": "train",
+   "seed": 1017,
+   "ticks": 71,
+   "final_state_hash": "df7789be3a3ab08ff9a37ca6125582563651e6b64892e47611408c2a0767f1be",
+   "coverage": 0.9690265486725663,
+   "returns": {
+    "node-01": -26.71000000000005,
+    "node-02": -0.9599999999999909,
+    "node-03": 17.04000000000001,
+    "node-04": 13.54
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0017/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e17",
+    "node-02": "node-02-a3989e78-e17",
+    "node-03": "node-03-de9ef7d1-e17",
+    "node-04": "node-04-bbf79c7c-e17"
+   }
+  },
+  {
+   "episode": 18,
+   "kind": "train",
+   "seed": 1018,
+   "ticks": 89,
+   "final_state_hash": "ac5048715b8cc2ab66296243daf40458bc9bab621a27d72f81726d38ad7f4077",
+   "coverage": 0.9111111111111111,
+   "returns": {
+    "node-01": -9.389999999999985,
+    "node-02": 6.109999999999966,
+    "node-03": -18.640000000000015,
+    "node-04": -0.8899999999999875
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0018/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e18",
+    "node-02": "node-02-a3989e78-e18",
+    "node-03": "node-03-de9ef7d1-e18",
+    "node-04": "node-04-bbf79c7c-e18"
+   }
+  },
+  {
+   "episode": 19,
+   "kind": "train",
+   "seed": 1019,
+   "ticks": 75,
+   "final_state_hash": "a12ffd1a6fca558fd36ad94d7b1b2bac05abab5bda407deb4b3a53a738541c34",
+   "coverage": 0.9868995633187773,
+   "returns": {
+    "node-01": 3.7499999999999876,
+    "node-02": 14.749999999999943,
+    "node-03": 17.24999999999993,
+    "node-04": -5.2500000000000036
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0019/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e19",
+    "node-02": "node-02-a3989e78-e19",
+    "node-03": "node-03-de9ef7d1-e19",
+    "node-04": "node-04-bbf79c7c-e19"
+   }
+  },
+  {
+   "episode": 20,
+   "kind": "train",
+   "seed": 1020,
+   "ticks": 57,
+   "final_state_hash": "6f8cd9f58bcb18dcb73c45ab3c88ca157cfcdea1a99c6c196cad2d01cd024079",
+   "coverage": 0.9822222222222222,
+   "returns": {
+    "node-01": 4.929999999999982,
+    "node-02": 15.43,
+    "node-03": -3.5699999999999905,
+    "node-04": 14.179999999999978
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0020/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e20",
+    "node-02": "node-02-a3989e78-e20",
+    "node-03": "node-03-de9ef7d1-e20",
+    "node-04": "node-04-bbf79c7c-e20"
+   }
+  },
+  {
+   "episode": 21,
+   "kind": "train",
+   "seed": 1021,
+   "ticks": 72,
+   "final_state_hash": "648b51f55390d25d8a5f5a998640496f9a985431af6563deef4a6b5af56b1177",
+   "coverage": 0.9722222222222222,
+   "returns": {
+    "node-01": -25.220000000000002,
+    "node-02": 31.279999999999944,
+    "node-03": -35.21999999999998,
+    "node-04": -8.219999999999985
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0021/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e21",
+    "node-02": "node-02-a3989e78-e21",
+    "node-03": "node-03-de9ef7d1-e21",
+    "node-04": "node-04-bbf79c7c-e21"
+   }
+  },
+  {
+   "episode": 22,
+   "kind": "train",
+   "seed": 1022,
+   "ticks": 35,
+   "final_state_hash": "9af6ffd17d0d458067c55ad2ba9fd43d789c4ceb48663d874f1065d34aa82104",
+   "coverage": 0.905829596412556,
+   "returns": {
+    "node-01": 6.4000000000000075,
+    "node-02": 21.149999999999977,
+    "node-03": 21.89999999999998,
+    "node-04": 28.9
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0022/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e22",
+    "node-02": "node-02-a3989e78-e22",
+    "node-03": "node-03-de9ef7d1-e22",
+    "node-04": "node-04-bbf79c7c-e22"
+   }
+  },
+  {
+   "episode": 23,
+   "kind": "train",
+   "seed": 1023,
+   "ticks": 16,
+   "final_state_hash": "5e954ff0bb290dd617b0562850731c955337c2bb57e54b25d9464b15d5535ed3",
+   "coverage": 0.6278026905829597,
+   "returns": {
+    "node-01": 18.840000000000003,
+    "node-02": 13.090000000000003,
+    "node-03": 21.839999999999996,
+    "node-04": -5.159999999999997
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0023/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e23",
+    "node-02": "node-02-a3989e78-e23",
+    "node-03": "node-03-de9ef7d1-e23",
+    "node-04": "node-04-bbf79c7c-e23"
+   }
+  },
+  {
+   "episode": 24,
+   "kind": "train",
+   "seed": 1024,
+   "ticks": 29,
+   "final_state_hash": "32a22fa0d1bfda29c25d3fef8167d4e6f002bc87b35617d5cbdf0dee3ed0cefe",
+   "coverage": 0.7797356828193832,
+   "returns": {
+    "node-01": 20.71,
+    "node-02": 22.459999999999983,
+    "node-03": 4.460000000000005,
+    "node-04": 21.209999999999983
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0024/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e24",
+    "node-02": "node-02-a3989e78-e24",
+    "node-03": "node-03-de9ef7d1-e24",
+    "node-04": "node-04-bbf79c7c-e24"
+   }
+  },
+  {
+   "episode": 25,
+   "kind": "train",
+   "seed": 1025,
+   "ticks": 144,
+   "final_state_hash": "1d5af337d53d52e68a6356f825d44b7046cfcccd9d58ac136af175e4877eba61",
+   "coverage": 0.9457013574660633,
+   "returns": {
+    "node-01": -46.939999999999934,
+    "node-02": -18.94000000000007,
+    "node-03": -33.940000000000026,
+    "node-04": -74.19000000000008
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0025/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e25",
+    "node-02": "node-02-a3989e78-e25",
+    "node-03": "node-03-de9ef7d1-e25",
+    "node-04": "node-04-bbf79c7c-e25"
+   }
+  },
+  {
+   "episode": 26,
+   "kind": "train",
+   "seed": 1026,
+   "ticks": 77,
+   "final_state_hash": "48c406a847ff72c5170dc7ebc930d7800c64692808cd3010c131ccb779236dc7",
+   "coverage": 0.9587155963302753,
+   "returns": {
+    "node-01": -29.019999999999992,
+    "node-02": 19.979999999999926,
+    "node-03": -9.519999999999989,
+    "node-04": -8.019999999999989
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0026/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e26",
+    "node-02": "node-02-a3989e78-e26",
+    "node-03": "node-03-de9ef7d1-e26",
+    "node-04": "node-04-bbf79c7c-e26"
+   }
+  },
+  {
+   "episode": 27,
+   "kind": "train",
+   "seed": 1027,
+   "ticks": 59,
+   "final_state_hash": "3e03c8ac4a09aaa37c4a35b81529305051c2354ea567ac95595cc6b65aade345",
+   "coverage": 0.8944954128440367,
+   "returns": {
+    "node-01": -0.8399999999999939,
+    "node-02": 24.15999999999995,
+    "node-03": 2.9100000000000072,
+    "node-04": -13.589999999999991
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0027/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e27",
+    "node-02": "node-02-a3989e78-e27",
+    "node-03": "node-03-de9ef7d1-e27",
+    "node-04": "node-04-bbf79c7c-e27"
+   }
+  },
+  {
+   "episode": 28,
+   "kind": "train",
+   "seed": 1028,
+   "ticks": 150,
+   "final_state_hash": "c2465f42a2d4f134ee23383f0c35b556bf3d95d63142f08c692c0da3c288e393",
+   "coverage": 0.9497716894977168,
+   "returns": {
+    "node-01": -23.25000000000002,
+    "node-02": -53.74999999999995,
+    "node-03": -63.499999999999964,
+    "node-04": -66.99999999999994
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0028/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e28",
+    "node-02": "node-02-a3989e78-e28",
+    "node-03": "node-03-de9ef7d1-e28",
+    "node-04": "node-04-bbf79c7c-e28"
+   }
+  },
+  {
+   "episode": 29,
+   "kind": "train",
+   "seed": 1029,
+   "ticks": 51,
+   "final_state_hash": "88ab2ed6ffb4173f6fb2adaadece3f88472c11f0ff1a62373e63af94506f679d",
+   "coverage": 0.8947368421052632,
+   "returns": {
+    "node-01": 16.989999999999974,
+    "node-02": 26.73999999999996,
+    "node-03": -7.759999999999989,
+    "node-04": -20.010000000000005
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0029/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e29",
+    "node-02": "node-02-a3989e78-e29",
+    "node-03": "node-03-de9ef7d1-e29",
+    "node-04": "node-04-bbf79c7c-e29"
+   }
+  },
+  {
+   "episode": 30,
+   "kind": "train",
+   "seed": 1030,
+   "ticks": 55,
+   "final_state_hash": "1264303b712bf93a68e0d4e7c026b94b76a0acb433ab02c2d627233263f81dc7",
+   "coverage": 0.9517543859649122,
+   "returns": {
+    "node-01": 16.199999999999985,
+    "node-02": 13.950000000000012,
+    "node-03": 30.950000000000074,
+    "node-04": -16.29999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0030/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e30",
+    "node-02": "node-02-a3989e78-e30",
+    "node-03": "node-03-de9ef7d1-e30",
+    "node-04": "node-04-bbf79c7c-e30"
+   }
+  },
+  {
+   "episode": 31,
+   "kind": "train",
+   "seed": 1031,
+   "ticks": 80,
+   "final_state_hash": "a03823f713092cc1348bfcb2d49fa86786dc1baf0716152a3ff89e9b4c76746c",
+   "coverage": 0.947136563876652,
+   "returns": {
+    "node-01": 17.19999999999996,
+    "node-02": -4.0500000000000504,
+    "node-03": 1.44999999999998,
+    "node-04": 16.699999999999918
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0031/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e31",
+    "node-02": "node-02-a3989e78-e31",
+    "node-03": "node-03-de9ef7d1-e31",
+    "node-04": "node-04-bbf79c7c-e31"
+   }
+  },
+  {
+   "episode": 32,
+   "kind": "train",
+   "seed": 1032,
+   "ticks": 123,
+   "final_state_hash": "40ad531547434a691b1a9697a9b129bc47452142aeaf1fdcc8fc51cd59ad352c",
+   "coverage": 1.0,
+   "returns": {
+    "node-01": -22.73000000000001,
+    "node-02": -8.47999999999998,
+    "node-03": -6.979999999999977,
+    "node-04": 13.01999999999993
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0032/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e32",
+    "node-02": "node-02-a3989e78-e32",
+    "node-03": "node-03-de9ef7d1-e32",
+    "node-04": "node-04-bbf79c7c-e32"
+   }
+  },
+  {
+   "episode": 33,
+   "kind": "train",
+   "seed": 1033,
+   "ticks": 56,
+   "final_state_hash": "5fcf1d689a78f417b55d508c6bea96be6941ab9017ea5282024366341c7f909f",
+   "coverage": 0.9783549783549783,
+   "returns": {
+    "node-01": 19.689999999999994,
+    "node-02": 8.939999999999952,
+    "node-03": -12.309999999999988,
+    "node-04": 13.440000000000012
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0033/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e33",
+    "node-02": "node-02-a3989e78-e33",
+    "node-03": "node-03-de9ef7d1-e33",
+    "node-04": "node-04-bbf79c7c-e33"
+   }
+  },
+  {
+   "episode": 34,
+   "kind": "train",
+   "seed": 1034,
+   "ticks": 150,
+   "final_state_hash": "fe8dfee80c5807dba4b9d55f5aa245617fd4a9fceb22ce28af74187f20b8489e",
+   "coverage": 0.9124423963133641,
+   "returns": {
+    "node-01": -77.50000000000007,
+    "node-02": -34.75,
+    "node-03": -81.75000000000017,
+    "node-04": -55.49999999999992
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0034/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e34",
+    "node-02": "node-02-a3989e78-e34",
+    "node-03": "node-03-de9ef7d1-e34",
+    "node-04": "node-04-bbf79c7c-e34"
+   }
+  },
+  {
+   "episode": 35,
+   "kind": "train",
+   "seed": 1035,
+   "ticks": 150,
+   "final_state_hash": "b5062a6ed9e8db269d5c782311866fb06912e3891e840e2769d63dc72773e408",
+   "coverage": 0.958904109589041,
+   "returns": {
+    "node-01": -78.0,
+    "node-02": 0.7499999999999583,
+    "node-03": -62.999999999999964,
+    "node-04": -300.9999999999994
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0035/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e35",
+    "node-02": "node-02-a3989e78-e35",
+    "node-03": "node-03-de9ef7d1-e35",
+    "node-04": "node-04-bbf79c7c-e35"
+   }
+  },
+  {
+   "episode": 36,
+   "kind": "train",
+   "seed": 1036,
+   "ticks": 94,
+   "final_state_hash": "2219f567e4095dba9ba0fa1c870627fdf1f5b0454c1f34a8da669bca74f33cd8",
+   "coverage": 0.918918918918919,
+   "returns": {
+    "node-01": 7.809999999999997,
+    "node-02": -158.93999999999994,
+    "node-03": 13.559999999999972,
+    "node-04": -27.439999999999934
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0036/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e36",
+    "node-02": "node-02-a3989e78-e36",
+    "node-03": "node-03-de9ef7d1-e36",
+    "node-04": "node-04-bbf79c7c-e36"
+   }
+  },
+  {
+   "episode": 37,
+   "kind": "train",
+   "seed": 1037,
+   "ticks": 15,
+   "final_state_hash": "059507c476f5d2509b462395cb66bfdf7de48810d925cf299c90f7ff4fd8f7d8",
+   "coverage": 0.6577777777777778,
+   "returns": {
+    "node-01": 23.35,
+    "node-02": 13.100000000000003,
+    "node-03": 19.6,
+    "node-04": 23.1
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0037/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e37",
+    "node-02": "node-02-a3989e78-e37",
+    "node-03": "node-03-de9ef7d1-e37",
+    "node-04": "node-04-bbf79c7c-e37"
+   }
+  },
+  {
+   "episode": 38,
+   "kind": "train",
+   "seed": 1038,
+   "ticks": 75,
+   "final_state_hash": "f3d71c564a40e8e88fc21e5b6666859a059b43b1c5e8b1b2c779f930271ced22",
+   "coverage": 0.9823008849557522,
+   "returns": {
+    "node-01": 13.499999999999941,
+    "node-02": 1.2212453270876722e-14,
+    "node-03": 22.499999999999925,
+    "node-04": -4.999999999999988
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0038/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e38",
+    "node-02": "node-02-a3989e78-e38",
+    "node-03": "node-03-de9ef7d1-e38",
+    "node-04": "node-04-bbf79c7c-e38"
+   }
+  },
+  {
+   "episode": 39,
+   "kind": "train",
+   "seed": 1039,
+   "ticks": 104,
+   "final_state_hash": "39f9e535a805f2e250ebc1cf53bd2b6b868373fd2bf7d4612b392d8de1cc86f3",
+   "coverage": 0.9269406392694064,
+   "returns": {
+    "node-01": -21.79000000000003,
+    "node-02": -20.290000000000003,
+    "node-03": -2.039999999999993,
+    "node-04": -9.790000000000044
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0039/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e39",
+    "node-02": "node-02-a3989e78-e39",
+    "node-03": "node-03-de9ef7d1-e39",
+    "node-04": "node-04-bbf79c7c-e39"
+   }
+  },
+  {
+   "episode": 40,
+   "kind": "train",
+   "seed": 1040,
+   "ticks": 66,
+   "final_state_hash": "76c1f480fd34f4d9a3e22c6130a802bec00fa3f5722895b3566541bfe199958f",
+   "coverage": 0.9699570815450643,
+   "returns": {
+    "node-01": 23.33999999999993,
+    "node-02": 14.589999999999936,
+    "node-03": 27.840000000000018,
+    "node-04": -19.66000000000002
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0040/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e40",
+    "node-02": "node-02-a3989e78-e40",
+    "node-03": "node-03-de9ef7d1-e40",
+    "node-04": "node-04-bbf79c7c-e40"
+   }
+  },
+  {
+   "episode": 41,
+   "kind": "train",
+   "seed": 1041,
+   "ticks": 150,
+   "final_state_hash": "e1e3c21d38448f8d3ade1c9673d93a72e7c11e184b11153e2545397107f84373",
+   "coverage": 0.9915611814345991,
+   "returns": {
+    "node-01": -6.750155989720952e-14,
+    "node-02": -23.500000000000018,
+    "node-03": -63.499999999999964,
+    "node-04": -35.75000000000005
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0041/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e41",
+    "node-02": "node-02-a3989e78-e41",
+    "node-03": "node-03-de9ef7d1-e41",
+    "node-04": "node-04-bbf79c7c-e41"
+   }
+  },
+  {
+   "episode": 42,
+   "kind": "train",
+   "seed": 1042,
+   "ticks": 42,
+   "final_state_hash": "7832a624a016cc3a974672114b9bbf08cf992adb0fe41cfc42b60b0696923ba0",
+   "coverage": 0.8956521739130435,
+   "returns": {
+    "node-01": 22.079999999999977,
+    "node-02": 16.07999999999999,
+    "node-03": 24.079999999999952,
+    "node-04": 32.079999999999984
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0042/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e42",
+    "node-02": "node-02-a3989e78-e42",
+    "node-03": "node-03-de9ef7d1-e42",
+    "node-04": "node-04-bbf79c7c-e42"
+   }
+  },
+  {
+   "episode": 43,
+   "kind": "train",
+   "seed": 1043,
+   "ticks": 40,
+   "final_state_hash": "3084a01cfc4c9080419b78a4955304fbb3e3c877eb891a94b85eb3c7f643aded",
+   "coverage": 0.9282700421940928,
+   "returns": {
+    "node-01": 3.8500000000000085,
+    "node-02": 28.84999999999997,
+    "node-03": 31.84999999999995,
+    "node-04": 20.599999999999994
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0043/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e43",
+    "node-02": "node-02-a3989e78-e43",
+    "node-03": "node-03-de9ef7d1-e43",
+    "node-04": "node-04-bbf79c7c-e43"
+   }
+  },
+  {
+   "episode": 44,
+   "kind": "train",
+   "seed": 1044,
+   "ticks": 132,
+   "final_state_hash": "8f49f181636c5f7e9fbc819e721eeb4c461a30ddeb7b6c4e173057a03e1297ba",
+   "coverage": 0.9911504424778761,
+   "returns": {
+    "node-01": 14.679999999999994,
+    "node-02": -18.569999999999997,
+    "node-03": -30.320000000000004,
+    "node-04": -5.569999999999977
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0044/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e44",
+    "node-02": "node-02-a3989e78-e44",
+    "node-03": "node-03-de9ef7d1-e44",
+    "node-04": "node-04-bbf79c7c-e44"
+   }
+  },
+  {
+   "episode": 45,
+   "kind": "train",
+   "seed": 1045,
+   "ticks": 30,
+   "final_state_hash": "98c633244e5a69a4e2aa6d65c8af8a074d6279d4dd49f4be63e7fb2e727eb307",
+   "coverage": 0.875,
+   "returns": {
+    "node-01": 17.200000000000006,
+    "node-02": -15.550000000000006,
+    "node-03": 41.19999999999999,
+    "node-04": 3.2000000000000064
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0045/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e45",
+    "node-02": "node-02-a3989e78-e45",
+    "node-03": "node-03-de9ef7d1-e45",
+    "node-04": "node-04-bbf79c7c-e45"
+   }
+  },
+  {
+   "episode": 46,
+   "kind": "train",
+   "seed": 1046,
+   "ticks": 85,
+   "final_state_hash": "28817e3d329961bc235279d224a54678f5659ec4968fa60de360b049a7ed4b6b",
+   "coverage": 1.0,
+   "returns": {
+    "node-01": 0.14999999999993108,
+    "node-02": -10.349999999999994,
+    "node-03": -3.3500000000000325,
+    "node-04": -11.099999999999987
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0046/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e46",
+    "node-02": "node-02-a3989e78-e46",
+    "node-03": "node-03-de9ef7d1-e46",
+    "node-04": "node-04-bbf79c7c-e46"
+   }
+  },
+  {
+   "episode": 47,
+   "kind": "train",
+   "seed": 1047,
+   "ticks": 9,
+   "final_state_hash": "dc1ad2d78039bba06970d2f704dddbfd4d6e464195a730bbb1c2df0adf6681d4",
+   "coverage": 0.5466666666666666,
+   "returns": {
+    "node-01": 15.410000000000002,
+    "node-02": 4.160000000000002,
+    "node-03": 12.910000000000002,
+    "node-04": 18.910000000000004
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0047/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e47",
+    "node-02": "node-02-a3989e78-e47",
+    "node-03": "node-03-de9ef7d1-e47",
+    "node-04": "node-04-bbf79c7c-e47"
+   }
+  },
+  {
+   "episode": 48,
+   "kind": "train",
+   "seed": 1048,
+   "ticks": 74,
+   "final_state_hash": "d6a39b5dc5ac649fe56d5a3d9ea8baaf24232dd388dd6e72519ef639ec162261",
+   "coverage": 0.96,
+   "returns": {
+    "node-01": 17.259999999999923,
+    "node-02": 14.259999999999993,
+    "node-03": 11.509999999999938,
+    "node-04": -14.239999999999984
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0048/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e48",
+    "node-02": "node-02-a3989e78-e48",
+    "node-03": "node-03-de9ef7d1-e48",
+    "node-04": "node-04-bbf79c7c-e48"
+   }
+  },
+  {
+   "episode": 49,
+   "kind": "train",
+   "seed": 1049,
+   "ticks": 23,
+   "final_state_hash": "c9549e50def9f082075963566b450a27cd324484737c144c6bb94ba404ddd78e",
+   "coverage": 0.8508771929824561,
+   "returns": {
+    "node-01": 22.269999999999985,
+    "node-02": 28.26999999999999,
+    "node-03": 27.019999999999982,
+    "node-04": 16.020000000000003
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0049/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e49",
+    "node-02": "node-02-a3989e78-e49",
+    "node-03": "node-03-de9ef7d1-e49",
+    "node-04": "node-04-bbf79c7c-e49"
+   }
+  },
+  {
+   "episode": 50,
+   "kind": "validation",
+   "seed": 100,
+   "ticks": 6,
+   "final_state_hash": "c9397ea0540fc81b78faaf663173bbc2794e89ba3e4804af91bea14c569afba6",
+   "coverage": 0.5288888888888889,
+   "returns": {
+    "node-01": 18.94,
+    "node-02": 18.94,
+    "node-03": 18.94,
+    "node-04": 15.940000000000001
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0050/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e50",
+    "node-02": "node-02-a3989e78-e50",
+    "node-03": "node-03-de9ef7d1-e50",
+    "node-04": "node-04-bbf79c7c-e50"
+   }
+  },
+  {
+   "episode": 51,
+   "kind": "validation",
+   "seed": 101,
+   "ticks": 150,
+   "final_state_hash": "d8f866b20565e21df5c14480257840b09a2aad4f94dbf2213a4701198795adbf",
+   "coverage": 0.8177777777777778,
+   "returns": {
+    "node-01": -6.217248937900877e-14,
+    "node-02": -276.9999999999995,
+    "node-03": -280.4999999999995,
+    "node-04": -333.99999999999926
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0051/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e51",
+    "node-02": "node-02-a3989e78-e51",
+    "node-03": "node-03-de9ef7d1-e51",
+    "node-04": "node-04-bbf79c7c-e51"
+   }
+  },
+  {
+   "episode": 52,
+   "kind": "validation",
+   "seed": 102,
+   "ticks": 27,
+   "final_state_hash": "70e6833e41f9d3779d26d4f202e0683186895f1765fb33172c0b2b09ab4a7d7a",
+   "coverage": 0.908695652173913,
+   "returns": {
+    "node-01": 27.479999999999976,
+    "node-02": 24.479999999999976,
+    "node-03": 17.979999999999972,
+    "node-04": 38.98
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0052/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e52",
+    "node-02": "node-02-a3989e78-e52",
+    "node-03": "node-03-de9ef7d1-e52",
+    "node-04": "node-04-bbf79c7c-e52"
+   }
+  },
+  {
+   "episode": 53,
+   "kind": "train",
+   "seed": 1050,
+   "ticks": 80,
+   "final_state_hash": "ff40317acc286eda1c09363f2f0527218282cc3bd336663896beababdea3a6c0",
+   "coverage": 0.9681818181818181,
+   "returns": {
+    "node-01": 16.199999999999974,
+    "node-02": 21.449999999999953,
+    "node-03": 16.949999999999946,
+    "node-04": -59.0499999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0053/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e53",
+    "node-02": "node-02-a3989e78-e53",
+    "node-03": "node-03-de9ef7d1-e53",
+    "node-04": "node-04-bbf79c7c-e53"
+   }
+  },
+  {
+   "episode": 54,
+   "kind": "train",
+   "seed": 1051,
+   "ticks": 52,
+   "final_state_hash": "f8d3cbd323f0a9bd32aa8af12cdaef22b49588d55bd6ec7213da92c5a11ce2ec",
+   "coverage": 0.8947368421052632,
+   "returns": {
+    "node-01": 20.729999999999954,
+    "node-02": 19.47999999999995,
+    "node-03": -6.5199999999999925,
+    "node-04": -34.019999999999975
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0054/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e54",
+    "node-02": "node-02-a3989e78-e54",
+    "node-03": "node-03-de9ef7d1-e54",
+    "node-04": "node-04-bbf79c7c-e54"
+   }
+  },
+  {
+   "episode": 55,
+   "kind": "train",
+   "seed": 1052,
+   "ticks": 26,
+   "final_state_hash": "d9aca56595c1112a7c34de18f58880d8fa13c62e406794be636ba84b677f630a",
+   "coverage": 0.7931034482758621,
+   "returns": {
+    "node-01": 21.489999999999988,
+    "node-02": 26.239999999999977,
+    "node-03": 18.739999999999984,
+    "node-04": -1.2599999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0055/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e55",
+    "node-02": "node-02-a3989e78-e55",
+    "node-03": "node-03-de9ef7d1-e55",
+    "node-04": "node-04-bbf79c7c-e55"
+   }
+  },
+  {
+   "episode": 56,
+   "kind": "train",
+   "seed": 1053,
+   "ticks": 56,
+   "final_state_hash": "59aed8b073327b63b086158f0a9dbec96bdcc0f59e2d19e438f942d96e58d323",
+   "coverage": 0.9644444444444444,
+   "returns": {
+    "node-01": 24.939999999999955,
+    "node-02": 13.439999999999978,
+    "node-03": 15.439999999999946,
+    "node-04": 3.6899999999999693
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0056/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e56",
+    "node-02": "node-02-a3989e78-e56",
+    "node-03": "node-03-de9ef7d1-e56",
+    "node-04": "node-04-bbf79c7c-e56"
+   }
+  },
+  {
+   "episode": 57,
+   "kind": "train",
+   "seed": 1054,
+   "ticks": 17,
+   "final_state_hash": "e1c47ffe2000bedae35bab5cd42256c46a5fb94452fab932549cb254d812a747",
+   "coverage": 0.851528384279476,
+   "returns": {
+    "node-01": 33.08,
+    "node-02": 27.079999999999988,
+    "node-03": 22.58,
+    "node-04": 28.579999999999984
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0057/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e57",
+    "node-02": "node-02-a3989e78-e57",
+    "node-03": "node-03-de9ef7d1-e57",
+    "node-04": "node-04-bbf79c7c-e57"
+   }
+  },
+  {
+   "episode": 58,
+   "kind": "train",
+   "seed": 1055,
+   "ticks": 77,
+   "final_state_hash": "e159eea49c2b688f93a8f4aac874a62fcf4de946e8413b0390c07758534592b5",
+   "coverage": 0.991304347826087,
+   "returns": {
+    "node-01": 26.229999999999958,
+    "node-02": 16.729999999999905,
+    "node-03": -20.27000000000002,
+    "node-04": 19.479999999999905
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0058/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e58",
+    "node-02": "node-02-a3989e78-e58",
+    "node-03": "node-03-de9ef7d1-e58",
+    "node-04": "node-04-bbf79c7c-e58"
+   }
+  },
+  {
+   "episode": 59,
+   "kind": "train",
+   "seed": 1056,
+   "ticks": 38,
+   "final_state_hash": "8ffe78c675f1d2720cca307fd0c0a98565a3d4d575a03e0127652513ed92fe3b",
+   "coverage": 0.9694323144104804,
+   "returns": {
+    "node-01": -21.879999999999995,
+    "node-02": 33.87000000000005,
+    "node-03": 10.370000000000006,
+    "node-04": 44.620000000000005
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0059/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e59",
+    "node-02": "node-02-a3989e78-e59",
+    "node-03": "node-03-de9ef7d1-e59",
+    "node-04": "node-04-bbf79c7c-e59"
+   }
+  },
+  {
+   "episode": 60,
+   "kind": "train",
+   "seed": 1057,
+   "ticks": 33,
+   "final_state_hash": "cc5449c16eacf8926739f909b8fd6a609045e12dccb3c250c67dab87e4f4a716",
+   "coverage": 0.8678414096916299,
+   "returns": {
+    "node-01": 39.920000000000016,
+    "node-02": -20.079999999999995,
+    "node-03": 42.16999999999999,
+    "node-04": -61.829999999999956
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0060/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e60",
+    "node-02": "node-02-a3989e78-e60",
+    "node-03": "node-03-de9ef7d1-e60",
+    "node-04": "node-04-bbf79c7c-e60"
+   }
+  },
+  {
+   "episode": 61,
+   "kind": "train",
+   "seed": 1058,
+   "ticks": 12,
+   "final_state_hash": "50b54f2264a1667b9415d608bb4d1da7580242a078c866a378b9333547b9ee85",
+   "coverage": 0.7217391304347827,
+   "returns": {
+    "node-01": 21.63,
+    "node-02": 25.379999999999995,
+    "node-03": 25.63,
+    "node-04": 27.129999999999995
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0061/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e61",
+    "node-02": "node-02-a3989e78-e61",
+    "node-03": "node-03-de9ef7d1-e61",
+    "node-04": "node-04-bbf79c7c-e61"
+   }
+  },
+  {
+   "episode": 62,
+   "kind": "train",
+   "seed": 1059,
+   "ticks": 40,
+   "final_state_hash": "4a220c408b50841252b46be6f3dc8f5c3a4ce107f67c1a80780de8f7f65aad5c",
+   "coverage": 0.9285714285714286,
+   "returns": {
+    "node-01": 29.59999999999997,
+    "node-02": -2.400000000000018,
+    "node-03": -33.64999999999996,
+    "node-04": 28.849999999999966
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0062/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e62",
+    "node-02": "node-02-a3989e78-e62",
+    "node-03": "node-03-de9ef7d1-e62",
+    "node-04": "node-04-bbf79c7c-e62"
+   }
+  },
+  {
+   "episode": 63,
+   "kind": "train",
+   "seed": 1060,
+   "ticks": 13,
+   "final_state_hash": "f77fb3a3b1a6088ded0c1d30ca47b3c008e82a9e3c045a79a1764346866eaabe",
+   "coverage": 0.8444444444444444,
+   "returns": {
+    "node-01": 24.619999999999994,
+    "node-02": 27.370000000000005,
+    "node-03": 21.62,
+    "node-04": 31.869999999999994
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0063/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e63",
+    "node-02": "node-02-a3989e78-e63",
+    "node-03": "node-03-de9ef7d1-e63",
+    "node-04": "node-04-bbf79c7c-e63"
+   }
+  },
+  {
+   "episode": 64,
+   "kind": "train",
+   "seed": 1061,
+   "ticks": 32,
+   "final_state_hash": "18e0aed21361758328e1f41982c0c0f470dee6c03193dae8317f777803f58f83",
+   "coverage": 0.9601769911504425,
+   "returns": {
+    "node-01": 29.679999999999982,
+    "node-02": 26.929999999999964,
+    "node-03": 32.67999999999998,
+    "node-04": 18.42999999999997
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0064/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e64",
+    "node-02": "node-02-a3989e78-e64",
+    "node-03": "node-03-de9ef7d1-e64",
+    "node-04": "node-04-bbf79c7c-e64"
+   }
+  },
+  {
+   "episode": 65,
+   "kind": "train",
+   "seed": 1062,
+   "ticks": 14,
+   "final_state_hash": "2366398159dadde2d6dab1a15604d9e6a39ca89e0feac32b7a14c24488eb80c6",
+   "coverage": 0.8063063063063063,
+   "returns": {
+    "node-01": 22.36,
+    "node-02": 30.36,
+    "node-03": 28.110000000000003,
+    "node-04": 23.36
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0065/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e65",
+    "node-02": "node-02-a3989e78-e65",
+    "node-03": "node-03-de9ef7d1-e65",
+    "node-04": "node-04-bbf79c7c-e65"
+   }
+  },
+  {
+   "episode": 66,
+   "kind": "train",
+   "seed": 1063,
+   "ticks": 17,
+   "final_state_hash": "8f9cbb39b5454661cbb9dda6f7755e2c44b2d23bbaac27289b18fc8898a4fb3b",
+   "coverage": 0.8956521739130435,
+   "returns": {
+    "node-01": 33.82999999999999,
+    "node-02": 33.32999999999999,
+    "node-03": 25.07999999999999,
+    "node-04": 28.07999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0066/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e66",
+    "node-02": "node-02-a3989e78-e66",
+    "node-03": "node-03-de9ef7d1-e66",
+    "node-04": "node-04-bbf79c7c-e66"
+   }
+  },
+  {
+   "episode": 67,
+   "kind": "train",
+   "seed": 1064,
+   "ticks": 27,
+   "final_state_hash": "fda7eceb51eddcefd6f330ce27ca4c915a965ace15ee2824217d64000d38f408",
+   "coverage": 0.9036697247706422,
+   "returns": {
+    "node-01": 18.97999999999999,
+    "node-02": 27.979999999999976,
+    "node-03": 27.22999999999998,
+    "node-04": 26.479999999999983
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0067/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e67",
+    "node-02": "node-02-a3989e78-e67",
+    "node-03": "node-03-de9ef7d1-e67",
+    "node-04": "node-04-bbf79c7c-e67"
+   }
+  },
+  {
+   "episode": 68,
+   "kind": "train",
+   "seed": 1065,
+   "ticks": 150,
+   "final_state_hash": "6b1213169ef70b0c297daa15df8c979f449925947cbe9c4888d401bf5ee7ac48",
+   "coverage": 0.9601769911504425,
+   "returns": {
+    "node-01": -57.499999999999844,
+    "node-02": -19.00000000000005,
+    "node-03": -9.25000000000006,
+    "node-04": -6.250000000000073
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0068/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e68",
+    "node-02": "node-02-a3989e78-e68",
+    "node-03": "node-03-de9ef7d1-e68",
+    "node-04": "node-04-bbf79c7c-e68"
+   }
+  },
+  {
+   "episode": 69,
+   "kind": "train",
+   "seed": 1066,
+   "ticks": 46,
+   "final_state_hash": "81608a354b64080117232870195b8ac5deffaa9045211a5841af1b525277ff2c",
+   "coverage": 0.9252336448598131,
+   "returns": {
+    "node-01": 9.540000000000008,
+    "node-02": -4.460000000000027,
+    "node-03": 26.039999999999946,
+    "node-04": 0.04000000000000359
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0069/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e69",
+    "node-02": "node-02-a3989e78-e69",
+    "node-03": "node-03-de9ef7d1-e69",
+    "node-04": "node-04-bbf79c7c-e69"
+   }
+  },
+  {
+   "episode": 70,
+   "kind": "train",
+   "seed": 1067,
+   "ticks": 29,
+   "final_state_hash": "5239429c11fa6f3ed1782c7951c14e6b98a2039453291352d842bd1f10db5c86",
+   "coverage": 0.9051724137931034,
+   "returns": {
+    "node-01": 30.209999999999965,
+    "node-02": 27.459999999999972,
+    "node-03": 25.210000000000004,
+    "node-04": 15.45999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0070/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e70",
+    "node-02": "node-02-a3989e78-e70",
+    "node-03": "node-03-de9ef7d1-e70",
+    "node-04": "node-04-bbf79c7c-e70"
+   }
+  },
+  {
+   "episode": 71,
+   "kind": "train",
+   "seed": 1068,
+   "ticks": 13,
+   "final_state_hash": "4a80acb7e2cc5c8bd68e76d820eba2efc2414a2997b4e7f39734a22eb81dab7c",
+   "coverage": 0.793859649122807,
+   "returns": {
+    "node-01": 27.869999999999994,
+    "node-02": 28.869999999999997,
+    "node-03": 20.369999999999997,
+    "node-04": 32.870000000000005
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0071/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e71",
+    "node-02": "node-02-a3989e78-e71",
+    "node-03": "node-03-de9ef7d1-e71",
+    "node-04": "node-04-bbf79c7c-e71"
+   }
+  },
+  {
+   "episode": 72,
+   "kind": "train",
+   "seed": 1069,
+   "ticks": 30,
+   "final_state_hash": "ec6b28197da90416bc9406072328bfe54cfc9d713028e3f62be1067956d2f333",
+   "coverage": 0.9333333333333333,
+   "returns": {
+    "node-01": 25.949999999999974,
+    "node-02": 26.949999999999974,
+    "node-03": 20.449999999999974,
+    "node-04": 32.699999999999974
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0072/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e72",
+    "node-02": "node-02-a3989e78-e72",
+    "node-03": "node-03-de9ef7d1-e72",
+    "node-04": "node-04-bbf79c7c-e72"
+   }
+  },
+  {
+   "episode": 73,
+   "kind": "train",
+   "seed": 1070,
+   "ticks": 21,
+   "final_state_hash": "39af5b2709f7b021aab71855a521aaea03f63ba8d822201199a93aa987f810f8",
+   "coverage": 0.918552036199095,
+   "returns": {
+    "node-01": 3.290000000000002,
+    "node-02": 29.53999999999998,
+    "node-03": 39.79000000000001,
+    "node-04": 29.78999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0073/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e73",
+    "node-02": "node-02-a3989e78-e73",
+    "node-03": "node-03-de9ef7d1-e73",
+    "node-04": "node-04-bbf79c7c-e73"
+   }
+  },
+  {
+   "episode": 74,
+   "kind": "train",
+   "seed": 1071,
+   "ticks": 21,
+   "final_state_hash": "b016584fabdfacd61ef08d64886ca3b2077a5f0fe2e3d0a386b40602802980a3",
+   "coverage": 0.8663793103448276,
+   "returns": {
+    "node-01": 12.290000000000004,
+    "node-02": 34.04,
+    "node-03": 19.539999999999996,
+    "node-04": 39.540000000000006
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0074/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e74",
+    "node-02": "node-02-a3989e78-e74",
+    "node-03": "node-03-de9ef7d1-e74",
+    "node-04": "node-04-bbf79c7c-e74"
+   }
+  },
+  {
+   "episode": 75,
+   "kind": "train",
+   "seed": 1072,
+   "ticks": 150,
+   "final_state_hash": "18b149d2b5cd6775023e19d55e5c3f2e71f586853555003b0ae50fe7e8453119",
+   "coverage": 0.9506726457399103,
+   "returns": {
+    "node-01": -9.499999999999988,
+    "node-02": -139.25000000000014,
+    "node-03": -6.000000000000023,
+    "node-04": -23.000000000000085
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0075/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e75",
+    "node-02": "node-02-a3989e78-e75",
+    "node-03": "node-03-de9ef7d1-e75",
+    "node-04": "node-04-bbf79c7c-e75"
+   }
+  },
+  {
+   "episode": 76,
+   "kind": "train",
+   "seed": 1073,
+   "ticks": 106,
+   "final_state_hash": "06cf4223aca8eefd0b9c32534ce6deaf823fbec77de6f8808e8d1cd1e2ca9906",
+   "coverage": 0.8844444444444445,
+   "returns": {
+    "node-01": -79.56000000000004,
+    "node-02": -56.81,
+    "node-03": 31.19000000000014,
+    "node-04": -178.55999999999997
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0076/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e76",
+    "node-02": "node-02-a3989e78-e76",
+    "node-03": "node-03-de9ef7d1-e76",
+    "node-04": "node-04-bbf79c7c-e76"
+   }
+  },
+  {
+   "episode": 77,
+   "kind": "train",
+   "seed": 1074,
+   "ticks": 11,
+   "final_state_hash": "5a136d451813cde376f3edd2fadcdc5ec9b2cf9948397a6f0f937f1097b212b5",
+   "coverage": 0.6327433628318584,
+   "returns": {
+    "node-01": 23.14,
+    "node-02": 23.64,
+    "node-03": 24.39,
+    "node-04": -10.359999999999996
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0077/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e77",
+    "node-02": "node-02-a3989e78-e77",
+    "node-03": "node-03-de9ef7d1-e77",
+    "node-04": "node-04-bbf79c7c-e77"
+   }
+  },
+  {
+   "episode": 78,
+   "kind": "train",
+   "seed": 1075,
+   "ticks": 118,
+   "final_state_hash": "498aa9a6bb2b457b33f0e5beff114984e341d8b1579be1edf9d1fde0fbe48843",
+   "coverage": 0.9772727272727273,
+   "returns": {
+    "node-01": 2.820000000000005,
+    "node-02": 6.569999999999919,
+    "node-03": 29.57000000000017,
+    "node-04": -234.67999999999964
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0078/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e78",
+    "node-02": "node-02-a3989e78-e78",
+    "node-03": "node-03-de9ef7d1-e78",
+    "node-04": "node-04-bbf79c7c-e78"
+   }
+  },
+  {
+   "episode": 79,
+   "kind": "train",
+   "seed": 1076,
+   "ticks": 150,
+   "final_state_hash": "4d1099eba7fdda73ced0f48e85e01771788fec91cf81296413f2e7e389821f07",
+   "coverage": 0.968609865470852,
+   "returns": {
+    "node-01": -90.50000000000007,
+    "node-02": -72.9999999999999,
+    "node-03": 6.249999999999863,
+    "node-04": -69.00000000000018
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0079/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e79",
+    "node-02": "node-02-a3989e78-e79",
+    "node-03": "node-03-de9ef7d1-e79",
+    "node-04": "node-04-bbf79c7c-e79"
+   }
+  },
+  {
+   "episode": 80,
+   "kind": "train",
+   "seed": 1077,
+   "ticks": 16,
+   "final_state_hash": "c306e61aa942b43dbae20284ada8a8e34989efac4191a9ec119a54aa49a9c3f5",
+   "coverage": 0.8810572687224669,
+   "returns": {
+    "node-01": 34.84000000000002,
+    "node-02": 29.339999999999993,
+    "node-03": 31.59,
+    "node-04": 27.589999999999993
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0080/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e80",
+    "node-02": "node-02-a3989e78-e80",
+    "node-03": "node-03-de9ef7d1-e80",
+    "node-04": "node-04-bbf79c7c-e80"
+   }
+  },
+  {
+   "episode": 81,
+   "kind": "train",
+   "seed": 1078,
+   "ticks": 16,
+   "final_state_hash": "b931362e94cc56d3c64eaf601d3e456202eb53dabad5880a1dc546cc41ecd055",
+   "coverage": 0.8317757009345794,
+   "returns": {
+    "node-01": 23.839999999999993,
+    "node-02": 15.090000000000003,
+    "node-03": 31.339999999999996,
+    "node-04": 28.589999999999996
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0081/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e81",
+    "node-02": "node-02-a3989e78-e81",
+    "node-03": "node-03-de9ef7d1-e81",
+    "node-04": "node-04-bbf79c7c-e81"
+   }
+  },
+  {
+   "episode": 82,
+   "kind": "train",
+   "seed": 1079,
+   "ticks": 13,
+   "final_state_hash": "9cace8cc373c685905a5a7c748f2038771bdf42dc1d38b02a1ce4a48e4014741",
+   "coverage": 0.8042553191489362,
+   "returns": {
+    "node-01": 26.869999999999997,
+    "node-02": 23.120000000000005,
+    "node-03": 19.869999999999997,
+    "node-04": 24.619999999999994
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0082/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e82",
+    "node-02": "node-02-a3989e78-e82",
+    "node-03": "node-03-de9ef7d1-e82",
+    "node-04": "node-04-bbf79c7c-e82"
+   }
+  },
+  {
+   "episode": 83,
+   "kind": "train",
+   "seed": 1080,
+   "ticks": 19,
+   "final_state_hash": "5d3706d4bef2200779266a679d15796518ac84d86d20858cc73cbbf4ca60333d",
+   "coverage": 0.9372197309417041,
+   "returns": {
+    "node-01": 35.05999999999999,
+    "node-02": 11.560000000000004,
+    "node-03": 35.55999999999999,
+    "node-04": 24.809999999999988
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0083/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e83",
+    "node-02": "node-02-a3989e78-e83",
+    "node-03": "node-03-de9ef7d1-e83",
+    "node-04": "node-04-bbf79c7c-e83"
+   }
+  },
+  {
+   "episode": 84,
+   "kind": "train",
+   "seed": 1081,
+   "ticks": 150,
+   "final_state_hash": "2af3a0525bf92923d74f57bce69181062bc0557890f10f2627f108a138254ae5",
+   "coverage": 0.9671361502347418,
+   "returns": {
+    "node-01": -178.24999999999991,
+    "node-02": -220.2499999999997,
+    "node-03": -46.49999999999999,
+    "node-04": -167.2499999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0084/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e84",
+    "node-02": "node-02-a3989e78-e84",
+    "node-03": "node-03-de9ef7d1-e84",
+    "node-04": "node-04-bbf79c7c-e84"
+   }
+  },
+  {
+   "episode": 85,
+   "kind": "train",
+   "seed": 1082,
+   "ticks": 24,
+   "final_state_hash": "c29417ead4f0d6385835d557a9ad13a481ca69d2cb2a8c5fee7fed30543053f6",
+   "coverage": 0.9823788546255506,
+   "returns": {
+    "node-01": 43.01000000000001,
+    "node-02": 24.509999999999994,
+    "node-03": 25.509999999999984,
+    "node-04": 35.01
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0085/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e85",
+    "node-02": "node-02-a3989e78-e85",
+    "node-03": "node-03-de9ef7d1-e85",
+    "node-04": "node-04-bbf79c7c-e85"
+   }
+  },
+  {
+   "episode": 86,
+   "kind": "train",
+   "seed": 1083,
+   "ticks": 10,
+   "final_state_hash": "8d74adb0633d36db23102c516217bcfa455169483ef7ad11c3ec008493d365ea",
+   "coverage": 0.7123287671232876,
+   "returns": {
+    "node-01": 23.9,
+    "node-02": 14.900000000000002,
+    "node-03": 25.4,
+    "node-04": 23.4
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0086/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e86",
+    "node-02": "node-02-a3989e78-e86",
+    "node-03": "node-03-de9ef7d1-e86",
+    "node-04": "node-04-bbf79c7c-e86"
+   }
+  },
+  {
+   "episode": 87,
+   "kind": "train",
+   "seed": 1084,
+   "ticks": 150,
+   "final_state_hash": "acf29749d4d96bcb2d9f5d0c680354df04683f200c818f012f1d1a763c80acfb",
+   "coverage": 0.9819004524886877,
+   "returns": {
+    "node-01": -4.000000000000074,
+    "node-02": -148.7499999999997,
+    "node-03": -129.75000000000017,
+    "node-04": -115.50000000000017
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0087/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e87",
+    "node-02": "node-02-a3989e78-e87",
+    "node-03": "node-03-de9ef7d1-e87",
+    "node-04": "node-04-bbf79c7c-e87"
+   }
+  },
+  {
+   "episode": 88,
+   "kind": "train",
+   "seed": 1085,
+   "ticks": 24,
+   "final_state_hash": "5d045fac38e50a231da3ff07c3d234a5dcd1c8c88f0994f12a136417391052af",
+   "coverage": 0.9741379310344828,
+   "returns": {
+    "node-01": 32.259999999999984,
+    "node-02": 26.25999999999998,
+    "node-03": 39.76,
+    "node-04": 22.75999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0088/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e88",
+    "node-02": "node-02-a3989e78-e88",
+    "node-03": "node-03-de9ef7d1-e88",
+    "node-04": "node-04-bbf79c7c-e88"
+   }
+  },
+  {
+   "episode": 89,
+   "kind": "train",
+   "seed": 1086,
+   "ticks": 76,
+   "final_state_hash": "4d04114f3d7e3bc849a9f709e4cd8f8873211ed190f5d73b2e3b45a0b8ad3ba6",
+   "coverage": 0.9826086956521739,
+   "returns": {
+    "node-01": -4.509999999999987,
+    "node-02": 26.99000000000002,
+    "node-03": 26.240000000000016,
+    "node-04": 11.989999999999904
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0089/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e89",
+    "node-02": "node-02-a3989e78-e89",
+    "node-03": "node-03-de9ef7d1-e89",
+    "node-04": "node-04-bbf79c7c-e89"
+   }
+  },
+  {
+   "episode": 90,
+   "kind": "train",
+   "seed": 1087,
+   "ticks": 150,
+   "final_state_hash": "72550271532fa0459c921022e7574bbae9de2d90668403e15aa54d1766e483ac",
+   "coverage": 0.9484978540772532,
+   "returns": {
+    "node-01": -6.000000000000034,
+    "node-02": 8.749999999999998,
+    "node-03": -4.750000000000091,
+    "node-04": -6.500000000000078
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0090/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e90",
+    "node-02": "node-02-a3989e78-e90",
+    "node-03": "node-03-de9ef7d1-e90",
+    "node-04": "node-04-bbf79c7c-e90"
+   }
+  },
+  {
+   "episode": 91,
+   "kind": "train",
+   "seed": 1088,
+   "ticks": 11,
+   "final_state_hash": "659f0fce8e568e4a8618358b466ab9ad7ba7fb4f837decc815a340c2c840b149",
+   "coverage": 0.7844827586206896,
+   "returns": {
+    "node-01": 26.39,
+    "node-02": 31.89,
+    "node-03": 22.89,
+    "node-04": 29.89
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0091/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e91",
+    "node-02": "node-02-a3989e78-e91",
+    "node-03": "node-03-de9ef7d1-e91",
+    "node-04": "node-04-bbf79c7c-e91"
+   }
+  },
+  {
+   "episode": 92,
+   "kind": "train",
+   "seed": 1089,
+   "ticks": 11,
+   "final_state_hash": "bad655a8cb2b30423d4da2ce78700b1ab2cdbb83a61e7e9977c1df4f95a9a681",
+   "coverage": 0.7837837837837838,
+   "returns": {
+    "node-01": 23.39,
+    "node-02": 24.389999999999993,
+    "node-03": 26.64,
+    "node-04": 29.64
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0092/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e92",
+    "node-02": "node-02-a3989e78-e92",
+    "node-03": "node-03-de9ef7d1-e92",
+    "node-04": "node-04-bbf79c7c-e92"
+   }
+  },
+  {
+   "episode": 93,
+   "kind": "train",
+   "seed": 1090,
+   "ticks": 39,
+   "final_state_hash": "5f391d86fedbe1378bd9c33039dd68b60ebf7f6082714eaced491e5788143a49",
+   "coverage": 0.9955947136563876,
+   "returns": {
+    "node-01": 21.60999999999995,
+    "node-02": 29.859999999999967,
+    "node-03": 24.609999999999957,
+    "node-04": 39.110000000000056
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0093/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e93",
+    "node-02": "node-02-a3989e78-e93",
+    "node-03": "node-03-de9ef7d1-e93",
+    "node-04": "node-04-bbf79c7c-e93"
+   }
+  },
+  {
+   "episode": 94,
+   "kind": "train",
+   "seed": 1091,
+   "ticks": 18,
+   "final_state_hash": "cdcea0906f5ff667a7625248948d02dc3f3e38a8b72eab6a1a44b042eed2dc1d",
+   "coverage": 0.834061135371179,
+   "returns": {
+    "node-01": 27.319999999999993,
+    "node-02": 19.81999999999999,
+    "node-03": 19.319999999999986,
+    "node-04": 36.07000000000002
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0094/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e94",
+    "node-02": "node-02-a3989e78-e94",
+    "node-03": "node-03-de9ef7d1-e94",
+    "node-04": "node-04-bbf79c7c-e94"
+   }
+  },
+  {
+   "episode": 95,
+   "kind": "train",
+   "seed": 1092,
+   "ticks": 28,
+   "final_state_hash": "97e8cb9af1ba9307fcfb9f21e2bf4fa4d151652d0bf14d9dccab501025289ff1",
+   "coverage": 0.9613733905579399,
+   "returns": {
+    "node-01": 26.219999999999988,
+    "node-02": 49.72000000000002,
+    "node-03": -53.27999999999996,
+    "node-04": 29.96999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0095/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e95",
+    "node-02": "node-02-a3989e78-e95",
+    "node-03": "node-03-de9ef7d1-e95",
+    "node-04": "node-04-bbf79c7c-e95"
+   }
+  },
+  {
+   "episode": 96,
+   "kind": "train",
+   "seed": 1093,
+   "ticks": 19,
+   "final_state_hash": "499cf11b20362c8aa734ac68a13b27d6a098dfe67a4b0d11e6b47b9b11c2fb35",
+   "coverage": 0.9188034188034188,
+   "returns": {
+    "node-01": 37.06,
+    "node-02": 26.559999999999988,
+    "node-03": 27.559999999999985,
+    "node-04": 32.559999999999995
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0096/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e96",
+    "node-02": "node-02-a3989e78-e96",
+    "node-03": "node-03-de9ef7d1-e96",
+    "node-04": "node-04-bbf79c7c-e96"
+   }
+  },
+  {
+   "episode": 97,
+   "kind": "train",
+   "seed": 1094,
+   "ticks": 16,
+   "final_state_hash": "0393617c922a1957d1220376fbef1f1b272cc40ecadafadeae4a0f2d589fd539",
+   "coverage": 0.8841201716738197,
+   "returns": {
+    "node-01": 34.089999999999996,
+    "node-02": 29.589999999999996,
+    "node-03": 31.339999999999996,
+    "node-04": 25.83999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0097/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e97",
+    "node-02": "node-02-a3989e78-e97",
+    "node-03": "node-03-de9ef7d1-e97",
+    "node-04": "node-04-bbf79c7c-e97"
+   }
+  },
+  {
+   "episode": 98,
+   "kind": "train",
+   "seed": 1095,
+   "ticks": 18,
+   "final_state_hash": "cbb836b97bf452d8add299363ce53d73618b02197ceb3dcd51c31c8846fd1718",
+   "coverage": 0.8652173913043478,
+   "returns": {
+    "node-01": 23.319999999999983,
+    "node-02": 32.06999999999999,
+    "node-03": 41.07,
+    "node-04": 22.319999999999983
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0098/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e98",
+    "node-02": "node-02-a3989e78-e98",
+    "node-03": "node-03-de9ef7d1-e98",
+    "node-04": "node-04-bbf79c7c-e98"
+   }
+  },
+  {
+   "episode": 99,
+   "kind": "train",
+   "seed": 1096,
+   "ticks": 12,
+   "final_state_hash": "38690e18e99104cf3abfef2633b8d0282245584875184f4c915dcf7897b6048f",
+   "coverage": 0.9427312775330396,
+   "returns": {
+    "node-01": 32.13000000000001,
+    "node-02": 35.88000000000001,
+    "node-03": 32.38,
+    "node-04": 29.88
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0099/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e99",
+    "node-02": "node-02-a3989e78-e99",
+    "node-03": "node-03-de9ef7d1-e99",
+    "node-04": "node-04-bbf79c7c-e99"
+   }
+  },
+  {
+   "episode": 100,
+   "kind": "train",
+   "seed": 1097,
+   "ticks": 47,
+   "final_state_hash": "c85c84389e92f9538f01966a67434d2fbd229812348c76774c106895a93ea34a",
+   "coverage": 0.8632478632478633,
+   "returns": {
+    "node-01": -89.47000000000001,
+    "node-02": 52.03000000000007,
+    "node-03": 26.52999999999994,
+    "node-04": 14.779999999999957
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0100/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e100",
+    "node-02": "node-02-a3989e78-e100",
+    "node-03": "node-03-de9ef7d1-e100",
+    "node-04": "node-04-bbf79c7c-e100"
+   }
+  },
+  {
+   "episode": 101,
+   "kind": "train",
+   "seed": 1098,
+   "ticks": 19,
+   "final_state_hash": "4dc3916e3e4fc21027afde2f9f22edded4ba2b6f1abf0ed1b8bb308f9ff9dc44",
+   "coverage": 0.905982905982906,
+   "returns": {
+    "node-01": 34.31,
+    "node-02": 30.809999999999995,
+    "node-03": 21.30999999999998,
+    "node-04": 30.559999999999988
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0101/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e101",
+    "node-02": "node-02-a3989e78-e101",
+    "node-03": "node-03-de9ef7d1-e101",
+    "node-04": "node-04-bbf79c7c-e101"
+   }
+  },
+  {
+   "episode": 102,
+   "kind": "train",
+   "seed": 1099,
+   "ticks": 17,
+   "final_state_hash": "bf9c8becc98ed6dad303cfb01fb200830cfe79e52d0d871d5764c1f31af38b6f",
+   "coverage": 0.7665198237885462,
+   "returns": {
+    "node-01": 33.33,
+    "node-02": 9.829999999999998,
+    "node-03": 25.32999999999999,
+    "node-04": 11.079999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0102/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e102",
+    "node-02": "node-02-a3989e78-e102",
+    "node-03": "node-03-de9ef7d1-e102",
+    "node-04": "node-04-bbf79c7c-e102"
+   }
+  },
+  {
+   "episode": 103,
+   "kind": "validation",
+   "seed": 100,
+   "ticks": 150,
+   "final_state_hash": "f4be67fd91ccc57ff13b7fbf29c8c710af4148cdd1fa1eb32318ff779cf00dc8",
+   "coverage": 0.9911111111111112,
+   "returns": {
+    "node-01": -4.0000000000000835,
+    "node-02": 14.250000000000023,
+    "node-03": 1.4999999999998894,
+    "node-04": -310.7499999999994
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0103/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e103",
+    "node-02": "node-02-a3989e78-e103",
+    "node-03": "node-03-de9ef7d1-e103",
+    "node-04": "node-04-bbf79c7c-e103"
+   }
+  },
+  {
+   "episode": 104,
+   "kind": "validation",
+   "seed": 101,
+   "ticks": 17,
+   "final_state_hash": "e77fc2c135f622019bab2fca31c1cb8c2d9aa662d6b09e7de168d6b2e928f7dc",
+   "coverage": 0.9066666666666666,
+   "returns": {
+    "node-01": 21.33,
+    "node-02": 39.33000000000001,
+    "node-03": 29.33,
+    "node-04": 35.83000000000001
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0104/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e104",
+    "node-02": "node-02-a3989e78-e104",
+    "node-03": "node-03-de9ef7d1-e104",
+    "node-04": "node-04-bbf79c7c-e104"
+   }
+  },
+  {
+   "episode": 105,
+   "kind": "validation",
+   "seed": 102,
+   "ticks": 16,
+   "final_state_hash": "b5bc2966a73a9ebcef41d512bdb38aaa1d350451bbb2122d0264775177d8f242",
+   "coverage": 0.8782608695652174,
+   "returns": {
+    "node-01": 28.840000000000003,
+    "node-02": 30.839999999999993,
+    "node-03": 22.839999999999996,
+    "node-04": 31.839999999999986
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0105/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e105",
+    "node-02": "node-02-a3989e78-e105",
+    "node-03": "node-03-de9ef7d1-e105",
+    "node-04": "node-04-bbf79c7c-e105"
+   }
+  },
+  {
+   "episode": 106,
+   "kind": "train",
+   "seed": 1100,
+   "ticks": 72,
+   "final_state_hash": "ff5c9613f649e7723a98aa1532f34084501bb5d4680cebd84ccd29d62c946c10",
+   "coverage": 0.9819004524886877,
+   "returns": {
+    "node-01": -8.719999999999992,
+    "node-02": 13.779999999999948,
+    "node-03": -10.219999999999985,
+    "node-04": 37.780000000000115
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0106/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e106",
+    "node-02": "node-02-a3989e78-e106",
+    "node-03": "node-03-de9ef7d1-e106",
+    "node-04": "node-04-bbf79c7c-e106"
+   }
+  },
+  {
+   "episode": 107,
+   "kind": "train",
+   "seed": 1101,
+   "ticks": 39,
+   "final_state_hash": "784723bb29fa8efd9db81a84244f85effd3f517705cc55472ef3d70691985a9f",
+   "coverage": 0.9414414414414415,
+   "returns": {
+    "node-01": 38.610000000000014,
+    "node-02": -29.889999999999965,
+    "node-03": -18.14,
+    "node-04": -20.39
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0107/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e107",
+    "node-02": "node-02-a3989e78-e107",
+    "node-03": "node-03-de9ef7d1-e107",
+    "node-04": "node-04-bbf79c7c-e107"
+   }
+  },
+  {
+   "episode": 108,
+   "kind": "train",
+   "seed": 1102,
+   "ticks": 21,
+   "final_state_hash": "1e58487b18db413284ab0544d984efae18fbac5219fb227fe4e3a47c17c14abd",
+   "coverage": 0.9422222222222222,
+   "returns": {
+    "node-01": 32.28999999999999,
+    "node-02": 23.789999999999985,
+    "node-03": 34.53999999999999,
+    "node-04": 29.78999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0108/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e108",
+    "node-02": "node-02-a3989e78-e108",
+    "node-03": "node-03-de9ef7d1-e108",
+    "node-04": "node-04-bbf79c7c-e108"
+   }
+  },
+  {
+   "episode": 109,
+   "kind": "train",
+   "seed": 1103,
+   "ticks": 150,
+   "final_state_hash": "e548972eabaa7165e36a34ff2f6367daf1821d858342180b68f2b21db5f28f95",
+   "coverage": 0.9957805907172996,
+   "returns": {
+    "node-01": 11.000000000000057,
+    "node-02": 3.7499999999999467,
+    "node-03": -7.750000000000014,
+    "node-04": -1.500000000000076
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0109/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e109",
+    "node-02": "node-02-a3989e78-e109",
+    "node-03": "node-03-de9ef7d1-e109",
+    "node-04": "node-04-bbf79c7c-e109"
+   }
+  },
+  {
+   "episode": 110,
+   "kind": "train",
+   "seed": 1104,
+   "ticks": 22,
+   "final_state_hash": "759986790a499a6e8104694f4b49f07a65e37b370a7d1f78f1210c65b0088195",
+   "coverage": 0.8859649122807017,
+   "returns": {
+    "node-01": 34.529999999999994,
+    "node-02": 27.529999999999983,
+    "node-03": -35.46999999999998,
+    "node-04": 39.78000000000002
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0110/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e110",
+    "node-02": "node-02-a3989e78-e110",
+    "node-03": "node-03-de9ef7d1-e110",
+    "node-04": "node-04-bbf79c7c-e110"
+   }
+  },
+  {
+   "episode": 111,
+   "kind": "train",
+   "seed": 1105,
+   "ticks": 8,
+   "final_state_hash": "f126785d3a20a2df012ec8870c963767c3dcad910cba6207fd4bb97f33807a32",
+   "coverage": 0.7031963470319634,
+   "returns": {
+    "node-01": 24.17,
+    "node-02": 22.67,
+    "node-03": 24.17,
+    "node-04": 24.67
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0111/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e111",
+    "node-02": "node-02-a3989e78-e111",
+    "node-03": "node-03-de9ef7d1-e111",
+    "node-04": "node-04-bbf79c7c-e111"
+   }
+  },
+  {
+   "episode": 112,
+   "kind": "train",
+   "seed": 1106,
+   "ticks": 21,
+   "final_state_hash": "d40812a57e3b70e1e102355d775edd5a55426e2032c9f8b4a487e2b9a5fb2e37",
+   "coverage": 0.8461538461538461,
+   "returns": {
+    "node-01": 46.290000000000006,
+    "node-02": 27.78999999999998,
+    "node-03": -35.45999999999998,
+    "node-04": 34.28999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0112/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e112",
+    "node-02": "node-02-a3989e78-e112",
+    "node-03": "node-03-de9ef7d1-e112",
+    "node-04": "node-04-bbf79c7c-e112"
+   }
+  },
+  {
+   "episode": 113,
+   "kind": "train",
+   "seed": 1107,
+   "ticks": 49,
+   "final_state_hash": "2234d24f88b4a5686aa95f82d6779a6549c0bc356c62e83b0ad84d0b552e7168",
+   "coverage": 0.9736842105263158,
+   "returns": {
+    "node-01": 38.75999999999996,
+    "node-02": 37.260000000000055,
+    "node-03": 15.259999999999966,
+    "node-04": -29.490000000000016
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0113/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e113",
+    "node-02": "node-02-a3989e78-e113",
+    "node-03": "node-03-de9ef7d1-e113",
+    "node-04": "node-04-bbf79c7c-e113"
+   }
+  },
+  {
+   "episode": 114,
+   "kind": "train",
+   "seed": 1108,
+   "ticks": 33,
+   "final_state_hash": "98a997f0748928d21784c9f37840c6eab69b26bc75a3315e6c263e6c065d5ec3",
+   "coverage": 0.9605263157894737,
+   "returns": {
+    "node-01": 34.67000000000002,
+    "node-02": 34.169999999999966,
+    "node-03": 24.669999999999963,
+    "node-04": 22.669999999999963
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0114/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e114",
+    "node-02": "node-02-a3989e78-e114",
+    "node-03": "node-03-de9ef7d1-e114",
+    "node-04": "node-04-bbf79c7c-e114"
+   }
+  },
+  {
+   "episode": 115,
+   "kind": "train",
+   "seed": 1109,
+   "ticks": 12,
+   "final_state_hash": "580eae05e462b81c94c34bbe00ce7a83f4fbc14e90c08f5cb2a1d94141bfc304",
+   "coverage": 0.822429906542056,
+   "returns": {
+    "node-01": 27.630000000000003,
+    "node-02": 24.880000000000003,
+    "node-03": 29.38,
+    "node-04": 27.130000000000003
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0115/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e115",
+    "node-02": "node-02-a3989e78-e115",
+    "node-03": "node-03-de9ef7d1-e115",
+    "node-04": "node-04-bbf79c7c-e115"
+   }
+  },
+  {
+   "episode": 116,
+   "kind": "train",
+   "seed": 1110,
+   "ticks": 23,
+   "final_state_hash": "a17659712cc8086c3841f0f399eae2bda811bcc05b6badeebbc89df294ee1c37",
+   "coverage": 0.9241071428571429,
+   "returns": {
+    "node-01": -23.729999999999997,
+    "node-02": 32.01999999999998,
+    "node-03": 49.52000000000002,
+    "node-04": 24.269999999999982
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0116/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e116",
+    "node-02": "node-02-a3989e78-e116",
+    "node-03": "node-03-de9ef7d1-e116",
+    "node-04": "node-04-bbf79c7c-e116"
+   }
+  },
+  {
+   "episode": 117,
+   "kind": "train",
+   "seed": 1111,
+   "ticks": 150,
+   "final_state_hash": "176729bde40e59032dd6a4e4ab5577892921f6b60cfceaa27fdd87555c48f48d",
+   "coverage": 0.933920704845815,
+   "returns": {
+    "node-01": -226.99999999999966,
+    "node-02": -8.250000000000059,
+    "node-03": -52.24999999999988,
+    "node-04": -10.500000000000027
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0117/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e117",
+    "node-02": "node-02-a3989e78-e117",
+    "node-03": "node-03-de9ef7d1-e117",
+    "node-04": "node-04-bbf79c7c-e117"
+   }
+  },
+  {
+   "episode": 118,
+   "kind": "train",
+   "seed": 1112,
+   "ticks": 29,
+   "final_state_hash": "29c050b21b755c2debc4de94458f56bdea7bffd0efac706360c8327acc1a769d",
+   "coverage": 0.9026548672566371,
+   "returns": {
+    "node-01": 16.209999999999994,
+    "node-02": 14.959999999999997,
+    "node-03": 25.709999999999976,
+    "node-04": 21.20999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0118/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e118",
+    "node-02": "node-02-a3989e78-e118",
+    "node-03": "node-03-de9ef7d1-e118",
+    "node-04": "node-04-bbf79c7c-e118"
+   }
+  },
+  {
+   "episode": 119,
+   "kind": "train",
+   "seed": 1113,
+   "ticks": 52,
+   "final_state_hash": "d4d1202b3f735da913b682ecb8cbf0d06ff9878c08173b7bf6262f7fba4b89c5",
+   "coverage": 1.0,
+   "returns": {
+    "node-01": 22.979999999999933,
+    "node-02": 31.980000000000018,
+    "node-03": 24.979999999999936,
+    "node-04": 18.729999999999933
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0119/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e119",
+    "node-02": "node-02-a3989e78-e119",
+    "node-03": "node-03-de9ef7d1-e119",
+    "node-04": "node-04-bbf79c7c-e119"
+   }
+  },
+  {
+   "episode": 120,
+   "kind": "train",
+   "seed": 1114,
+   "ticks": 21,
+   "final_state_hash": "903c432b622d2151512b1e2c8c5bae8633efb357078e51c859f3a9063aadc549",
+   "coverage": 0.8772727272727273,
+   "returns": {
+    "node-01": 33.789999999999985,
+    "node-02": 28.53999999999998,
+    "node-03": -11.959999999999996,
+    "node-04": 39.540000000000006
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0120/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e120",
+    "node-02": "node-02-a3989e78-e120",
+    "node-03": "node-03-de9ef7d1-e120",
+    "node-04": "node-04-bbf79c7c-e120"
+   }
+  },
+  {
+   "episode": 121,
+   "kind": "train",
+   "seed": 1115,
+   "ticks": 35,
+   "final_state_hash": "8732b3ca4b01adddb75e2690649523f6a559f24d0290ac5386be44aa0d51fd96",
+   "coverage": 0.908675799086758,
+   "returns": {
+    "node-01": -67.09999999999997,
+    "node-02": -42.09999999999996,
+    "node-03": 25.39999999999996,
+    "node-04": 66.9
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0121/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e121",
+    "node-02": "node-02-a3989e78-e121",
+    "node-03": "node-03-de9ef7d1-e121",
+    "node-04": "node-04-bbf79c7c-e121"
+   }
+  },
+  {
+   "episode": 122,
+   "kind": "train",
+   "seed": 1116,
+   "ticks": 14,
+   "final_state_hash": "be36896c3d358abb2c699a0bbdfb360d5dd4319f7cebb4aca45acd5c92b986d1",
+   "coverage": 0.8444444444444444,
+   "returns": {
+    "node-01": 34.11,
+    "node-02": 26.359999999999992,
+    "node-03": 29.859999999999992,
+    "node-04": 27.11
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0122/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e122",
+    "node-02": "node-02-a3989e78-e122",
+    "node-03": "node-03-de9ef7d1-e122",
+    "node-04": "node-04-bbf79c7c-e122"
+   }
+  },
+  {
+   "episode": 123,
+   "kind": "train",
+   "seed": 1117,
+   "ticks": 9,
+   "final_state_hash": "e66a5b8260f94e2115231ec5df9f5508ec9968615a29e5486c3e9747b0bb8979",
+   "coverage": 0.7835497835497836,
+   "returns": {
+    "node-01": 27.910000000000004,
+    "node-02": 26.910000000000004,
+    "node-03": 29.409999999999997,
+    "node-04": 28.410000000000004
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0123/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e123",
+    "node-02": "node-02-a3989e78-e123",
+    "node-03": "node-03-de9ef7d1-e123",
+    "node-04": "node-04-bbf79c7c-e123"
+   }
+  },
+  {
+   "episode": 124,
+   "kind": "train",
+   "seed": 1118,
+   "ticks": 65,
+   "final_state_hash": "251ddde3e4a107691d072f12903b31bfe639ef3e411717388350539163105fc0",
+   "coverage": 0.9910313901345291,
+   "returns": {
+    "node-01": -18.40000000000003,
+    "node-02": -59.89999999999995,
+    "node-03": 13.59999999999995,
+    "node-04": 22.099999999999913
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0124/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e124",
+    "node-02": "node-02-a3989e78-e124",
+    "node-03": "node-03-de9ef7d1-e124",
+    "node-04": "node-04-bbf79c7c-e124"
+   }
+  },
+  {
+   "episode": 125,
+   "kind": "train",
+   "seed": 1119,
+   "ticks": 52,
+   "final_state_hash": "a23a12631a9616ecb8c6ecf7e84e187eee424f5dd7d7712f87d370d83b0e3fad",
+   "coverage": 0.9815668202764977,
+   "returns": {
+    "node-01": 22.229999999999944,
+    "node-02": -38.26999999999997,
+    "node-03": 35.48000000000006,
+    "node-04": 39.230000000000054
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0125/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e125",
+    "node-02": "node-02-a3989e78-e125",
+    "node-03": "node-03-de9ef7d1-e125",
+    "node-04": "node-04-bbf79c7c-e125"
+   }
+  },
+  {
+   "episode": 126,
+   "kind": "train",
+   "seed": 1120,
+   "ticks": 17,
+   "final_state_hash": "51a6588edbb83b789ae0224e02bd457409d2d4e1387d34cdea49c31afbc3d0a8",
+   "coverage": 0.8925233644859814,
+   "returns": {
+    "node-01": 34.580000000000005,
+    "node-02": 29.07999999999999,
+    "node-03": 27.079999999999984,
+    "node-04": 27.579999999999984
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0126/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e126",
+    "node-02": "node-02-a3989e78-e126",
+    "node-03": "node-03-de9ef7d1-e126",
+    "node-04": "node-04-bbf79c7c-e126"
+   }
+  },
+  {
+   "episode": 127,
+   "kind": "train",
+   "seed": 1121,
+   "ticks": 15,
+   "final_state_hash": "0eef57a9a6041962391230dc962f799ced52cb44b050cb0be031f3a5fbe5b1ab",
+   "coverage": 0.9521739130434783,
+   "returns": {
+    "node-01": 28.099999999999994,
+    "node-02": 32.599999999999994,
+    "node-03": 38.85000000000001,
+    "node-04": 30.349999999999994
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0127/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e127",
+    "node-02": "node-02-a3989e78-e127",
+    "node-03": "node-03-de9ef7d1-e127",
+    "node-04": "node-04-bbf79c7c-e127"
+   }
+  },
+  {
+   "episode": 128,
+   "kind": "train",
+   "seed": 1122,
+   "ticks": 13,
+   "final_state_hash": "e8ab5b0d37bb5aa66b84d2d17d848bcef29f6d6293d70faecdbf799eafba03ff",
+   "coverage": 0.8923766816143498,
+   "returns": {
+    "node-01": 32.62,
+    "node-02": 25.619999999999997,
+    "node-03": 25.869999999999997,
+    "node-04": 22.11999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0128/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e128",
+    "node-02": "node-02-a3989e78-e128",
+    "node-03": "node-03-de9ef7d1-e128",
+    "node-04": "node-04-bbf79c7c-e128"
+   }
+  },
+  {
+   "episode": 129,
+   "kind": "train",
+   "seed": 1123,
+   "ticks": 9,
+   "final_state_hash": "6f0abdcecf4a3c4e1046133598fdc0a799223da773eba2ff8b7176b80aa50940",
+   "coverage": 0.7111111111111111,
+   "returns": {
+    "node-01": 24.910000000000004,
+    "node-02": 16.160000000000004,
+    "node-03": 24.410000000000004,
+    "node-04": 24.910000000000004
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0129/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e129",
+    "node-02": "node-02-a3989e78-e129",
+    "node-03": "node-03-de9ef7d1-e129",
+    "node-04": "node-04-bbf79c7c-e129"
+   }
+  },
+  {
+   "episode": 130,
+   "kind": "train",
+   "seed": 1124,
+   "ticks": 19,
+   "final_state_hash": "79ea40db0c1bfeaf69f8713726ee823d117ade1dff1580b15cdd35a283f3ad2d",
+   "coverage": 0.9377777777777778,
+   "returns": {
+    "node-01": 39.31000000000001,
+    "node-02": 27.059999999999985,
+    "node-03": 21.55999999999999,
+    "node-04": 34.81000000000002
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0130/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e130",
+    "node-02": "node-02-a3989e78-e130",
+    "node-03": "node-03-de9ef7d1-e130",
+    "node-04": "node-04-bbf79c7c-e130"
+   }
+  },
+  {
+   "episode": 131,
+   "kind": "train",
+   "seed": 1125,
+   "ticks": 14,
+   "final_state_hash": "93e5feb5f8bd1a802714590ba79d718c3537a391a3c10bde17dd0453d89e8ec4",
+   "coverage": 0.8733031674208145,
+   "returns": {
+    "node-01": 26.86,
+    "node-02": 31.359999999999992,
+    "node-03": 29.36,
+    "node-04": 22.36
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0131/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e131",
+    "node-02": "node-02-a3989e78-e131",
+    "node-03": "node-03-de9ef7d1-e131",
+    "node-04": "node-04-bbf79c7c-e131"
+   }
+  },
+  {
+   "episode": 132,
+   "kind": "train",
+   "seed": 1126,
+   "ticks": 115,
+   "final_state_hash": "e7017478f58e3ccdb80507e7da4775542ca77dae97eafdccb36feca2be9f9251",
+   "coverage": 0.9446808510638298,
+   "returns": {
+    "node-01": -4.650000000000086,
+    "node-02": -108.1500000000001,
+    "node-03": -6.400000000000011,
+    "node-04": -50.65000000000007
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0132/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e132",
+    "node-02": "node-02-a3989e78-e132",
+    "node-03": "node-03-de9ef7d1-e132",
+    "node-04": "node-04-bbf79c7c-e132"
+   }
+  },
+  {
+   "episode": 133,
+   "kind": "train",
+   "seed": 1127,
+   "ticks": 21,
+   "final_state_hash": "2001cc640796819765065c6ee921e8c9d71e653c4f118f37fe842d7216320c34",
+   "coverage": 0.9158878504672897,
+   "returns": {
+    "node-01": 32.789999999999985,
+    "node-02": 30.789999999999992,
+    "node-03": 20.539999999999985,
+    "node-04": 26.289999999999992
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0133/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e133",
+    "node-02": "node-02-a3989e78-e133",
+    "node-03": "node-03-de9ef7d1-e133",
+    "node-04": "node-04-bbf79c7c-e133"
+   }
+  },
+  {
+   "episode": 134,
+   "kind": "train",
+   "seed": 1128,
+   "ticks": 24,
+   "final_state_hash": "1d4f23a02af47c11e32805fa311e61529ccca22472f6f3b08e24035701a09e08",
+   "coverage": 0.9344978165938864,
+   "returns": {
+    "node-01": -11.989999999999995,
+    "node-02": 30.759999999999984,
+    "node-03": 47.76000000000002,
+    "node-04": 28.509999999999984
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0134/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e134",
+    "node-02": "node-02-a3989e78-e134",
+    "node-03": "node-03-de9ef7d1-e134",
+    "node-04": "node-04-bbf79c7c-e134"
+   }
+  },
+  {
+   "episode": 135,
+   "kind": "train",
+   "seed": 1129,
+   "ticks": 28,
+   "final_state_hash": "d934c1ce31c1eedd01d16c8ef2819952fa24388a459f843c7430466ba4d54d93",
+   "coverage": 0.9596412556053812,
+   "returns": {
+    "node-01": 30.21999999999998,
+    "node-02": 29.469999999999974,
+    "node-03": 27.46999999999997,
+    "node-04": 29.21999999999997
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0135/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e135",
+    "node-02": "node-02-a3989e78-e135",
+    "node-03": "node-03-de9ef7d1-e135",
+    "node-04": "node-04-bbf79c7c-e135"
+   }
+  },
+  {
+   "episode": 136,
+   "kind": "train",
+   "seed": 1130,
+   "ticks": 25,
+   "final_state_hash": "4b4bb202ff8be1498c933571209c89931fdb276b64586144e0cf30ea373dcd89",
+   "coverage": 0.9103139013452914,
+   "returns": {
+    "node-01": 41.25000000000002,
+    "node-02": -29.999999999999993,
+    "node-03": 36.50000000000002,
+    "node-04": 33.5
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0136/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e136",
+    "node-02": "node-02-a3989e78-e136",
+    "node-03": "node-03-de9ef7d1-e136",
+    "node-04": "node-04-bbf79c7c-e136"
+   }
+  },
+  {
+   "episode": 137,
+   "kind": "train",
+   "seed": 1131,
+   "ticks": 150,
+   "final_state_hash": "031e955f59772f1e3738588ca033157d85295e777f4d8489ac21e1ae8fc8c312",
+   "coverage": 0.9638009049773756,
+   "returns": {
+    "node-01": -284.2499999999993,
+    "node-02": -67.4999999999998,
+    "node-03": 29.50000000000022,
+    "node-04": -196.74999999999986
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0137/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e137",
+    "node-02": "node-02-a3989e78-e137",
+    "node-03": "node-03-de9ef7d1-e137",
+    "node-04": "node-04-bbf79c7c-e137"
+   }
+  },
+  {
+   "episode": 138,
+   "kind": "train",
+   "seed": 1132,
+   "ticks": 12,
+   "final_state_hash": "a334013fa6019b512a0406b832d498a5b1a374b50f9a1efde7d524a5184cf231",
+   "coverage": 0.8401826484018264,
+   "returns": {
+    "node-01": 25.129999999999995,
+    "node-02": 30.630000000000003,
+    "node-03": 22.38,
+    "node-04": 29.380000000000003
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0138/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e138",
+    "node-02": "node-02-a3989e78-e138",
+    "node-03": "node-03-de9ef7d1-e138",
+    "node-04": "node-04-bbf79c7c-e138"
+   }
+  },
+  {
+   "episode": 139,
+   "kind": "train",
+   "seed": 1133,
+   "ticks": 20,
+   "final_state_hash": "3aba4c72ff257c49c6438afb5aeebace956e6fd48497ae3daa67a4a3289fff01",
+   "coverage": 0.9292035398230089,
+   "returns": {
+    "node-01": 36.55000000000002,
+    "node-02": 27.29999999999999,
+    "node-03": 36.05,
+    "node-04": 25.799999999999983
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0139/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e139",
+    "node-02": "node-02-a3989e78-e139",
+    "node-03": "node-03-de9ef7d1-e139",
+    "node-04": "node-04-bbf79c7c-e139"
+   }
+  },
+  {
+   "episode": 140,
+   "kind": "train",
+   "seed": 1134,
+   "ticks": 21,
+   "final_state_hash": "7d4949a90adbd3cdd8c3137ab34aef6e6b760dfa59867ed9e6a962b98a655aed",
+   "coverage": 0.9330357142857143,
+   "returns": {
+    "node-01": 26.53999999999999,
+    "node-02": 38.04000000000001,
+    "node-03": 23.03999999999998,
+    "node-04": 30.289999999999985
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0140/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e140",
+    "node-02": "node-02-a3989e78-e140",
+    "node-03": "node-03-de9ef7d1-e140",
+    "node-04": "node-04-bbf79c7c-e140"
+   }
+  },
+  {
+   "episode": 141,
+   "kind": "train",
+   "seed": 1135,
+   "ticks": 150,
+   "final_state_hash": "6f38a136a9fee3ad430291594576a45af29bb828e85973646a4cd259e77491ba",
+   "coverage": 0.9383259911894273,
+   "returns": {
+    "node-01": -34.74999999999993,
+    "node-02": 0.24999999999990785,
+    "node-03": -247.2499999999996,
+    "node-04": -91.7500000000001
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0141/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e141",
+    "node-02": "node-02-a3989e78-e141",
+    "node-03": "node-03-de9ef7d1-e141",
+    "node-04": "node-04-bbf79c7c-e141"
+   }
+  },
+  {
+   "episode": 142,
+   "kind": "train",
+   "seed": 1136,
+   "ticks": 15,
+   "final_state_hash": "9471451877ce11c0ea39ecf9beaf765f157e1f1ae85d4eac425ede89f04ba8e5",
+   "coverage": 0.852017937219731,
+   "returns": {
+    "node-01": 27.6,
+    "node-02": 24.599999999999987,
+    "node-03": 24.349999999999987,
+    "node-04": 25.099999999999987
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0142/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e142",
+    "node-02": "node-02-a3989e78-e142",
+    "node-03": "node-03-de9ef7d1-e142",
+    "node-04": "node-04-bbf79c7c-e142"
+   }
+  },
+  {
+   "episode": 143,
+   "kind": "train",
+   "seed": 1137,
+   "ticks": 16,
+   "final_state_hash": "fa4fe6566e6ad051d7e8ac43076f92f8c04dd9a6c23a01de5f3957ef568269a6",
+   "coverage": 0.8878923766816144,
+   "returns": {
+    "node-01": 30.839999999999993,
+    "node-02": 25.33999999999999,
+    "node-03": 33.839999999999996,
+    "node-04": 21.83999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0143/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e143",
+    "node-02": "node-02-a3989e78-e143",
+    "node-03": "node-03-de9ef7d1-e143",
+    "node-04": "node-04-bbf79c7c-e143"
+   }
+  },
+  {
+   "episode": 144,
+   "kind": "train",
+   "seed": 1138,
+   "ticks": 27,
+   "final_state_hash": "90af20860611ffb634857127be483b8f207d2bcd666dc041c2b33c4afbdd32dc",
+   "coverage": 0.9596412556053812,
+   "returns": {
+    "node-01": 46.23000000000002,
+    "node-02": 27.97999999999998,
+    "node-03": -47.51999999999997,
+    "node-04": 29.729999999999983
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0144/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e144",
+    "node-02": "node-02-a3989e78-e144",
+    "node-03": "node-03-de9ef7d1-e144",
+    "node-04": "node-04-bbf79c7c-e144"
+   }
+  },
+  {
+   "episode": 145,
+   "kind": "train",
+   "seed": 1139,
+   "ticks": 31,
+   "final_state_hash": "81fbe6cc8bf586cbe5ece841b3ecfede16a9cc357d28f03c7b2b11f30d9271da",
+   "coverage": 0.9906103286384976,
+   "returns": {
+    "node-01": 37.94000000000002,
+    "node-02": 46.940000000000026,
+    "node-03": 25.689999999999973,
+    "node-04": -42.80999999999997
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0145/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e145",
+    "node-02": "node-02-a3989e78-e145",
+    "node-03": "node-03-de9ef7d1-e145",
+    "node-04": "node-04-bbf79c7c-e145"
+   }
+  },
+  {
+   "episode": 146,
+   "kind": "train",
+   "seed": 1140,
+   "ticks": 28,
+   "final_state_hash": "cecdae665f406112470217799d29ddaa3ae9f73f49ff9a253a41012ab1b823b4",
+   "coverage": 0.985981308411215,
+   "returns": {
+    "node-01": 20.46999999999997,
+    "node-02": 18.719999999999967,
+    "node-03": 22.219999999999967,
+    "node-04": 37.46999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0146/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e146",
+    "node-02": "node-02-a3989e78-e146",
+    "node-03": "node-03-de9ef7d1-e146",
+    "node-04": "node-04-bbf79c7c-e146"
+   }
+  },
+  {
+   "episode": 147,
+   "kind": "train",
+   "seed": 1141,
+   "ticks": 39,
+   "final_state_hash": "3df35ad3c222b92851833058ae522c85ffbb07d494450251cf56d830398e9537",
+   "coverage": 0.9909502262443439,
+   "returns": {
+    "node-01": 27.109999999999953,
+    "node-02": 6.610000000000007,
+    "node-03": 33.86000000000002,
+    "node-04": 21.359999999999957
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0147/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e147",
+    "node-02": "node-02-a3989e78-e147",
+    "node-03": "node-03-de9ef7d1-e147",
+    "node-04": "node-04-bbf79c7c-e147"
+   }
+  },
+  {
+   "episode": 148,
+   "kind": "train",
+   "seed": 1142,
+   "ticks": 25,
+   "final_state_hash": "964d887c8ec2a55afa09d6055a261274aa2f31f9e01afdcf4723fb6a896ce8ca",
+   "coverage": 0.9638009049773756,
+   "returns": {
+    "node-01": 26.499999999999982,
+    "node-02": 18.24999999999997,
+    "node-03": 30.24999999999997,
+    "node-04": 34.74999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0148/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e148",
+    "node-02": "node-02-a3989e78-e148",
+    "node-03": "node-03-de9ef7d1-e148",
+    "node-04": "node-04-bbf79c7c-e148"
+   }
+  },
+  {
+   "episode": 149,
+   "kind": "train",
+   "seed": 1143,
+   "ticks": 29,
+   "final_state_hash": "86e70f28f3f27fdf564093ab7104191bbedffe09b8cf567190dd565fda60c7a8",
+   "coverage": 0.9732142857142857,
+   "returns": {
+    "node-01": 31.459999999999994,
+    "node-02": 32.45999999999997,
+    "node-03": 29.709999999999976,
+    "node-04": 17.459999999999972
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0149/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e149",
+    "node-02": "node-02-a3989e78-e149",
+    "node-03": "node-03-de9ef7d1-e149",
+    "node-04": "node-04-bbf79c7c-e149"
+   }
+  },
+  {
+   "episode": 150,
+   "kind": "train",
+   "seed": 1144,
+   "ticks": 26,
+   "final_state_hash": "7c78add488a52299c681d304b00d19f0022f84e3c48acb9f0858aa4cbd1cca8b",
+   "coverage": 0.9547511312217195,
+   "returns": {
+    "node-01": -35.00999999999998,
+    "node-02": 30.73999999999998,
+    "node-03": 37.49000000000003,
+    "node-04": 36.989999999999974
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0150/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e150",
+    "node-02": "node-02-a3989e78-e150",
+    "node-03": "node-03-de9ef7d1-e150",
+    "node-04": "node-04-bbf79c7c-e150"
+   }
+  },
+  {
+   "episode": 151,
+   "kind": "train",
+   "seed": 1145,
+   "ticks": 44,
+   "final_state_hash": "bfab33630e42c9d77566509ec5ee25fce2a5e9b1808d6854ac0f270f0f258229",
+   "coverage": 0.990990990990991,
+   "returns": {
+    "node-01": 35.060000000000066,
+    "node-02": 24.55999999999995,
+    "node-03": 30.309999999999945,
+    "node-04": 24.809999999999945
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0151/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e151",
+    "node-02": "node-02-a3989e78-e151",
+    "node-03": "node-03-de9ef7d1-e151",
+    "node-04": "node-04-bbf79c7c-e151"
+   }
+  },
+  {
+   "episode": 152,
+   "kind": "train",
+   "seed": 1146,
+   "ticks": 9,
+   "final_state_hash": "dbb5f9065be2c136629bf09d72600035c9bbf5b9f6beed8fbd69b3361e03601f",
+   "coverage": 0.7432432432432432,
+   "returns": {
+    "node-01": 27.159999999999997,
+    "node-02": 24.659999999999997,
+    "node-03": 26.659999999999997,
+    "node-04": 23.659999999999997
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0152/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e152",
+    "node-02": "node-02-a3989e78-e152",
+    "node-03": "node-03-de9ef7d1-e152",
+    "node-04": "node-04-bbf79c7c-e152"
+   }
+  },
+  {
+   "episode": 153,
+   "kind": "train",
+   "seed": 1147,
+   "ticks": 77,
+   "final_state_hash": "60266387338fab6689f5f0b6b7c58ef58d9c7334b98e7d96988943f24b0a2837",
+   "coverage": 1.0,
+   "returns": {
+    "node-01": 36.9800000000001,
+    "node-02": 32.480000000000075,
+    "node-03": -159.26999999999995,
+    "node-04": -13.01999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0153/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e153",
+    "node-02": "node-02-a3989e78-e153",
+    "node-03": "node-03-de9ef7d1-e153",
+    "node-04": "node-04-bbf79c7c-e153"
+   }
+  },
+  {
+   "episode": 154,
+   "kind": "train",
+   "seed": 1148,
+   "ticks": 150,
+   "final_state_hash": "0c3fcb7d1c00b4322e5dbc2cc7321d92f02056cd9425f8a3b01a4e65a749cd2b",
+   "coverage": 1.0,
+   "returns": {
+    "node-01": -2.2500000000000915,
+    "node-02": 10.74999999999995,
+    "node-03": -5.750000000000055,
+    "node-04": -3.5000000000000746
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0154/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e154",
+    "node-02": "node-02-a3989e78-e154",
+    "node-03": "node-03-de9ef7d1-e154",
+    "node-04": "node-04-bbf79c7c-e154"
+   }
+  },
+  {
+   "episode": 155,
+   "kind": "train",
+   "seed": 1149,
+   "ticks": 11,
+   "final_state_hash": "09abbbb1030c48d524c3bd19176218cb2703b9e5999f11ade36a02a028447383",
+   "coverage": 0.8237885462555066,
+   "returns": {
+    "node-01": 31.140000000000008,
+    "node-02": 22.89,
+    "node-03": 25.890000000000008,
+    "node-04": 28.639999999999997
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0155/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e155",
+    "node-02": "node-02-a3989e78-e155",
+    "node-03": "node-03-de9ef7d1-e155",
+    "node-04": "node-04-bbf79c7c-e155"
+   }
+  },
+  {
+   "episode": 156,
+   "kind": "validation",
+   "seed": 100,
+   "ticks": 6,
+   "final_state_hash": "cb9936c86b702bae55d596f28832812673cb173b5ed0a22c15dbc19a4837b7a7",
+   "coverage": 0.5422222222222223,
+   "returns": {
+    "node-01": 19.44,
+    "node-02": 18.94,
+    "node-03": 19.940000000000005,
+    "node-04": 15.940000000000001
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0156/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e156",
+    "node-02": "node-02-a3989e78-e156",
+    "node-03": "node-03-de9ef7d1-e156",
+    "node-04": "node-04-bbf79c7c-e156"
+   }
+  },
+  {
+   "episode": 157,
+   "kind": "validation",
+   "seed": 101,
+   "ticks": 26,
+   "final_state_hash": "f0d511be881bcaaf98ec8959fb7f9bf7113f699779a36ccb468c7be9af94c35e",
+   "coverage": 0.9866666666666667,
+   "returns": {
+    "node-01": 37.740000000000016,
+    "node-02": 37.48999999999999,
+    "node-03": 27.23999999999998,
+    "node-04": 30.23999999999997
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0157/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e157",
+    "node-02": "node-02-a3989e78-e157",
+    "node-03": "node-03-de9ef7d1-e157",
+    "node-04": "node-04-bbf79c7c-e157"
+   }
+  },
+  {
+   "episode": 158,
+   "kind": "validation",
+   "seed": 102,
+   "ticks": 67,
+   "final_state_hash": "2561c9791f333e019ef5e47d39be8e5a74b37cb4ed88b2f8626f53dede3e188c",
+   "coverage": 1.0,
+   "returns": {
+    "node-01": 16.079999999999924,
+    "node-02": 14.079999999999936,
+    "node-03": 42.080000000000105,
+    "node-04": 12.329999999999947
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0158/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e158",
+    "node-02": "node-02-a3989e78-e158",
+    "node-03": "node-03-de9ef7d1-e158",
+    "node-04": "node-04-bbf79c7c-e158"
+   }
+  },
+  {
+   "episode": 159,
+   "kind": "test",
+   "seed": 200,
+   "ticks": 25,
+   "final_state_hash": "353fe50a9b208d431907858d1eaa5f77f51cf90158a28aadb9101a4971d96ada",
+   "coverage": 0.9495412844036697,
+   "returns": {
+    "node-01": 27.749999999999975,
+    "node-02": 28.249999999999975,
+    "node-03": 32.24999999999998,
+    "node-04": 30.49999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0159/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e159",
+    "node-02": "node-02-a3989e78-e159",
+    "node-03": "node-03-de9ef7d1-e159",
+    "node-04": "node-04-bbf79c7c-e159"
+   }
+  },
+  {
+   "episode": 160,
+   "kind": "test",
+   "seed": 201,
+   "ticks": 31,
+   "final_state_hash": "3300ea2bf68057aa1b19332a1fc088dbca5d54d866903f144bee950d2c7c72cb",
+   "coverage": 0.9419642857142857,
+   "returns": {
+    "node-01": 22.44000000000004,
+    "node-02": 37.94000000000003,
+    "node-03": -34.809999999999974,
+    "node-04": 32.939999999999976
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0160/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e160",
+    "node-02": "node-02-a3989e78-e160",
+    "node-03": "node-03-de9ef7d1-e160",
+    "node-04": "node-04-bbf79c7c-e160"
+   }
+  },
+  {
+   "episode": 161,
+   "kind": "test",
+   "seed": 202,
+   "ticks": 22,
+   "final_state_hash": "d4ce9475147cacab18b364bea8f61363448b07a7baf91dba662addb6a6e589b6",
+   "coverage": 0.9434782608695652,
+   "returns": {
+    "node-01": 29.279999999999983,
+    "node-02": 35.279999999999994,
+    "node-03": 33.279999999999994,
+    "node-04": 24.02999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0161/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e161",
+    "node-02": "node-02-a3989e78-e161",
+    "node-03": "node-03-de9ef7d1-e161",
+    "node-04": "node-04-bbf79c7c-e161"
+   }
+  },
+  {
+   "episode": 162,
+   "kind": "test",
+   "seed": 203,
+   "ticks": 21,
+   "final_state_hash": "29e344bbd27731512c79f02ae3f6413ae1068a232bfdbaaa57f58a68d514c925",
+   "coverage": 0.9411764705882353,
+   "returns": {
+    "node-01": 36.29,
+    "node-02": 30.289999999999992,
+    "node-03": 17.289999999999992,
+    "node-04": 23.789999999999996
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0162/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e162",
+    "node-02": "node-02-a3989e78-e162",
+    "node-03": "node-03-de9ef7d1-e162",
+    "node-04": "node-04-bbf79c7c-e162"
+   }
+  },
+  {
+   "episode": 163,
+   "kind": "test",
+   "seed": 204,
+   "ticks": 16,
+   "final_state_hash": "14995ee3a9660ebbf99a991e48641da2b350fba951773fa53a0719f16e3e278d",
+   "coverage": 0.9110169491525424,
+   "returns": {
+    "node-01": 40.59000000000001,
+    "node-02": 31.589999999999996,
+    "node-03": 28.339999999999996,
+    "node-04": 25.08999999999999
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0163/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e163",
+    "node-02": "node-02-a3989e78-e163",
+    "node-03": "node-03-de9ef7d1-e163",
+    "node-04": "node-04-bbf79c7c-e163"
+   }
+  },
+  {
+   "episode": 164,
+   "kind": "test",
+   "seed": 205,
+   "ticks": 8,
+   "final_state_hash": "eceb83c7712e1f364282f1e114c848ec6a4c7cd030357d6fde7508df9cc92292",
+   "coverage": 0.7192982456140351,
+   "returns": {
+    "node-01": 25.67000000000001,
+    "node-02": 22.17,
+    "node-03": 25.67000000000001,
+    "node-04": 25.67
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0164/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e164",
+    "node-02": "node-02-a3989e78-e164",
+    "node-03": "node-03-de9ef7d1-e164",
+    "node-04": "node-04-bbf79c7c-e164"
+   }
+  },
+  {
+   "episode": 165,
+   "kind": "test",
+   "seed": 206,
+   "ticks": 12,
+   "final_state_hash": "82dd169f1f376e70acfb67501f87c203302ad0d992174445c081d00e87f51689",
+   "coverage": 0.7454545454545455,
+   "returns": {
+    "node-01": 31.13,
+    "node-02": 31.630000000000003,
+    "node-03": 31.63000000000001,
+    "node-04": 5.630000000000002
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0165/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e165",
+    "node-02": "node-02-a3989e78-e165",
+    "node-03": "node-03-de9ef7d1-e165",
+    "node-04": "node-04-bbf79c7c-e165"
+   }
+  },
+  {
+   "episode": 166,
+   "kind": "test",
+   "seed": 207,
+   "ticks": 27,
+   "final_state_hash": "f8c3f88963922526b174bd305b676d7afad3fbace22b5cbcc949e276c0933a7b",
+   "coverage": 0.9493087557603687,
+   "returns": {
+    "node-01": 35.47999999999999,
+    "node-02": 26.22999999999997,
+    "node-03": 47.23000000000002,
+    "node-04": -8.269999999999996
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0166/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e166",
+    "node-02": "node-02-a3989e78-e166",
+    "node-03": "node-03-de9ef7d1-e166",
+    "node-04": "node-04-bbf79c7c-e166"
+   }
+  },
+  {
+   "episode": 167,
+   "kind": "test",
+   "seed": 208,
+   "ticks": 36,
+   "final_state_hash": "9566ca2ac6f22739af467e8fb402f20e6e8ce587848f44faaf404b30a6878b08",
+   "coverage": 0.9563318777292577,
+   "returns": {
+    "node-01": 35.639999999999965,
+    "node-02": 34.64000000000004,
+    "node-03": 34.39000000000005,
+    "node-04": -25.110000000000014
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0167/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e167",
+    "node-02": "node-02-a3989e78-e167",
+    "node-03": "node-03-de9ef7d1-e167",
+    "node-04": "node-04-bbf79c7c-e167"
+   }
+  },
+  {
+   "episode": 168,
+   "kind": "test",
+   "seed": 209,
+   "ticks": 13,
+   "final_state_hash": "5d1e5d56de062cb8626a3ce43f505409a04c0165e5b67d082634afefb237e4ca",
+   "coverage": 0.8444444444444444,
+   "returns": {
+    "node-01": 32.87,
+    "node-02": 27.86999999999999,
+    "node-03": 24.869999999999994,
+    "node-04": 33.37
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0168/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e168",
+    "node-02": "node-02-a3989e78-e168",
+    "node-03": "node-03-de9ef7d1-e168",
+    "node-04": "node-04-bbf79c7c-e168"
+   }
+  },
+  {
+   "episode": 169,
+   "kind": "test",
+   "seed": 210,
+   "ticks": 150,
+   "final_state_hash": "92d1f58ab816e2819e8590d4354d6d9c402dcf894062a5697d3444164438bde8",
+   "coverage": 0.8796296296296297,
+   "returns": {
+    "node-01": -274.74999999999955,
+    "node-02": -283.2499999999995,
+    "node-03": -8.500000000000048,
+    "node-04": -13.000000000000025
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0169/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e169",
+    "node-02": "node-02-a3989e78-e169",
+    "node-03": "node-03-de9ef7d1-e169",
+    "node-04": "node-04-bbf79c7c-e169"
+   }
+  },
+  {
+   "episode": 170,
+   "kind": "test",
+   "seed": 211,
+   "ticks": 16,
+   "final_state_hash": "e00f15f0bbcdbe2f0a67bb8fc9c9b54f382bea76ff7a9a8e64f27f1af7a9a511",
+   "coverage": 0.933920704845815,
+   "returns": {
+    "node-01": 27.839999999999986,
+    "node-02": 29.589999999999993,
+    "node-03": 33.58999999999999,
+    "node-04": 21.839999999999986
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0170/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e170",
+    "node-02": "node-02-a3989e78-e170",
+    "node-03": "node-03-de9ef7d1-e170",
+    "node-04": "node-04-bbf79c7c-e170"
+   }
+  },
+  {
+   "episode": 171,
+   "kind": "test",
+   "seed": 212,
+   "ticks": 10,
+   "final_state_hash": "ef675648943c71093d3ba2adbc269d5db34a432b5809e858da191945608926ed",
+   "coverage": 0.7972972972972973,
+   "returns": {
+    "node-01": 29.400000000000006,
+    "node-02": 26.900000000000002,
+    "node-03": 29.900000000000006,
+    "node-04": 26.399999999999995
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0171/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e171",
+    "node-02": "node-02-a3989e78-e171",
+    "node-03": "node-03-de9ef7d1-e171",
+    "node-04": "node-04-bbf79c7c-e171"
+   }
+  },
+  {
+   "episode": 172,
+   "kind": "test",
+   "seed": 213,
+   "ticks": 19,
+   "final_state_hash": "b08c611a8b3fe112505ac6bb3c4449239ccb58cc11ba7c367098bb01b84d74c1",
+   "coverage": 0.9192825112107623,
+   "returns": {
+    "node-01": 30.059999999999988,
+    "node-02": 29.059999999999985,
+    "node-03": 25.559999999999985,
+    "node-04": 29.809999999999988
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0172/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e172",
+    "node-02": "node-02-a3989e78-e172",
+    "node-03": "node-03-de9ef7d1-e172",
+    "node-04": "node-04-bbf79c7c-e172"
+   }
+  },
+  {
+   "episode": 173,
+   "kind": "test",
+   "seed": 214,
+   "ticks": 9,
+   "final_state_hash": "738931bdd99cb547b5cabdf02d92b0e4751417da0315516222a9d2d179927032",
+   "coverage": 0.7413793103448276,
+   "returns": {
+    "node-01": 27.660000000000004,
+    "node-02": 26.160000000000004,
+    "node-03": 28.160000000000004,
+    "node-04": 23.16
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0173/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e173",
+    "node-02": "node-02-a3989e78-e173",
+    "node-03": "node-03-de9ef7d1-e173",
+    "node-04": "node-04-bbf79c7c-e173"
+   }
+  },
+  {
+   "episode": 174,
+   "kind": "test",
+   "seed": 215,
+   "ticks": 14,
+   "final_state_hash": "c2c6b7fa8f15a9f5af877513f18d07e726f9cb7e3192630ff35e77f8be88eb59",
+   "coverage": 0.8325991189427313,
+   "returns": {
+    "node-01": 30.859999999999996,
+    "node-02": 28.86,
+    "node-03": -6.889999999999997,
+    "node-04": 35.86000000000001
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0174/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e174",
+    "node-02": "node-02-a3989e78-e174",
+    "node-03": "node-03-de9ef7d1-e174",
+    "node-04": "node-04-bbf79c7c-e174"
+   }
+  },
+  {
+   "episode": 175,
+   "kind": "test",
+   "seed": 216,
+   "ticks": 25,
+   "final_state_hash": "743c9b582d4c681fa33b5a1ccb844f0ef12861f60fca8c768a68cdfd5acff16d",
+   "coverage": 0.9353448275862069,
+   "returns": {
+    "node-01": 31.749999999999986,
+    "node-02": 19.49999999999998,
+    "node-03": 37.5,
+    "node-04": 25.999999999999986
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0175/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e175",
+    "node-02": "node-02-a3989e78-e175",
+    "node-03": "node-03-de9ef7d1-e175",
+    "node-04": "node-04-bbf79c7c-e175"
+   }
+  },
+  {
+   "episode": 176,
+   "kind": "test",
+   "seed": 217,
+   "ticks": 15,
+   "final_state_hash": "3a6efdb5329c1341a5c525b926ca154ff0f779757b9750bd722d022b234f7b73",
+   "coverage": 0.8851063829787233,
+   "returns": {
+    "node-01": 39.35000000000001,
+    "node-02": 29.349999999999994,
+    "node-03": 26.84999999999999,
+    "node-04": 30.349999999999998
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0176/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e176",
+    "node-02": "node-02-a3989e78-e176",
+    "node-03": "node-03-de9ef7d1-e176",
+    "node-04": "node-04-bbf79c7c-e176"
+   }
+  },
+  {
+   "episode": 177,
+   "kind": "test",
+   "seed": 218,
+   "ticks": 9,
+   "final_state_hash": "a88326e6026ed6e3cf2c0a80e5eaeac2b97beebce840ab53f557e5a012ca9af9",
+   "coverage": 0.7566371681415929,
+   "returns": {
+    "node-01": 23.91,
+    "node-02": 24.410000000000004,
+    "node-03": 24.410000000000004,
+    "node-04": 25.910000000000004
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0177/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e177",
+    "node-02": "node-02-a3989e78-e177",
+    "node-03": "node-03-de9ef7d1-e177",
+    "node-04": "node-04-bbf79c7c-e177"
+   }
+  },
+  {
+   "episode": 178,
+   "kind": "test",
+   "seed": 219,
+   "ticks": 8,
+   "final_state_hash": "b6aa121cb86202439999ab076ad8e6fd8a642e2607f312cfcc365ec00c5b9b34",
+   "coverage": 0.7040358744394619,
+   "returns": {
+    "node-01": 22.67,
+    "node-02": 25.67,
+    "node-03": 25.17,
+    "node-04": 23.17
+   },
+   "replay_manifest": "/tmp/t30-fleet-imkvuf7t/coordinator/replays/t30-fleet/ep-0178/manifest.json",
+   "episode_end_sent": [
+    "node-01",
+    "node-02",
+    "node-03",
+    "node-04"
+   ],
+   "episode_end_failed": [],
+   "window_ids": {
+    "node-01": "node-01-6537b775-e178",
+    "node-02": "node-02-a3989e78-e178",
+    "node-03": "node-03-de9ef7d1-e178",
+    "node-04": "node-04-bbf79c7c-e178"
+   }
+  }
+ ]
+}

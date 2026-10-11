@@ -1,0 +1,20 @@
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "5288987e95064ae1e332f15c0cc4fae77d53eb64cf23ec0f1fd0bf727c93194a", "tick": 1}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "north", "node-04": "west"}, "events": [], "state_hash": "ae4410ffe2409e3450cb140ae8a98aa24d60715596cf5e458487bfdd3608cba3", "tick": 2}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "b8a0a24e67f08b66b999cd2a647925ecee1278970671de5a84f1f4b84cb37c19", "tick": 3}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "a8134aec495c80b1da4bd19a96752c87b200968865e7b56550978721f69464c3", "tick": 4}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "north", "node-04": "south"}, "events": [], "state_hash": "95e95f3fc6d46a4065d59b9377fc486316b779f4c0977e4fdd11995b8b233ba0", "tick": 5}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "east", "node-04": "south"}, "events": [{"event": "wall_collision", "node": "node-02", "tick": 6}], "state_hash": "2a313c4de9a21157c04e45c1de47c98d1ad4d3dca87caf601068af5d8d078b59", "tick": 6}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "0870ebf29007da81422b783f19ea00035038d3a44f2b779d87bdf6e94812637f", "tick": 7}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "east", "node-04": "south"}, "events": [], "state_hash": "458c4e5ed7a9db87b3fa78fd697ebf990677bbbd7d79c2ce720b04987db1faa6", "tick": 8}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "north", "node-04": "east"}, "events": [], "state_hash": "218c1db3eaa31bac50e6892d590b75db9221fe6732ac38d7934abb49995541a4", "tick": 9}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "north", "node-04": "east"}, "events": [{"event": "wall_collision", "node": "node-04", "tick": 10}], "state_hash": "b219f4339c85a909b4e8b40360c520e3906af087a07fdeb3c5b290639b863422", "tick": 10}
+{"actions": {"node-01": "south", "node-02": "stay", "node-03": "north", "node-04": "west"}, "events": [], "state_hash": "c31b255654e41d505180728155e794d53bb78d92d5347306b794865ac76797b4", "tick": 11}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "east", "node-04": "east"}, "events": [], "state_hash": "209491ba78e7b2ebe9c5984c456266cd2fb0ccc8f3497aaa54837c2f73175008", "tick": 12}
+{"actions": {"node-01": "south", "node-02": "north", "node-03": "west", "node-04": "west"}, "events": [], "state_hash": "680879919737d4763595a3bcf77fe7d8cda07da4b61591ffe7ad7598e956895c", "tick": 13}
+{"actions": {"node-01": "south", "node-02": "north", "node-03": "west", "node-04": "east"}, "events": [], "state_hash": "411dba2ed9bb2f0d8888d567806f5aea7be13fb5f7e055cc37904e92378bd05f", "tick": 14}
+{"actions": {"node-01": "east", "node-02": "north", "node-03": "east", "node-04": "west"}, "events": [], "state_hash": "e9a83449929413b6c8d1e0aaed1fce8dc644b07e67bfeb041176e0495fc309cc", "tick": 15}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "west", "node-04": "east"}, "events": [], "state_hash": "f07b33cee86888564662ff736295e1f2fc0d60a5340f7d9bd5069bcc5712d8d5", "tick": 16}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "east", "node-04": "west"}, "events": [], "state_hash": "10b1ca93dbff494d27108743f1755f443500da58114abcfcce14cab227742da3", "tick": 17}
+{"actions": {"node-01": "south", "node-02": "south", "node-03": "east", "node-04": "east"}, "events": [], "state_hash": "8ab3a17c75d036218e9a6f72a0b6af1cbad11e808318e4194e78b6e67e442e82", "tick": 18}
+{"actions": {"node-01": "west", "node-02": "south", "node-03": "east", "node-04": "west"}, "events": [], "state_hash": "a7ef682adf243e35c81398bc2695d8d21f9db3cee6dfcdf9bba8709e379959a8", "tick": 19}
+{"actions": {"node-01": "east", "node-02": "north", "node-03": "south", "node-04": "east"}, "events": [], "state_hash": "b1a694238342df358f6aa2220db0a2aeecb3cfffb97d7c5d02cd708ceba3bbcd", "tick": 20}

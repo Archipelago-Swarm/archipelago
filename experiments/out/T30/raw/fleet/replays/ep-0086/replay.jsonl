@@ -1,0 +1,10 @@
+{"actions": {"node-01": "south", "node-02": "south", "node-03": "north", "node-04": "west"}, "events": [], "state_hash": "6dba98abf0e47eb09c409eeda0eed82a1030c3a21c27023def3f5bf414653fb4", "tick": 1}
+{"actions": {"node-01": "east", "node-02": "stay", "node-03": "east", "node-04": "north"}, "events": [], "state_hash": "d016ca7a1e433a7f9062b6fd78691ab11b0496a906fa9c362f21ec07fda11598", "tick": 2}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "north", "node-04": "west"}, "events": [], "state_hash": "4b19eb77172c3d9a0811806df0fff6b5162661f43b93fd23118160a5ef2f9612", "tick": 3}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "36c0a134e596cc1700f7057f329515d443de340cd13bcc4f462f240d37f3f514", "tick": 4}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "east", "node-04": "south"}, "events": [], "state_hash": "782e4d13d326aaf74abaff5083b9e5f62b4f3bfa215e522543d7bc888a212347", "tick": 5}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "2395cb7a82591d59be386a652c2d29048394ccfd7ac4a01895bfb511daf45f24", "tick": 6}
+{"actions": {"node-01": "south", "node-02": "west", "node-03": "north", "node-04": "west"}, "events": [], "state_hash": "83a3eec15a8d59b1e2297a71e3e66909dd1a0f68754911968a22739f1447fb46", "tick": 7}
+{"actions": {"node-01": "east", "node-02": "west", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "285d1bb756c4f3114329e73c8dfad08299b3924f244e50f54afb000255998b1f", "tick": 8}
+{"actions": {"node-01": "east", "node-02": "north", "node-03": "north", "node-04": "north"}, "events": [{"event": "wall_collision", "node": "node-02", "tick": 9}], "state_hash": "4c16584a9a462496608f52726394e3a619b21da43e93c193ea901e13e09bb9a3", "tick": 9}
+{"actions": {"node-01": "east", "node-02": "south", "node-03": "north", "node-04": "north"}, "events": [], "state_hash": "8d74adb0633d36db23102c516217bcfa455169483ef7ad11c3ec008493d365ea", "tick": 10}
