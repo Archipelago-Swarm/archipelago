@@ -25,11 +25,11 @@ SMOKE_CUT = [{"start_tick": 15, "end_tick": 45, "cut_links": e2e_procs.HALVES_CU
 
 @pytest.fixture
 def make_cluster(tmp_path_factory, request):
-    """Factory: ``make_cluster(ticks=60, **node_env)`` -> started Cluster. Prints process logs when the test fails."""
+    """Factory: ``make_cluster(ticks=60, ids="t37"|"legacy", **node_env)`` -> started Cluster. Prints process logs when the test fails."""
     made = []
 
-    def make(ticks=60, tick_interval_s=0.0, **node_env):
-        c = e2e_procs.Cluster(tmp_path_factory.mktemp("live"), ticks=ticks, **node_env)
+    def make(ticks=60, tick_interval_s=0.0, ids="t37", **node_env):
+        c = e2e_procs.Cluster(tmp_path_factory.mktemp("live"), ticks=ticks, ids=ids, **node_env)
         made.append(c)
         return c.start(tick_interval_s)
 

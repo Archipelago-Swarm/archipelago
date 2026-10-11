@@ -7,6 +7,11 @@
   },
   "deadline_ms": 500,
   "battery_scale": 4,
+  "reward_id": "rew-v1",
+  "node_config": {
+    "learner_schedule_id": "sched-t37-v1",
+    "encoder_id": "grid-flat-v2-visits-shared"
+  },
   "episodes": [
     {"kind": "train", "seed": 1000, "count": 2},
     {"kind": "validation", "seed": 2000},

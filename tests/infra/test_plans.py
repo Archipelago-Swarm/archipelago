@@ -91,3 +91,58 @@ def test_the_mounted_raw_plan_loads_in_both_services_as_the_default_plan(name):
     path = ROOT / f"infra/demo/plans/{name}.json"
     assert set(load_plans(path)) == {"default"}
     assert load_plan(path, None).name == DEFAULT_PLAN
+
+
+@pytest.mark.parametrize("name", ["smoke", "demo"])
+def test_plans_select_the_t37_versioned_ids_and_keep_battery_scale_four(name):
+    """T38 / A18: reward rew-v1, observation grid-flat-v2-visits-shared, learner schedule
+    sched-t37-v1; the registered schedule resolves to the T37-selected recipe."""
+    from archipelago_coordinator.models import resolve_encoder_id, resolve_schedule
+
+    p = plan(name)
+    assert p.battery_scale == 4
+    assert p.reward_id == "rew-v1"
+    assert p.node_config.learner_schedule_id == "sched-t37-v1"
+    assert (
+        resolve_encoder_id(p.node_config.encoder_id, 16, 2) == "grid-flat-v2-visits-shared-s16-r2"
+    )
+    n_train = sum(e.kind == "train" for e in expand_episodes(p))
+    hyper, eps = resolve_schedule(p.node_config, n_train)
+    assert (hyper["lr"], hyper["capacity"], hyper["double_dqn"]) == (1e-3, 50000, True)
+    assert (eps["start"], eps["end"]) == (1.0, 0.05) and eps["decay_episodes"] == -(-n_train // 2)
+
+
+def compose_node_env():
+    import yaml
+
+    raw = yaml.safe_load((ROOT / "infra/compose/compose.yml").read_text())["x-node-env"]
+
+    def default(v):
+        v = str(v)
+        return v[2:-1].split(":-", 1)[1] if v.startswith("${") and ":-" in v else v
+
+    return {k: default(v) for k, v in raw.items()}
+
+
+def test_node_compose_env_matches_the_plans_ids():
+    env = compose_node_env()
+    assert env["ENCODER_FAMILY"] == "grid-flat-v2-visits-shared"
+    assert env["REWARD_ID"] == "rew-v1" and env["LEARNER_SCHEDULE_ID"] == "sched-t37-v1"
+    assert env["WORLD_BATTERY_SCALE"] == "4"
+
+
+def test_node_boots_from_the_compose_env_under_the_plans_ids(tmp_path):
+    """The env block above must itself be a valid node configuration."""
+    for p in ("packages/node/runtime", "packages/learning", "packages/sim", "packages/contracts/src"):
+        sys.path.insert(0, str(ROOT / p))
+    from archipelago_noderuntime.config import Config
+
+    env = compose_node_env()
+    env.update(
+        NODE_ID="node-01", NODE_CONTROL_TOKEN="c" * 20, PEER_TOKEN="p" * 20,
+        TELEMETRY_TOKEN="t" * 20, NODE_CHECKPOINT_DIR=str(tmp_path),
+    )  # fmt: skip
+    cfg = Config.from_env(env)
+    assert cfg.encoder_id == "grid-flat-v2-visits-shared-s16-r2"
+    assert (cfg.reward_id, cfg.learner_schedule_id) == ("rew-v1", "sched-t37-v1")
+    assert cfg.obs_dim == 82 and cfg.double_dqn and cfg.capacity == 50000 and cfg.lr == 1e-3
