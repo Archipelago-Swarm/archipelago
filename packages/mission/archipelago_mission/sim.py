@@ -17,33 +17,44 @@ from dataclasses import dataclass, field
 
 from archipelago_sim.terrain import Terrain
 
-W, H = 10000.0, 6000.0  # map, metres (matches the web demo world)
-CELL_M = 250.0  # terrain cell
-NX, NY = 16, 10  # coarse search cells (625 x 600 m)
+from .rf import PROFILES, RFEngine, RFNode, geometric_horizon_m
+
+TILE_M = 100_000.0  # 1 world tile = 100 km; canonical sim unit is metres everywhere
+TILES_X, TILES_Y = 4, 5
+W, H = TILES_X * TILE_M, TILES_Y * TILE_M  # 400 km x 500 km
+
+
+def tiles_to_m(t: float) -> float:
+    return t * TILE_M
+
+
+def m_to_tiles(m: float) -> float:
+    return m / TILE_M
+
+
+CELL_M = 10_000.0  # terrain cell (40 x 50 cells)
+NX, NY = 16, 20  # coarse search cells (25 x 25 km)
 CW, CH = W / NX, H / NY
 ALL_CELLS = [(i, j) for j in range(NY) for i in range(NX)]
 POI_TYPES = ("INFRASTRUCTURE", "VEHICLE", "SIGNAL")
-ROLES = {  # speed m/s, sensor radius m, comm radius m
-    "SCOUT": (55.0, 600.0, 2600.0),
-    "SENSOR": (40.0, 520.0, 3000.0),
-    "RELAY": (34.0, 250.0, 5200.0),
-    "GENERAL": (44.0, 420.0, 3400.0),
-}
-ROLE_ORDER = ("SCOUT", "SENSOR", "RELAY", "GENERAL", "SCOUT", "GENERAL")
+# Every UAV is identical: speed m/s, sensor radius m, cruise altitude AGL m; RF uses the single default profile.
+UAV_SPEED_MPS, UAV_SENSOR_M, UAV_ALT_M = 140.0, 40_000.0, 400.0
+RF_PROFILE = PROFILES["GENERAL"]  # 40 km nominal link range
+ALT_MAX_M, CLIMB_M_PER_TICK = 2000.0, 150.0
 SKILL = "adaptive_search_spacing"
 
 
 @dataclass
 class MissionConfig:
     seed: int = 1042
-    dt: float = 5.0  # seconds per tick
-    time_limit: float = 1800.0
+    dt: float = 30.0  # seconds per tick
+    time_limit: float = 28800.0
     n_uavs: int = 6
     n_pois: int = 6
     required_pois: int | None = None  # default: all
     knowledge_threshold: float = 0.8
     verify_conf: float = 0.9  # one observation, or noisy-or of distinct observers, above this
-    link_min_quality: float = 0.15
+    skill_transfer_s: float = 60.0  # seconds of full-bandwidth link needed to move a skill
     skills_enabled: bool = True
     validation_ticks: int = 2
     min_adopt_utility: float = 0.5
@@ -85,16 +96,18 @@ class Skill:
 @dataclass
 class Uav:
     id: str
-    role: str
     x: float
     y: float
     speed_max: float
     sensor_r: float
-    comm_r: float
+    alt_base: float
     learn_threshold: int
     bias: dict
     heading: float = 0.0
     speed: float = 0.0
+    alt: float = 0.0
+    climbing: bool = False
+    skill_progress: dict = field(default_factory=dict)
     status: str = "OPERATIONAL"
     health: float = 1.0
     objective: str = "DISCOVER_POI"
@@ -159,7 +172,8 @@ class MissionSim:
         s = cfg.seed
         self.required = cfg.required_pois or cfg.n_pois
         self.terrain = Terrain.generate(int(W / CELL_M), CELL_M, s, height=int(H / CELL_M), style="alpine")
-        self.rng_sense, self.rng_comm = random.Random(f"{s}:sense"), random.Random(f"{s}:comm")
+        self.rng_sense = random.Random(f"{s}:sense")
+        self.rf = RFEngine(self.ground_elev)
         self._build_pois(random.Random(f"{s}:pois"))
         self._build_uavs(random.Random(f"{s}:uavs"))
         self._build_events(random.Random(f"{s}:events"))
@@ -177,37 +191,41 @@ class MissionSim:
         self._exchange_and_links()
         self.frames.append(self.frame())
 
+    def ground_elev(self, x: float, y: float) -> float:
+        t = self.terrain
+        return t.elev[min(t.size - 1, max(0, int(x // CELL_M)))][min(t.height - 1, max(0, int(y // CELL_M)))]
+
     # ---------------------------------------------------------------- scenario (seed -> world)
     def _build_pois(self, r: random.Random) -> None:
         self.pois: list[dict] = []
         while len(self.pois) < self.cfg.n_pois:
-            x, y = r.uniform(1200, W - 800), r.uniform(700, H - 700)
-            if all(_dist(x, y, p["x"], p["y"]) > 1500 for p in self.pois):
+            x, y = r.uniform(0.06 * W, 0.94 * W), r.uniform(0.06 * H, 0.94 * H)
+            if all(_dist(x, y, p["x"], p["y"]) > 60_000 for p in self.pois):
                 self.pois.append({"id": f"POI-{len(self.pois) + 1:02d}", "x": x, "y": y, "trueType": r.choice(POI_TYPES)})
 
     def _build_uavs(self, r: random.Random) -> None:
-        cx, cy = r.uniform(900, 2200), r.uniform(1800, H - 1800)
+        cx, cy = r.uniform(0.05 * W, 0.15 * W), r.uniform(0.3 * H, 0.7 * H)
         self.uavs: list[Uav] = []
         for i in range(self.cfg.n_uavs):
-            role = ROLE_ORDER[i % len(ROLE_ORDER)]
-            sp, sr, cr = ROLES[role]
+            sp, sr, alt = UAV_SPEED_MPS, UAV_SENSOR_M, UAV_ALT_M
             a = 2 * math.pi * i / self.cfg.n_uavs + r.uniform(-0.3, 0.3)
-            rad = r.uniform(350, 800)
+            rad = r.uniform(5_000, 15_000)
             nid = f"UAV-{i + 1:02d}"
             br = random.Random(f"{self.cfg.seed}:bias:{nid}")
-            self.uavs.append(Uav(nid, role, cx + rad * math.cos(a), cy + rad * math.sin(a), sp, sr, cr,
-                                 r.randint(10, 24), {c: br.random() for c in ALL_CELLS}, heading=a))  # fmt: skip
+            self.uavs.append(Uav(nid, cx + rad * math.cos(a), cy + rad * math.sin(a), sp, sr, alt,
+                                 r.randint(10, 24), {c: br.random() for c in ALL_CELLS}, heading=a, alt=alt))  # fmt: skip
         self.by_id = {u.id: u for u in self.uavs}
 
     def _build_events(self, r: random.Random) -> None:
         mk = lambda i, typ, **k: {"id": f"EVT-{i}", "type": typ, "active": False, "endTime": None, "started": False, "ended": False, **k}  # noqa: E731
-        t0 = r.uniform(100, 220)
+        L = self.cfg.time_limit
         self.disruptions = [
-            mk(1, "COMMUNICATION_DEGRADATION", startTime=t0, duration=r.uniform(220, 320), x=r.uniform(3500, 6500),
-               y=r.uniform(1800, H - 1800), radius=r.uniform(1700, 2400), vx=r.uniform(-4, 4), vy=r.uniform(-2, 2), severity=0.95),  # fmt: skip
-            mk(2, "NAVIGATION_DEGRADATION", startTime=r.uniform(40, 120), duration=r.uniform(250, 350), x=r.uniform(2500, 7500),
-               y=r.uniform(1200, H - 1200), radius=r.uniform(1100, 1600), vx=0.0, vy=0.0, severity=0.6),  # fmt: skip
-            mk(3, "PLATFORM_FAILURE", startTime=r.uniform(420, 620), duration=0.0, node=f"UAV-{r.randint(2, self.cfg.n_uavs):02d}", severity=1.0),  # fmt: skip
+            mk(1, "COMMUNICATION_DEGRADATION", startTime=r.uniform(0.06, 0.12) * L, duration=r.uniform(0.12, 0.18) * L,
+               x=r.uniform(0.25, 0.65) * W, y=r.uniform(0.3, 0.7) * H, radius=r.uniform(45_000, 70_000),
+               vx=r.uniform(-8, 8), vy=r.uniform(-8, 8), severity=0.9),  # fmt: skip
+            mk(2, "NAVIGATION_DEGRADATION", startTime=r.uniform(0.02, 0.07) * L, duration=r.uniform(0.15, 0.22) * L,
+               x=r.uniform(0.2, 0.7) * W, y=r.uniform(0.2, 0.8) * H, radius=r.uniform(30_000, 45_000), vx=0.0, vy=0.0, severity=0.6),  # fmt: skip
+            mk(3, "PLATFORM_FAILURE", startTime=r.uniform(0.45, 0.6) * L, duration=0.0, node=f"UAV-{r.randint(2, self.cfg.n_uavs):02d}", severity=1.0),  # fmt: skip
         ]
         for d in self.disruptions:
             d["endTime"] = d["startTime"] + d["duration"] if d["duration"] else None
@@ -293,7 +311,7 @@ class MissionSim:
             obj, act = "STAY_OPERATIONAL", "leave_degradation_zone"
             reason = "Inside navigation/sensor degradation zone."
             n = max(1.0, _dist(u.x, u.y, zone["x"], zone["y"]))
-            tgt = (u.x + (u.x - zone["x"]) / n * 800, u.y + (u.y - zone["y"]) / n * 800)
+            tgt = (u.x + (u.x - zone["x"]) / n * 20_000, u.y + (u.y - zone["y"]) / n * 20_000)
         elif uncertain:  # 4. verify uncertain POIs (nearest locally-known unverified)
             p = min(uncertain, key=lambda p: (_dist(u.x, u.y, p["x"], p["y"]), p["id"]))
             obj, act, tgt = "VERIFY_POI", "approach_poi", (p["x"], p["y"])
@@ -301,7 +319,7 @@ class MissionSim:
             m["confidence"] = loc[p["id"]]["conf"]
             u.target = ("poi", p["id"])
         elif len(verified) >= self.required or (verified and self.t >= cfg.rendezvous_after * cfg.time_limit):  # 6. share: spread what is known
-            for k in [k for k, v in u.peer_pos.items() if k not in u.neighbors and _dist(u.x, u.y, v[0], v[1]) < 300]:
+            for k in [k for k, v in u.peer_pos.items() if k not in u.neighbors and _dist(u.x, u.y, v[0], v[1]) < 8_000]:
                 del u.peer_pos[k]  # reached the last-known spot and nobody is there: stale
             others = [(v, k) for k, v in sorted(u.peer_pos.items()) if k not in u.neighbors]
             if u.neighbors and not others:
@@ -341,6 +359,17 @@ class MissionSim:
         if obj != "DISCOVER_POI":
             u.target = u.target if obj == "VERIFY_POI" else u.target
         self.decide_log(u, obj, act, reason, m, used, list(map(round, tgt)) if tgt else None)
+        # altitude: climb for LOS/horizon while isolated, settle back to cruise altitude once linked
+        if u.isolated_ticks >= 3 and u.alt < ALT_MAX_M:
+            u.alt = min(ALT_MAX_M, u.alt + CLIMB_M_PER_TICK)
+            if not u.climbing:
+                u.climbing = True
+                self.decisions.append({"timestamp": round(self.t, 2), "nodeId": u.id, "state": "MAINTAIN_CONNECTIVITY", "action": "climb_for_los",
+                                       "reason": f"No RF link for {u.isolated_ticks} ticks; gaining altitude to extend horizon and clear terrain.",
+                                       "metrics": {"altitudeMeters": u.alt}, "skillUsed": None, "target": None})  # fmt: skip
+        elif u.neighbors and u.alt > u.alt_base:
+            u.alt = max(u.alt_base, u.alt - CLIMB_M_PER_TICK)
+            u.climbing = False
         # move
         sp = u.speed_max * (1 - 0.5 * zone["severity"]) if zone else u.speed_max
         if tgt is None:
@@ -373,8 +402,8 @@ class MissionSim:
             d = _dist(u.x, u.y, p["x"], p["y"])
             if d > r:
                 continue
-            pc = (min(39, int(p["x"] // CELL_M)), min(23, int(p["y"] // CELL_M)))
-            tc = (min(39, tc[0]), min(23, tc[1]))
+            pc = (min(self.terrain.size - 1, int(p["x"] // CELL_M)), min(self.terrain.height - 1, int(p["y"] // CELL_M)))
+            tc = (min(self.terrain.size - 1, tc[0]), min(self.terrain.height - 1, tc[1]))
             if self.rng_sense.random() >= self.terrain.detect_p(tc, pc, max(1, int(r // CELL_M))):
                 continue
             conf = min(0.99, max(0.05, 0.4 + 0.58 * (1 - d / r) + self.rng_sense.uniform(-0.08, 0.08)))
@@ -389,26 +418,9 @@ class MissionSim:
 
     # ---------------------------------------------------------------- RF
     def _compute_links(self) -> None:
-        zones = self._zone("COMMUNICATION_DEGRADATION")
-        links = []
         ops = [u for u in self.uavs if u.alive]
-        for i, a in enumerate(ops):
-            for b in ops[i + 1 :]:
-                rng_m, d = min(a.comm_r, b.comm_r), _dist(a.x, a.y, b.x, b.y)
-                if d >= rng_m:
-                    continue
-                q, why = 1 - d / rng_m, None
-                ca, cb = (min(39, int(a.x // CELL_M)), min(23, int(a.y // CELL_M))), (min(39, int(b.x // CELL_M)), min(23, int(b.y // CELL_M)))
-                if not (self.terrain.los_clear(ca, cb) and self.terrain.los_clear(cb, ca)):
-                    q, why = 0.0, "OBSTRUCTED"
-                for z in zones:
-                    mx, my = (a.x + b.x) / 2, (a.y + b.y) / 2
-                    if any(_dist(px, py, z["x"], z["y"]) < z["radius"] for px, py in ((a.x, a.y), (b.x, b.y), (mx, my))):
-                        q *= 1 - z["severity"]
-                        why = why or "DEGRADED"
-                ok = q >= self.cfg.link_min_quality
-                links.append({"sourceNodeId": a.id, "targetNodeId": b.id, "signalQuality": round(q, 3), "distance": round(d),
-                              "connected": ok, "reason": None if ok else (why or "WEAK")})  # fmt: skip
+        zones = [{"x": z["x"], "y": z["y"], "radius": z["radius"], "severity": z["severity"]} for z in self._zone("COMMUNICATION_DEGRADATION")]
+        links = self.rf.compute_links([RFNode(u.id, u.x, u.y, u.alt, RF_PROFILE) for u in ops], zones, self.t)
         self.links = links
         for u in self.uavs:
             u.neighbors = []
@@ -429,7 +441,7 @@ class MissionSim:
                         stack.append(n)
         for u in self.uavs:
             u.comp = seen.get(u.id, -1)
-            degraded = any(not l["connected"] and l["reason"] == "DEGRADED" and u.id in (l["sourceNodeId"], l["targetNodeId"]) for l in links)  # noqa: E741
+            degraded = any(not l["connected"] and l["disruptionFactor"] < 0.99 and u.id in (l["sourceNodeId"], l["targetNodeId"]) for l in links)  # noqa: E741
             u.comm_state = "OFFLINE" if not u.alive else "CONNECTED" if u.neighbors else "DEGRADED" if degraded else "ISOLATED"
             u.isolated_ticks = u.isolated_ticks + 1 if (u.alive and not u.neighbors) else 0
         n = len(set(seen.values()))
@@ -457,8 +469,6 @@ class MissionSim:
             if not l["connected"]:
                 continue
             a, b = self.by_id[l["sourceNodeId"]], self.by_id[l["targetNodeId"]]
-            if self.rng_comm.random() >= min(1.0, 1.5 * l["signalQuality"]):
-                continue  # lossy slot: nothing crossed this tick
             self.stats["dataSyncs"] += 1
             for me, peer in ((a, b), (b, a)):
                 s = snap[peer.id]
@@ -477,13 +487,18 @@ class MissionSim:
                         mine = me.skills.get(name)
                         if sk.id in me.rejected or (mine and (mine.version, mine.utility) >= (sk.version, sk.utility)):
                             continue
+                        key = (peer.id, sk.id)  # transfer is paced by link bandwidth (resumable across ticks)
+                        me.skill_progress[key] = me.skill_progress.get(key, 0.0) + l["bandwidthFactor"] * self.cfg.dt / self.cfg.skill_transfer_s
+                        if me.skill_progress[key] < 1.0:
+                            continue
+                        del me.skill_progress[key]
                         new = sk.copy()
                         new.status, new.received_at, new.received_from = "RECEIVED", self.t, peer.id
                         new.validate_left = self.cfg.validation_ticks
                         me.skills[name] = new
                         self.stats["skillTransfers"] += 1
                         self.emit("SKILL_TRANSFERRED", True, sourceNodeId=peer.id, targetNodeId=me.id, skillId=sk.id,
-                                  version=sk.version, signalQuality=l["signalQuality"])  # fmt: skip
+                                  version=sk.version, rfQuality=l["rfQuality"], bandwidthFactor=l["bandwidthFactor"])  # fmt: skip
                         self.emit("SKILL_RECEIVED", False, nodeId=me.id, skillId=sk.id, fromNodeId=peer.id)
 
     def _skill_lifecycle(self) -> None:
@@ -508,7 +523,7 @@ class MissionSim:
             if SKILL not in u.skills and u.redundancy_hits >= u.learn_threshold:
                 util = round(min(1.0, 0.55 + 0.05 * u.redundancy_hits), 2)
                 sk = Skill(SKILL, 1, u.id, round(self.t, 2), 0.8, util, "SEARCH_REGION_SELECTION",
-                           {"spacing_m": 2500.0, "excludes_peer_covered_cells": True, "excludes_peer_claimed_cells": True,
+                           {"spacing_m": 80_000.0, "excludes_peer_covered_cells": True, "excludes_peer_claimed_cells": True,
                             "trigger": f"{u.redundancy_hits} redundant search selections"})  # fmt: skip
                 u.skills[SKILL] = sk
                 self.stats["skillsLearned"] += 1
@@ -584,9 +599,9 @@ class MissionSim:
         for u in self.uavs:
             loc = self._local_pois(u)
             sk = u.active_skill() if self.cfg.skills_enabled else None
-            uavs.append({"id": u.id, "role": u.role, "status": u.status, "position": {"x": round(u.x, 1), "y": round(u.y, 1)},
+            uavs.append({"id": u.id, "status": u.status, "position": {"x": round(u.x, 1), "y": round(u.y, 1)},
                          "heading": round(u.heading, 3), "speed": round(u.speed, 1), "health": u.health,
-                         "sensorRadius": u.sensor_r, "commRadius": u.comm_r, "currentObjective": u.objective if u.alive else "NONE",
+                         "sensorRadius": u.sensor_r, "altitudeMeters": u.alt, "commRadius": RF_PROFILE.nominal_range_m, "currentObjective": u.objective if u.alive else "NONE",
                          "currentAction": u.action if u.alive else "failed", "sensorState": u.sensor_state if u.alive else "OFFLINE",
                          "communicationState": u.comm_state, "neighbors": sorted(u.neighbors), "networkComponent": u.comp,
                          "activeSkill": sk.id if sk else None, "skills": [s.to_dict() for _, s in sorted(u.skills.items())],
@@ -599,6 +614,34 @@ class MissionSim:
         return {"tick": self.tick, "time": round(self.t, 2), "mission": mission, "uavs": uavs, "pois": f["pois"],
                 "links": self.links, "disruptions": dis, "eventCount": len(self.events), "decisionCount": len(self.decisions)}  # fmt: skip
 
+    def spec(self) -> dict:
+        """Static platform data for the UAV spec panel (identical for every UAV)."""
+        c = self.cfg
+        return {"count": c.n_uavs, "platformClass": "Abstract fixed-wing recon UAV (all units identical)",
+                "cruiseSpeedMps": UAV_SPEED_MPS, "cruiseSpeedKmh": round(UAV_SPEED_MPS * 3.6, 1),
+                "cruiseAltitudeAglMeters": UAV_ALT_M, "maxAltitudeAglMeters": ALT_MAX_M, "climbRateMetersPerTick": CLIMB_M_PER_TICK,
+                "climbRateMps": CLIMB_M_PER_TICK / c.dt, "nominalSpeedInNavDegradationFactor": 0.7,
+                "sensor": {"type": "Wide-area EO/IR (abstract)", "radiusMeters": UAV_SENSOR_M, "radiusInNavDegradationFactor": 0.64,
+                           "detection": "Per-tick detection probability from terrain line-of-sight and vegetation concealment; confidence 0.4-0.98 rises as range closes.",
+                           "searchCellMeters": [CW, CH]},
+                "comms": {"nominalRangeMeters": RF_PROFILE.nominal_range_m, "extendedRangeMeters": RF_PROFILE.extended_range_m,
+                          "horizonAtCruiseMeters": geometric_horizon_m(UAV_ALT_M, UAV_ALT_M), "horizonAtMaxAltitudeMeters": geometric_horizon_m(ALT_MAX_M, ALT_MAX_M)},
+                "autonomy": "Local decisions only: objective priority STAY_OPERATIONAL > VERIFY_POI > SHARE_INFORMATION > MAINTAIN_CONNECTIVITY > DISCOVER_POI",
+                "learnedSkills": [SKILL]}
+
+    def rf_model(self) -> dict:
+        rc = self.rf.cfg
+        return {"connectedThreshold": rc.connected_threshold, "maxRoutineRangeMeters": rc.max_routine_range_m, "reportRangeMeters": rc.report_range_m,
+                "stateThresholds": {"EXCELLENT": rc.state_thresholds[0], "GOOD": rc.state_thresholds[1], "DEGRADED": rc.state_thresholds[2], "MARGINAL": rc.state_thresholds[3]},
+                "horizonFormulaKm": "4.12 * (sqrt(h1_m) + sqrt(h2_m))", "updateIntervalSeconds": self.cfg.dt}
+
+    def rules(self) -> dict:
+        c = self.cfg
+        return {"timeLimitSeconds": c.time_limit, "tickSeconds": c.dt, "totalPois": c.n_pois, "requiredPois": self.required,
+                "knowledgeThreshold": c.knowledge_threshold, "verifyConfidence": c.verify_conf, "skillTransferSecondsAtFullBandwidth": c.skill_transfer_s,
+                "skillValidationTicks": c.validation_ticks, "minAdoptUtility": c.min_adopt_utility, "poiTypes": list(POI_TYPES),
+                "disruptionTypes": ["COMMUNICATION_DEGRADATION", "NAVIGATION_DEGRADATION", "PLATFORM_FAILURE"]}
+
     def result(self) -> dict:
         last = self.frames[-1]["mission"]
         st = dict(self.stats)
@@ -607,8 +650,8 @@ class MissionSim:
         st["missionStatus"], st["elapsedTime"] = last["status"], last["elapsedTime"]
         st["firstSkillLearnedAt"] = next((e["timestamp"] for e in self.events if e["type"] == "SKILL_LEARNED"), None)
         st["finalSkillHolders"] = sum(1 for u in self.uavs if u.active_skill() and u.alive)
-        return {"meta": {"seed": self.cfg.seed, "dt": self.cfg.dt, "skillsEnabled": self.cfg.skills_enabled, "world": {"width": W, "height": H},
-                         "searchGrid": {"nx": NX, "ny": NY}, "config": {k: v for k, v in self.cfg.__dict__.items()}},
+        return {"meta": {"seed": self.cfg.seed, "dt": self.cfg.dt, "skillsEnabled": self.cfg.skills_enabled, "world": {"width": W, "height": H, "tileMeters": TILE_M, "tilesX": TILES_X, "tilesY": TILES_Y, "units": "meters"},
+                         "searchGrid": {"nx": NX, "ny": NY}, "uavSpec": self.spec(), "rfModel": self.rf_model(), "missionRules": self.rules(), "config": {k: v for k, v in self.cfg.__dict__.items()}},
                 "frames": self.frames, "events": self.events, "decisions": self.decisions, "stats": st}  # fmt: skip
 
 

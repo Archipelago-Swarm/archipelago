@@ -7,6 +7,16 @@ import sys
 from .sim import MissionConfig, run_mission
 
 
+def _round(o):
+    if isinstance(o, float):
+        return round(o, 3)
+    if isinstance(o, dict):
+        return {k: _round(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [_round(v) for v in o]
+    return o
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(prog="archipelago_mission")
     ap.add_argument("--seed", type=int, default=1042)
@@ -17,7 +27,7 @@ def main() -> None:
     run = run_mission(MissionConfig(seed=a.seed, skills_enabled=not a.no_skills))
     if a.out:
         with open(a.out, "w") as f:
-            json.dump(run, f, separators=(",", ":"))
+            json.dump(_round(run), f, separators=(",", ":"))
     out = {"seed": a.seed, "mission": run["frames"][-1]["mission"], "stats": run["stats"]}
     if a.compare:
         base = run_mission(MissionConfig(seed=a.seed, skills_enabled=False))
