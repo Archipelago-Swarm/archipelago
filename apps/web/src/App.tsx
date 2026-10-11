@@ -83,9 +83,9 @@ export function App() {
   const scene = ds && sceneAt(ds.t);
   const landing = source === "fixture";
   const startForm = (
-    <form className="row" onSubmit={(e) => { e.preventDefault(); setError(""); startRun(runConfig, +String(new FormData(e.currentTarget).get("seed")))
+    <form className="row" onSubmit={(e) => { e.preventDefault(); setError(""); const seedText = String(new FormData(e.currentTarget).get("seed")); startRun(runConfig, seedText ? +seedText : Math.floor(Math.random() * 1e6))
         .then((r) => { location.search = `?run=${r.run_id}`; }).catch(fail); }}>
-      <label>Random seed <input name="seed" type="number" min={0} step={1} defaultValue={1} required /></label> <button>Start run</button>
+      <label>Map seed <input name="seed" type="number" min={0} max={1000000} step={1} placeholder="random" /></label> <button>Start run</button>
     </form>
   );
 
@@ -110,7 +110,7 @@ export function App() {
           </section>
           <PastRuns />
           <h2>Start a run</h2>
-          <p>Needs the API: <code>python3 infra/demo/run_demo.py up --plan demo</code>. The same seed gives the same run.</p>
+          <p>Needs the API: <code>python3 infra/demo/run_demo.py up --plan demo</code>. Leave the map seed blank for new random maps; reuse a seed to get the same maps.</p>
           {startForm}
           <h2>Reading the map</h2>
           <dl>

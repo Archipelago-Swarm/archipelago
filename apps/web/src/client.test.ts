@@ -41,3 +41,12 @@ it("listRuns unwraps the runs array", async () => {
   const f = (async () => new Response(JSON.stringify({ runs: [{ run_id: "r1", status: "completed", tick: 3, completion_reason: null }] }))) as typeof fetch;
   expect((await listRuns(f)).map((r) => r.run_id)).toEqual(["r1"]);
 });
+
+it("startRun sends the map seed as map_offset and leaves the config seeds alone", async () => {
+  const { startRun } = await import("./client");
+  let body: Record<string, unknown> = {};
+  const f = (async (_u: unknown, init?: RequestInit) => { body = JSON.parse(String(init?.body)); return new Response("{}"); }) as typeof fetch;
+  await startRun({ seeds: { env: 1000 } }, 42, f);
+  expect(body.map_offset).toBe(42);
+  expect(body.seeds).toEqual({ env: 1000 });
+});

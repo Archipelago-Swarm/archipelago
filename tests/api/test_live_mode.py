@@ -221,6 +221,8 @@ def test_requests_cannot_supply_node_urls_or_plans(stack: Callable[..., Stack]) 
         # nothing reached the coordinator: it is still idle and the API holds no run
         assert s.coordinator.call("GET", "/v1/runs/live-1")[0] == 404
         assert c.get("/v1/runs/live-1", headers=AUTH).status_code == 404
+        assert s.post_run(c, map_offset=-1).status_code == 422
+        assert s.post_run(c, map_offset="x").status_code == 422
         ok = s.post_run(c, plan="demo", key="k2")
         assert ok.status_code == 201 and ok.json()["plan"] == "demo"
 

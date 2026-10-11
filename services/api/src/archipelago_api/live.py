@@ -169,11 +169,20 @@ class LiveBackend:
         self.pulled = 0  # canonical records admitted from the coordinator (diagnostics)
 
     # ------------------------------------------------------------------ requests
+    @staticmethod
+    def map_offset(body: Any) -> int:
+        """Optional `map_offset` in a POST /v1/runs body: shifts the plan's episode seeds."""
+        v = body.get("map_offset", 0) if isinstance(body, dict) else 0
+        if type(v) is not int or not 0 <= v <= 1_000_000:
+            raise Rejected(422, "map_offset must be an integer in 0..1000000")
+        return v
+
     def resolve_plan(self, body: Any) -> tuple[RunConfig, str]:
         """Split a POST /v1/runs body into (run config, allowlisted plan name)."""
         if not isinstance(body, dict):
             raise Rejected(422, "body must be a JSON object")
         raw = dict(body)
+        raw.pop("map_offset", None)  # read by map_offset(); not part of RunConfig
         if FORBIDDEN_BODY_KEYS & set(raw):
             raise Rejected(422, "node_urls are server-side only and are not accepted")
         name = raw.pop("plan", None)
@@ -200,8 +209,10 @@ class LiveBackend:
     ) -> tuple[int, dict[str, Any]]:
         return await asyncio.to_thread(self.client.request, method, path, body, timeout=timeout)
 
-    async def create(self, key: str, config: RunConfig, plan_name: str) -> tuple[Run, bool]:
-        fingerprint = config.model_dump_json() + "\n" + plan_name
+    async def create(
+        self, key: str, config: RunConfig, plan_name: str, map_offset: int = 0
+    ) -> tuple[Run, bool]:
+        fingerprint = config.model_dump_json() + "\n" + plan_name + (f"\n{map_offset}" if map_offset else "")
         async with self._create_lock:
             existing = self.mgr.precheck(key, config, fingerprint)
             if existing is not None:
@@ -210,7 +221,11 @@ class LiveBackend:
                 code, out = await self._call(
                     "POST",
                     "/v1/runs",
-                    {"run_config": config.model_dump(mode="json"), "plan_name": plan_name},
+                    {
+                        "run_config": config.model_dump(mode="json"),
+                        "plan_name": plan_name,
+                        **({"map_offset": map_offset} if map_offset else {}),
+                    },
                 )
             except UpstreamError:
                 raise Rejected(502, "coordinator unreachable") from None

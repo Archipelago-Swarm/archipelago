@@ -210,7 +210,9 @@ def create_app(
             except ValueError:
                 raise Rejected(400, "body must be JSON") from None
             config, plan_name = live.resolve_plan(body)
-            run, created = await live.create(idempotency_key, config, plan_name)
+            run, created = await live.create(
+                idempotency_key, config, plan_name, live.map_offset(body)
+            )
             response.status_code = 201 if created else 200
             return run.view()
 
