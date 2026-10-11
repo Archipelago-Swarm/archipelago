@@ -41,7 +41,8 @@ class Pose(Strict):
     x: Finite
     y: Finite
     z: Annotated[float, Field(ge=0, le=0)] = 0.0
-    heading_rad: Finite = 0.0
+    heading_rad: Finite = 0.0  # continuous flight: atan2(dy, dx) in the y-down map frame
+    speed_mps: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 0.0
 
 
 class Event(Strict):
@@ -109,6 +110,30 @@ class Topology(Strict):
     links: list[tuple[Id, Id]]
 
 
+class Shape(Strict):
+    """Obstacle polygon in world meters (a publicly revealed one: some node has sensed it)."""
+
+    id: Id
+    points: Annotated[list[tuple[Finite, Finite]], Field(min_length=3)]
+
+
+class Marker(Strict):
+    x: Finite
+    y: Finite
+    radius: Finite
+
+
+class WorldGeometry(Strict):
+    """Continuous-flight world description (meters). Absent for the legacy grid world."""
+
+    width_m: Annotated[float, Field(gt=0, allow_inf_nan=False)]
+    height_m: Annotated[float, Field(gt=0, allow_inf_nan=False)]
+    cell_m: Annotated[float, Field(gt=0, allow_inf_nan=False)]  # hidden perception/learning grid
+    sensor_radius_m: Annotated[float, Field(ge=0, allow_inf_nan=False)]
+    shapes: list[Shape] = []
+    targets_found: list[Marker] = []
+
+
 class WorldSnapshot(Event):
     kind: Literal["world_snapshot"] = "world_snapshot"
     run_status: Literal[
@@ -118,6 +143,7 @@ class WorldSnapshot(Event):
     obstacles: list[tuple[int, int]]
     coverage: Unit01
     topology: Topology
+    world: WorldGeometry | None = None
 
 
 class PeerEnvelope(Event):

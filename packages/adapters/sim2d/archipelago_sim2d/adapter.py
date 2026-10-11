@@ -16,17 +16,22 @@ from archipelago_contracts.models import (
     Pose,
     RunConfig,
     Topology,
+    WorldGeometry,
     WorldSnapshot,
 )
 from archipelago_sim.env import WALL, GridWorld
+from archipelago_sim.flight import FlightWorld
 
 EPOCH = datetime(2026, 1, 1, tzinfo=UTC)  # fixture timestamps for hand-built actions (smoke)
 
 
 class Sim2DAdapter:
     def __init__(self, **world_kwargs) -> None:
-        self.kw = world_kwargs
-        self.world: GridWorld | None = None
+        self.kw = world_kwargs  # includes environment_mode (legacy_grid | continuous_flight)
+        self.mode = world_kwargs.get("environment_mode", "legacy_grid")
+        if self.mode not in ("legacy_grid", "continuous_flight"):
+            raise ValueError(f"unknown environment_mode {self.mode!r}")
+        self.world: GridWorld | FlightWorld | None = None
         self.replay: list[dict] = []
         self._seq = 0
         self._run_id = ""
@@ -65,10 +70,12 @@ class Sim2DAdapter:
         """Start an episode. `episode` offsets sim_tick so it is the global index
         `episode * max_ticks + tick`; give each episode its own run_id suffix and env seed."""
         nodes = sorted(n.node_id for n in config.nodes)
-        self.world = GridWorld(
+        kw = {k: v for k, v in self.kw.items() if k != "environment_mode"}
+        cls = FlightWorld if self.mode == "continuous_flight" else GridWorld
+        self.world = cls(
             n_agents=len(nodes),
             max_ticks=config.budgets.max_ticks,
-            **{"reward_id": config.reward_id, **self.kw},
+            **{"reward_id": config.reward_id, **kw},
         )
         self.world.possible_agents = nodes  # contract node ids replace default names
         self._run_id, self._seq, self.replay, self._cfg = config.run_id, 0, [], config
@@ -134,6 +141,26 @@ class Sim2DAdapter:
     ) -> WorldSnapshot:
         s = self.world.world_state()  # type: ignore[union-attr]
         poses = {n: Pose(x=p[0] + 0.5, y=p[1] + 0.5) for n, p in s["poses"].items()}
+        geometry = None
+        if isinstance(self.world, FlightWorld):  # continuous flight: poses in meters, grid stays hidden
+            w = self.world
+            poses = {
+                n: Pose(x=f["x"], y=f["y"], heading_rad=f["heading"], speed_mps=f["speed"])
+                for n, f in w.poses_m().items()
+            }
+            cm = w.cell_m
+            geometry = WorldGeometry(
+                width_m=w.width_m,
+                height_m=w.height_m,
+                cell_m=cm,
+                sensor_radius_m=w.sensor_radius_m,
+                shapes=w.revealed_shapes(set(obstacles)),
+                targets_found=[
+                    {"x": (t[0] + 0.5) * cm, "y": (t[1] + 0.5) * cm, "radius": cm / 2}
+                    for t in s["found"]
+                ],
+            )
+            obstacles = []  # polygons in `world.shapes` replace the cell list
         return WorldSnapshot(
             **self._meta(None, "snap"),
             run_status="running" if self.world.agents else "completed",  # type: ignore[union-attr]
@@ -141,6 +168,7 @@ class Sim2DAdapter:
             obstacles=obstacles,
             coverage=s["coverage"],
             topology=Topology(links=list(links)),
+            world=geometry,
         )
 
     def snapshot(self, links: Iterable[tuple[str, str]] = ()) -> WorldSnapshot:

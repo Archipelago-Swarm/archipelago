@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { LearningEvent, WorldSnapshot } from "@archipelago/contracts";
 import { nodeHealth } from "./client";
-import { LivePanels } from "./Panels";
+import { FlightMap } from "./FlightMap";
+import { Curves, LivePanels } from "./Panels";
 import { panelLabel, type Panels } from "./live";
 import { sourceLabel, type Conn, type Source } from "./status";
 
@@ -33,7 +34,7 @@ function draw(c: HTMLCanvasElement, s: WorldSnapshot, actions: Record<string, st
   for (const [id, p] of Object.entries(s.poses)) g.fillText(`${id}${actions[id] ? `: ${actions[id]}` : ""}`, (p.x + 1) * CELL, (p.y + 0.4) * CELL);
 }
 
-export function View({ source, conn, snap, runId, learning = {}, status, panels, now = 0 }: { panels?: Panels; now?: number; status?: string; source: Source; conn: Conn; snap: WorldSnapshot | null; runId?: string | null; learning?: Record<string, LearningEvent> }) {
+export function View({ source, conn, snap, runId, learning = {}, status, panels, now = 0, present = false, details = true }: { present?: boolean; details?: boolean; panels?: Panels; now?: number; status?: string; source: Source; conn: Conn; snap: WorldSnapshot | null; runId?: string | null; learning?: Record<string, LearningEvent> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const actions = Object.fromEntries(Object.entries(panels?.nodes ?? {}).map(([id, n]) => [id, n.lastAction]));
   const actionKey = JSON.stringify(actions);
@@ -46,15 +47,18 @@ export function View({ source, conn, snap, runId, learning = {}, status, panels,
       {snap ? (
         <>
           <p>Run: {runId ?? snap.run_id} · status: {snap.run_status} · tick: {snap.sim_tick} · coverage: {(snap.coverage * 100).toFixed(1)}% of free cells</p>
-          <canvas ref={canvas} width={20 * CELL} height={20 * CELL} aria-label="World map: drones, obstacles, links" style={{ maxWidth: "100%" }} />
-          <ul aria-label="Drones">
+          {snap.world
+            ? <FlightMap snap={snap} panels={panels} instant={source === "replay"} height={present ? "68vh" : "520px"} />
+            : <canvas ref={canvas} width={20 * CELL} height={20 * CELL} aria-label="World map: drones, obstacles, links" style={{ maxWidth: "100%" }} />}
+          {present && panels && <Curves train={panels.train} ev={panels.eval} />}
+          {details && <ul aria-label="Drones">
             {Object.entries(snap.poses).map(([id, p]) => (
               <li key={id}>{id}: ({p.x}, {p.y}) cells · link: {health[id]} · {learning[id] ? `policy version: ${learning[id].new_version} · last transfer: ${learning[id].transfer}${learning[id].reason ? ` (${learning[id].reason})` : ""}` : "policy version: not reported"}</li>
             ))}
-          </ul>
+          </ul>}
         </>
       ) : <p>No state: waiting for the server to send a snapshot.</p>}
-      {panels && source !== "fixture" && (source === "live" && conn !== "connected"
+      {details && panels && source !== "fixture" && (source === "live" && conn !== "connected"
         ? <p>Panels hidden: no live data while disconnected.</p>
         : <LivePanels p={panels} now={now} recorded={source !== "live"} />)}
     </>

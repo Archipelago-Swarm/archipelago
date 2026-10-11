@@ -19,6 +19,7 @@ export type Mode = "lockstep" | "distributed";
 export type Nodes = [NodeSpec, ...NodeSpec[]];
 export type NodeId = string;
 export type HeadingRad = number;
+export type SpeedMps = number;
 export type X = number;
 export type Y = number;
 export type Z = number;
@@ -68,6 +69,20 @@ export type Sequence2 = number;
 export type SimTick2 = number;
 export type SourceNodeId2 = string | null;
 export type Links = [unknown, unknown][];
+export type CellM = number;
+export type HeightM = number;
+export type SensorRadiusM = number;
+export type Id = string;
+/**
+ * @minItems 3
+ */
+export type Points = [[unknown, unknown], [unknown, unknown], [unknown, unknown], ...[unknown, unknown][]];
+export type Shapes = Shape[];
+export type Radius = number;
+export type X1 = number;
+export type Y1 = number;
+export type TargetsFound = Marker[];
+export type WidthM = number;
 export type ArchitectureHash = string;
 export type EmittedAtUtc3 = string;
 export type EncoderHash = string;
@@ -167,6 +182,7 @@ export interface NodeSpec {
  */
 export interface Pose {
   heading_rad?: HeadingRad;
+  speed_mps?: SpeedMps;
   x: X;
   y: Y;
   z?: Z;
@@ -217,12 +233,36 @@ export interface WorldSnapshot {
   sim_tick: SimTick2;
   source_node_id: SourceNodeId2;
   topology: Topology;
+  world?: WorldGeometry | null;
 }
 export interface Poses {
   [k: string]: Pose;
 }
 export interface Topology {
   links: Links;
+}
+/**
+ * Continuous-flight world description (meters). Absent for the legacy grid world.
+ */
+export interface WorldGeometry {
+  cell_m: CellM;
+  height_m: HeightM;
+  sensor_radius_m: SensorRadiusM;
+  shapes?: Shapes;
+  targets_found?: TargetsFound;
+  width_m: WidthM;
+}
+/**
+ * Obstacle polygon in world meters (a publicly revealed one: some node has sensed it).
+ */
+export interface Shape {
+  id: Id;
+  points: Points;
+}
+export interface Marker {
+  radius: Radius;
+  x: X1;
+  y: Y1;
 }
 export interface PeerEnvelope {
   architecture_hash: ArchitectureHash;

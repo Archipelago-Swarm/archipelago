@@ -77,7 +77,7 @@ class GridWorld:
         n = self.size
         cells = [(x, y) for x in range(n) for y in range(n)]
         starts = starts or {}
-        self.obstacles = {c for c in cells if rng.random() < self.density} - set(starts.values())
+        self.obstacles = self._gen_obstacles(rng, cells, starts)
         free = [c for c in cells if c not in self.obstacles]
         rng.shuffle(free)
         picks = (c for c in free if c not in starts.values())
@@ -101,6 +101,9 @@ class GridWorld:
             ("new_cells", "revisits", "wall_collisions", "agent_collisions", "agent_ticks"), 0
         )
         return {a: self.observe(a) for a in self.agents}
+
+    def _gen_obstacles(self, rng: random.Random, cells, starts) -> set[tuple[int, int]]:
+        return {c for c in cells if rng.random() < self.density} - set(starts.values())
 
     def observation_space(self, agent: str) -> dict:
         r = 2 * self.radius + 1

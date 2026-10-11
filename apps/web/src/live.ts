@@ -56,6 +56,7 @@ function applySnapshot(s: Panels, r: WorldSnapshot): Panels {
   for (const [id, p] of Object.entries(r.poses)) {
     positions[id] = { x: p.x, y: p.y };
     const prev = s.positions[id];
+    if (r.world) { nodes[id] = { ...nodes[id], lastAction: `${Math.round(((((p.heading_rad ?? 0) * 180) / Math.PI + 90) % 360 + 360) % 360)}° at ${Math.round(p.speed_mps ?? 0)} m/s` }; continue; }
     const lastAction = !prev ? nodes[id]?.lastAction : prev.x === p.x && prev.y === p.y ? "hold" : `move (${signed(p.x - prev.x)}, ${signed(p.y - prev.y)}) cells`;
     nodes[id] = { ...nodes[id], lastAction };
   }
