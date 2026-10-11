@@ -1,0 +1,351 @@
+{
+ "config": "grid-flat-v2-visits-shared|rew-v1|eps1-0.05@0.5|lr0.001|rb50000|ddqn",
+ "worlds": [
+  200,
+  201,
+  202,
+  203,
+  204,
+  205,
+  206,
+  207,
+  208,
+  209,
+  210,
+  211,
+  212,
+  213,
+  214,
+  215,
+  216,
+  217,
+  218,
+  219
+ ],
+ "n_seeds": 10,
+ "metrics": {
+  "ref_return": {
+   "learner_mean": 34.873575,
+   "vs": {
+    "idle": {
+     "mean_diff": 73.873575,
+     "ci95": [
+      65.13792625,
+      80.96687312499999
+     ],
+     "ci95_seed_only": [
+      69.41527187500002,
+      77.77610249999998
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": -39.0
+    },
+    "rule": {
+     "mean_diff": -15.792425000000001,
+     "ci95": [
+      -24.679814375,
+      -8.63115625
+     ],
+     "ci95_seed_only": [
+      -20.250728125,
+      -11.8898975
+     ],
+     "wins": 0,
+     "n_seeds": 10,
+     "baseline_mean": 50.666
+    },
+    "random": {
+     "mean_diff": 64.358825,
+     "ci95": [
+      51.36868875,
+      76.646819375
+     ],
+     "ci95_seed_only": [
+      59.900521875,
+      68.2613525
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": -29.485249999999997
+    },
+    "untrained": {
+     "mean_diff": 215.006075,
+     "ci95": [
+      197.61856875000004,
+      231.22697750000003
+     ],
+     "ci95_seed_only": [
+      210.54777187500002,
+      218.9086025
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": -180.1325
+    }
+   }
+  },
+  "coverage_gain": {
+   "learner_mean": 0.7209821873708102,
+   "vs": {
+    "idle": {
+     "mean_diff": 0.7209821873708102,
+     "ci95": [
+      0.6853795146478098,
+      0.7520862218180322
+     ],
+     "ci95_seed_only": [
+      0.7056427513879754,
+      0.734884017213091
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": 0.0
+    },
+    "rule": {
+     "mean_diff": 0.0013565835536072529,
+     "ci95": [
+      -0.04128249645114193,
+      0.046085320017948114
+     ],
+     "ci95_seed_only": [
+      -0.013982852429227706,
+      0.015258413395888008
+     ],
+     "wins": 6,
+     "n_seeds": 10,
+     "baseline_mean": 0.719625603817203
+    },
+    "random": {
+     "mean_diff": 0.23546525860835518,
+     "ci95": [
+      0.18256387145428013,
+      0.2883365268595452
+     ],
+     "ci95_seed_only": [
+      0.22012582262552027,
+      0.24936708845063596
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": 0.48551692876245517
+    },
+    "untrained": {
+     "mean_diff": 0.6401749385627674,
+     "ci95": [
+      0.5961213205670398,
+      0.6789457970057623
+     ],
+     "ci95_seed_only": [
+      0.6248355025799325,
+      0.654076768405048
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": 0.08080724880804285
+    }
+   }
+  },
+  "targets_after_spawn": {
+   "learner_mean": 6.19,
+   "vs": {
+    "idle": {
+     "mean_diff": 6.19,
+     "ci95": [
+      5.76,
+      6.615
+     ],
+     "ci95_seed_only": [
+      6.03,
+      6.32
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": 0.0
+    },
+    "rule": {
+     "mean_diff": -0.26,
+     "ci95": [
+      -0.56,
+      0.03
+     ],
+     "ci95_seed_only": [
+      -0.42000000000000004,
+      -0.12999999999999998
+     ],
+     "wins": 1,
+     "n_seeds": 10,
+     "baseline_mean": 6.45
+    },
+    "random": {
+     "mean_diff": 2.29,
+     "ci95": [
+      1.645,
+      2.97
+     ],
+     "ci95_seed_only": [
+      2.13,
+      2.4200000000000004
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": 3.9
+    },
+    "untrained": {
+     "mean_diff": 5.445,
+     "ci95": [
+      4.975,
+      5.91
+     ],
+     "ci95_seed_only": [
+      5.285000000000001,
+      5.575000000000001
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": 0.745
+    }
+   }
+  },
+  "wall_collisions": {
+   "learner_mean": 5.44,
+   "vs": {
+    "idle": {
+     "mean_diff": 5.44,
+     "ci95": [
+      1.9447500000000002,
+      10.730250000000002
+     ],
+     "ci95_seed_only": [
+      3.499875,
+      7.485125
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": 0.0
+    },
+    "rule": {
+     "mean_diff": 5.44,
+     "ci95": [
+      1.9447500000000002,
+      10.730250000000002
+     ],
+     "ci95_seed_only": [
+      3.499875,
+      7.485125
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": 0.0
+    },
+    "random": {
+     "mean_diff": -31.31,
+     "ci95": [
+      -38.39,
+      -23.504749999999998
+     ],
+     "ci95_seed_only": [
+      -33.250125000000004,
+      -29.264874999999996
+     ],
+     "wins": 0,
+     "n_seeds": 10,
+     "baseline_mean": 36.75
+    },
+    "untrained": {
+     "mean_diff": -134.325,
+     "ci95": [
+      -149.67525,
+      -118.05925000000002
+     ],
+     "ci95_seed_only": [
+      -136.265125,
+      -132.279875
+     ],
+     "wins": 0,
+     "n_seeds": 10,
+     "baseline_mean": 139.765
+    }
+   }
+  },
+  "revisit_rate": {
+   "learner_mean": 0.39601896204506987,
+   "vs": {
+    "idle": {
+     "mean_diff": -0.6039810379549302,
+     "ci95": [
+      -0.6841801755686178,
+      -0.5260181402178721
+     ],
+     "ci95_seed_only": [
+      -0.6413863016006109,
+      -0.5703806171932818
+     ],
+     "wins": 0,
+     "n_seeds": 10,
+     "baseline_mean": 1.0
+    },
+    "rule": {
+     "mean_diff": 0.2510430073539207,
+     "ci95": [
+      0.1643866393082099,
+      0.3306119818957101
+     ],
+     "ci95_seed_only": [
+      0.21363774370823982,
+      0.28464342811556903
+     ],
+     "wins": 10,
+     "n_seeds": 10,
+     "baseline_mean": 0.14497595469114916
+    },
+    "random": {
+     "mean_diff": -0.36256437128826347,
+     "ci95": [
+      -0.4510960245377544,
+      -0.2795694402926164
+     ],
+     "ci95_seed_only": [
+      -0.39996963493394444,
+      -0.32896395052661515
+     ],
+     "wins": 0,
+     "n_seeds": 10,
+     "baseline_mean": 0.7585833333333333
+    },
+    "untrained": {
+     "mean_diff": -0.5823477046215968,
+     "ci95": [
+      -0.6618630253561422,
+      -0.505219710009489
+     ],
+     "ci95_seed_only": [
+      -0.6197529682672777,
+      -0.5487472838599485
+     ],
+     "wins": 0,
+     "n_seeds": 10,
+     "baseline_mean": 0.9783666666666666
+    }
+   }
+  }
+ },
+ "verdict": {
+  "learning_helps_vs_idle_all_three_metrics": true,
+  "beats_untrained_same_architecture": true,
+  "beats_random_policy_on_return": true,
+  "LEARNING_HELPS": true,
+  "beats_rule_on_return": false,
+  "BEATS_RULE": false,
+  "criteria": {
+   "learning_helps": "TRUE iff, on the frozen TEST worlds for the selected config, the hierarchical CI lower bound of (learner - idle) is > 0 on ALL THREE primary metrics AND (learner - untrained) > 0 on ref_return AND (learner - random) > 0 on ref_return. Otherwise the claim is NOT supported.\n",
+   "beats_rule": "TRUE iff learning_helps AND (learner - rule) CI lower bound > 0 on ref_return AND the upper bound of (learner - rule) is >= 0 on all three metrics. Otherwise \"does not beat rule\"; a CI containing zero is reported as inconclusive, a CI entirely below zero as the learner being worse.\n"
+  }
+ },
+ "prereg": {
+  "commit": "b0c4c2ef7f1aebd3fd0422f5d327dcda642bea19",
+  "original_commit": "77074bb7180525e59f4ffff8c9b922d7626a8eb6",
+  "file_sha256": "5eaf9e1f4b1b0eb0a34279484bb9380eb7078e102bf3f36e0ec7101abbbfcede",
+  "head": "d245ba3a8cd276d7fe405e843f9f86ffc5601c68"
+ }
+}

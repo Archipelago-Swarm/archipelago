@@ -1,0 +1,787 @@
+{
+ "selected": "grid-flat-v2-visits-shared|rew-v1|eps1-0.05@0.5|lr0.001|rb50000|ddqn",
+ "prereg": {
+  "commit": "b0c4c2ef7f1aebd3fd0422f5d327dcda642bea19",
+  "original_commit": "77074bb7180525e59f4ffff8c9b922d7626a8eb6",
+  "file_sha256": "5eaf9e1f4b1b0eb0a34279484bb9380eb7078e102bf3f36e0ec7101abbbfcede",
+  "head": "d245ba3a8cd276d7fe405e843f9f86ffc5601c68"
+ },
+ "stageA_ranking": [
+  [
+   "grid-flat-v2-visits-shared|rew-v1|eps1-0.05@0.5|lr0.003|rb50000|ddqn",
+   26.589049999999997
+  ],
+  [
+   "grid-flat-v2-visits-shared|rew-v1|eps1-0.05@0.5|lr0.001|rb50000|ddqn",
+   26.52335
+  ],
+  [
+   "grid-flat-v2-visits|rew-v1|eps1-0.05@0.5|lr0.001|rb5000|ddqn",
+   15.999950000000004
+  ],
+  [
+   "grid-flat-v2-visits|rew-v1|eps0.2|lr0.001|rb50000|ddqn",
+   2.0795000000000003
+  ],
+  [
+   "grid-flat-v2-visits|rew-v1|eps1-0.05@0.5|lr0.003|rb50000|ddqn",
+   -2.2626500000000007
+  ],
+  [
+   "grid-flat-v2-visits|rew-v1|eps1-0.05@0.5|lr0.001|rb50000|ddqn",
+   -3.4627499999999984
+  ],
+  [
+   "grid-flat-v2-visits|rew-v1|eps1-0.1@0.3|lr0.001|rb50000|ddqn",
+   -12.465699999999996
+  ],
+  [
+   "grid-flat-v2-visits|rew-v1|eps1-0.05@0.5|lr0.001|rb50000|dqn",
+   -12.491899999999998
+  ],
+  [
+   "grid-flat-v2-visits|rew-v1|eps1-0.05@0.5|lr0.01|rb50000|ddqn",
+   -12.693900000000003
+  ],
+  [
+   "grid-flat-v0|rew-v1|eps1-0.05@0.5|lr0.001|rb50000|ddqn",
+   -15.5988
+  ],
+  [
+   "grid-flat-v2-visits|rew-v0|eps1-0.05@0.5|lr0.001|rb50000|ddqn",
+   -41.15655000000001
+  ]
+ ],
+ "stageB_table": {
+  "grid-flat-v2-visits-shared|rew-v1|eps1-0.05@0.5|lr0.003|rb50000|ddqn": {
+   "ref_return": {
+    "val": 23.124700000000004,
+    "sel_all": 23.47794
+   },
+   "coverage_gain": {
+    "val": 0.675240925916777,
+    "sel_all": 0.6461915315621196
+   },
+   "targets_after_spawn": {
+    "val": 5.7,
+    "sel_all": 5.64
+   },
+   "wall_collisions": {
+    "val": 12.68,
+    "sel_all": 8.576
+   },
+   "revisit_rate": {
+    "val": 0.4328610745747513,
+    "sel_all": 0.42933055796069486
+   }
+  },
+  "grid-flat-v2-visits-shared|rew-v1|eps1-0.05@0.5|lr0.001|rb50000|ddqn": {
+   "ref_return": {
+    "val": 34.7193,
+    "sel_all": 33.286139999999996
+   },
+   "coverage_gain": {
+    "val": 0.710802907955197,
+    "sel_all": 0.6778752897629297
+   },
+   "targets_after_spawn": {
+    "val": 5.92,
+    "sel_all": 5.948
+   },
+   "wall_collisions": {
+    "val": 7.34,
+    "sel_all": 7.34
+   },
+   "revisit_rate": {
+    "val": 0.4089514002181725,
+    "sel_all": 0.360240716458939
+   }
+  },
+  "grid-flat-v2-visits|rew-v1|eps1-0.05@0.5|lr0.001|rb5000|ddqn": {
+   "ref_return": {
+    "val": 7.2139,
+    "sel_all": 17.23794
+   },
+   "coverage_gain": {
+    "val": 0.7218165413122457,
+    "sel_all": 0.6922914493962382
+   },
+   "targets_after_spawn": {
+    "val": 5.86,
+    "sel_all": 5.952
+   },
+   "wall_collisions": {
+    "val": 21.02,
+    "sel_all": 12.508
+   },
+   "revisit_rate": {
+    "val": 0.2907168964293635,
+    "sel_all": 0.24053760922497366
+   }
+  },
+  "grid-flat-v2-visits|rew-v1|eps0.2|lr0.001|rb50000|ddqn": {
+   "ref_return": {
+    "val": 14.783599999999996,
+    "sel_all": 9.07536
+   },
+   "coverage_gain": {
+    "val": 0.677361366126665,
+    "sel_all": 0.6475091228045885
+   },
+   "targets_after_spawn": {
+    "val": 5.92,
+    "sel_all": 5.836
+   },
+   "wall_collisions": {
+    "val": 7.46,
+    "sel_all": 6.172
+   },
+   "revisit_rate": {
+    "val": 0.2991595418055488,
+    "sel_all": 0.291685002321884
+   }
+  },
+  "grid-flat-v0|rew-v0|eps0.2|lr0.01|rb5000|dqn": {
+   "ref_return": {
+    "val": -110.85,
+    "sel_all": -91.20056
+   },
+   "coverage_gain": {
+    "val": 0.2837560286670039,
+    "sel_all": 0.30031503367727214
+   },
+   "targets_after_spawn": {
+    "val": 1.92,
+    "sel_all": 2.108
+   },
+   "wall_collisions": {
+    "val": 92.42,
+    "sel_all": 72.792
+   },
+   "revisit_rate": {
+    "val": 0.9189333333333333,
+    "sel_all": 0.9111475288717912
+   }
+  }
+ },
+ "baselines_sel": {
+  "idle": {
+   "ref_return": -39.0,
+   "coverage_gain": 0.0,
+   "targets_after_spawn": 0.0
+  },
+  "rule": {
+   "ref_return": 49.3604,
+   "coverage_gain": 0.7263716414397342,
+   "targets_after_spawn": 6.08
+  },
+  "random": {
+   "ref_return": -38.4508,
+   "coverage_gain": 0.4710814656871091,
+   "targets_after_spawn": 3.36
+  }
+ },
+ "paired_selected": {
+  "val_100_104": {
+   "ref_return": {
+    "idle": {
+     "mean_diff": 73.71929999999999,
+     "ci95": [
+      56.2865,
+      86.26554750000001
+     ],
+     "ci95_seed_only": [
+      61.10664,
+      83.19721750000001
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    },
+    "rule": {
+     "mean_diff": -14.3597,
+     "ci95": [
+      -31.079367500000004,
+      -0.8194199999999986
+     ],
+     "ci95_seed_only": [
+      -26.972360000000005,
+      -4.881782499999998
+     ],
+     "wins": 0,
+     "n_seeds": 10
+    },
+    "random": {
+     "mean_diff": 72.51929999999999,
+     "ci95": [
+      53.251845,
+      90.56336250000001
+     ],
+     "ci95_seed_only": [
+      59.906639999999996,
+      81.9972175
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    }
+   },
+   "coverage_gain": {
+    "idle": {
+     "mean_diff": 0.710802907955197,
+     "ci95": [
+      0.6218073496128648,
+      0.7809699464916272
+     ],
+     "ci95_seed_only": [
+      0.670701020689668,
+      0.7450797808425235
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    },
+    "rule": {
+     "mean_diff": -0.05003769746958706,
+     "ci95": [
+      -0.15947629169694919,
+      0.04054625173318402
+     ],
+     "ci95_seed_only": [
+      -0.09013958473511614,
+      -0.01576082458226053
+     ],
+     "wins": 2,
+     "n_seeds": 10
+    },
+    "random": {
+     "mean_diff": 0.21624549297238585,
+     "ci95": [
+      0.15579462315076723,
+      0.27363884250650394
+     ],
+     "ci95_seed_only": [
+      0.17614360570685678,
+      0.2505223658597124
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    }
+   },
+   "targets_after_spawn": {
+    "idle": {
+     "mean_diff": 5.92,
+     "ci95": [
+      5.04,
+      6.68
+     ],
+     "ci95_seed_only": [
+      5.4395,
+      6.3
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    },
+    "rule": {
+     "mean_diff": 0.12,
+     "ci95": [
+      -1.04,
+      1.58
+     ],
+     "ci95_seed_only": [
+      -0.3604999999999998,
+      0.5
+     ],
+     "wins": 8,
+     "n_seeds": 10
+    },
+    "random": {
+     "mean_diff": 2.32,
+     "ci95": [
+      0.92,
+      4.16
+     ],
+     "ci95_seed_only": [
+      1.8395000000000001,
+      2.7
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    }
+   }
+  },
+  "selection_25": {
+   "ref_return": {
+    "idle": {
+     "mean_diff": 72.28613999999999,
+     "ci95": [
+      62.470279999999995,
+      80.55943949999998
+     ],
+     "ci95_seed_only": [
+      66.75996799999999,
+      76.8411885
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    },
+    "rule": {
+     "mean_diff": -16.07426,
+     "ci95": [
+      -26.526273500000006,
+      -7.7941505
+     ],
+     "ci95_seed_only": [
+      -21.600432,
+      -11.519211499999999
+     ],
+     "wins": 0,
+     "n_seeds": 10
+    },
+    "random": {
+     "mean_diff": 71.73694,
+     "ci95": [
+      58.1675375,
+      84.0421545
+     ],
+     "ci95_seed_only": [
+      66.210768,
+      76.2919885
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    }
+   },
+   "coverage_gain": {
+    "idle": {
+     "mean_diff": 0.6778752897629297,
+     "ci95": [
+      0.6340095590575285,
+      0.7192840882462969
+     ],
+     "ci95_seed_only": [
+      0.666461672292421,
+      0.6880584836604401
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    },
+    "rule": {
+     "mean_diff": -0.04849635167680441,
+     "ci95": [
+      -0.09036098209780985,
+      -0.006952754730315829
+     ],
+     "ci95_seed_only": [
+      -0.059909969147313044,
+      -0.038313157779294095
+     ],
+     "wins": 0,
+     "n_seeds": 10
+    },
+    "random": {
+     "mean_diff": 0.20679382407582061,
+     "ci95": [
+      0.1562445847166561,
+      0.2541388160551046
+     ],
+     "ci95_seed_only": [
+      0.195380206605312,
+      0.21697701797333094
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    }
+   },
+   "targets_after_spawn": {
+    "idle": {
+     "mean_diff": 5.948,
+     "ci95": [
+      5.472,
+      6.408
+     ],
+     "ci95_seed_only": [
+      5.796,
+      6.0760000000000005
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    },
+    "rule": {
+     "mean_diff": -0.132,
+     "ci95": [
+      -0.512,
+      0.264
+     ],
+     "ci95_seed_only": [
+      -0.28400000000000003,
+      -0.003999999999999995
+     ],
+     "wins": 3,
+     "n_seeds": 10
+    },
+    "random": {
+     "mean_diff": 2.588,
+     "ci95": [
+      1.8,
+      3.368
+     ],
+     "ci95_seed_only": [
+      2.436,
+      2.716
+     ],
+     "wins": 10,
+     "n_seeds": 10
+    }
+   }
+  }
+ },
+ "test": {
+  "config": "grid-flat-v2-visits-shared|rew-v1|eps1-0.05@0.5|lr0.001|rb50000|ddqn",
+  "worlds": [
+   200,
+   201,
+   202,
+   203,
+   204,
+   205,
+   206,
+   207,
+   208,
+   209,
+   210,
+   211,
+   212,
+   213,
+   214,
+   215,
+   216,
+   217,
+   218,
+   219
+  ],
+  "n_seeds": 10,
+  "metrics": {
+   "ref_return": {
+    "learner_mean": 34.873575,
+    "vs": {
+     "idle": {
+      "mean_diff": 73.873575,
+      "ci95": [
+       65.13792625,
+       80.96687312499999
+      ],
+      "ci95_seed_only": [
+       69.41527187500002,
+       77.77610249999998
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": -39.0
+     },
+     "rule": {
+      "mean_diff": -15.792425000000001,
+      "ci95": [
+       -24.679814375,
+       -8.63115625
+      ],
+      "ci95_seed_only": [
+       -20.250728125,
+       -11.8898975
+      ],
+      "wins": 0,
+      "n_seeds": 10,
+      "baseline_mean": 50.666
+     },
+     "random": {
+      "mean_diff": 64.358825,
+      "ci95": [
+       51.36868875,
+       76.646819375
+      ],
+      "ci95_seed_only": [
+       59.900521875,
+       68.2613525
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": -29.485249999999997
+     },
+     "untrained": {
+      "mean_diff": 215.006075,
+      "ci95": [
+       197.61856875000004,
+       231.22697750000003
+      ],
+      "ci95_seed_only": [
+       210.54777187500002,
+       218.9086025
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": -180.1325
+     }
+    }
+   },
+   "coverage_gain": {
+    "learner_mean": 0.7209821873708102,
+    "vs": {
+     "idle": {
+      "mean_diff": 0.7209821873708102,
+      "ci95": [
+       0.6853795146478098,
+       0.7520862218180322
+      ],
+      "ci95_seed_only": [
+       0.7056427513879754,
+       0.734884017213091
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": 0.0
+     },
+     "rule": {
+      "mean_diff": 0.0013565835536072529,
+      "ci95": [
+       -0.04128249645114193,
+       0.046085320017948114
+      ],
+      "ci95_seed_only": [
+       -0.013982852429227706,
+       0.015258413395888008
+      ],
+      "wins": 6,
+      "n_seeds": 10,
+      "baseline_mean": 0.719625603817203
+     },
+     "random": {
+      "mean_diff": 0.23546525860835518,
+      "ci95": [
+       0.18256387145428013,
+       0.2883365268595452
+      ],
+      "ci95_seed_only": [
+       0.22012582262552027,
+       0.24936708845063596
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": 0.48551692876245517
+     },
+     "untrained": {
+      "mean_diff": 0.6401749385627674,
+      "ci95": [
+       0.5961213205670398,
+       0.6789457970057623
+      ],
+      "ci95_seed_only": [
+       0.6248355025799325,
+       0.654076768405048
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": 0.08080724880804285
+     }
+    }
+   },
+   "targets_after_spawn": {
+    "learner_mean": 6.19,
+    "vs": {
+     "idle": {
+      "mean_diff": 6.19,
+      "ci95": [
+       5.76,
+       6.615
+      ],
+      "ci95_seed_only": [
+       6.03,
+       6.32
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": 0.0
+     },
+     "rule": {
+      "mean_diff": -0.26,
+      "ci95": [
+       -0.56,
+       0.03
+      ],
+      "ci95_seed_only": [
+       -0.42000000000000004,
+       -0.12999999999999998
+      ],
+      "wins": 1,
+      "n_seeds": 10,
+      "baseline_mean": 6.45
+     },
+     "random": {
+      "mean_diff": 2.29,
+      "ci95": [
+       1.645,
+       2.97
+      ],
+      "ci95_seed_only": [
+       2.13,
+       2.4200000000000004
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": 3.9
+     },
+     "untrained": {
+      "mean_diff": 5.445,
+      "ci95": [
+       4.975,
+       5.91
+      ],
+      "ci95_seed_only": [
+       5.285000000000001,
+       5.575000000000001
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": 0.745
+     }
+    }
+   },
+   "wall_collisions": {
+    "learner_mean": 5.44,
+    "vs": {
+     "idle": {
+      "mean_diff": 5.44,
+      "ci95": [
+       1.9447500000000002,
+       10.730250000000002
+      ],
+      "ci95_seed_only": [
+       3.499875,
+       7.485125
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": 0.0
+     },
+     "rule": {
+      "mean_diff": 5.44,
+      "ci95": [
+       1.9447500000000002,
+       10.730250000000002
+      ],
+      "ci95_seed_only": [
+       3.499875,
+       7.485125
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": 0.0
+     },
+     "random": {
+      "mean_diff": -31.31,
+      "ci95": [
+       -38.39,
+       -23.504749999999998
+      ],
+      "ci95_seed_only": [
+       -33.250125000000004,
+       -29.264874999999996
+      ],
+      "wins": 0,
+      "n_seeds": 10,
+      "baseline_mean": 36.75
+     },
+     "untrained": {
+      "mean_diff": -134.325,
+      "ci95": [
+       -149.67525,
+       -118.05925000000002
+      ],
+      "ci95_seed_only": [
+       -136.265125,
+       -132.279875
+      ],
+      "wins": 0,
+      "n_seeds": 10,
+      "baseline_mean": 139.765
+     }
+    }
+   },
+   "revisit_rate": {
+    "learner_mean": 0.39601896204506987,
+    "vs": {
+     "idle": {
+      "mean_diff": -0.6039810379549302,
+      "ci95": [
+       -0.6841801755686178,
+       -0.5260181402178721
+      ],
+      "ci95_seed_only": [
+       -0.6413863016006109,
+       -0.5703806171932818
+      ],
+      "wins": 0,
+      "n_seeds": 10,
+      "baseline_mean": 1.0
+     },
+     "rule": {
+      "mean_diff": 0.2510430073539207,
+      "ci95": [
+       0.1643866393082099,
+       0.3306119818957101
+      ],
+      "ci95_seed_only": [
+       0.21363774370823982,
+       0.28464342811556903
+      ],
+      "wins": 10,
+      "n_seeds": 10,
+      "baseline_mean": 0.14497595469114916
+     },
+     "random": {
+      "mean_diff": -0.36256437128826347,
+      "ci95": [
+       -0.4510960245377544,
+       -0.2795694402926164
+      ],
+      "ci95_seed_only": [
+       -0.39996963493394444,
+       -0.32896395052661515
+      ],
+      "wins": 0,
+      "n_seeds": 10,
+      "baseline_mean": 0.7585833333333333
+     },
+     "untrained": {
+      "mean_diff": -0.5823477046215968,
+      "ci95": [
+       -0.6618630253561422,
+       -0.505219710009489
+      ],
+      "ci95_seed_only": [
+       -0.6197529682672777,
+       -0.5487472838599485
+      ],
+      "wins": 0,
+      "n_seeds": 10,
+      "baseline_mean": 0.9783666666666666
+     }
+    }
+   }
+  },
+  "verdict": {
+   "learning_helps_vs_idle_all_three_metrics": true,
+   "beats_untrained_same_architecture": true,
+   "beats_random_policy_on_return": true,
+   "LEARNING_HELPS": true,
+   "beats_rule_on_return": false,
+   "BEATS_RULE": false,
+   "criteria": {
+    "learning_helps": "TRUE iff, on the frozen TEST worlds for the selected config, the hierarchical CI lower bound of (learner - idle) is > 0 on ALL THREE primary metrics AND (learner - untrained) > 0 on ref_return AND (learner - random) > 0 on ref_return. Otherwise the claim is NOT supported.\n",
+    "beats_rule": "TRUE iff learning_helps AND (learner - rule) CI lower bound > 0 on ref_return AND the upper bound of (learner - rule) is >= 0 on all three metrics. Otherwise \"does not beat rule\"; a CI containing zero is reported as inconclusive, a CI entirely below zero as the learner being worse.\n"
+   }
+  },
+  "prereg": {
+   "commit": "b0c4c2ef7f1aebd3fd0422f5d327dcda642bea19",
+   "original_commit": "77074bb7180525e59f4ffff8c9b922d7626a8eb6",
+   "file_sha256": "5eaf9e1f4b1b0eb0a34279484bb9380eb7078e102bf3f36e0ec7101abbbfcede",
+   "head": "d245ba3a8cd276d7fe405e843f9f86ffc5601c68"
+  }
+ }
+}

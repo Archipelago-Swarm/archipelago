@@ -12,7 +12,7 @@ import json
 from dataclasses import dataclass
 
 import numpy as np
-from archipelago_sim.env import MOVE_COST, REWARD_SPECS
+from archipelago_sim.env import MOVE_COST, REWARD_SPECS, VISIT_CAP
 from archipelago_sim.pz import GridParallelEnv
 
 PROTOCOL = "exp-protocol-v1"
@@ -119,21 +119,24 @@ def battery_reaches(ticks):
     return ENV_KW.get("battery_scale", 1.0) / MOVE_COST > ticks
 
 
-OBS_IDS = (
-    OBS_ID,
-    "grid-flat-v1-map",
-)  # v1 is an opt-in PROPOSAL, never the default (see diagnosis)
+# v1-map and the two v2 ids are opt-in PROPOSALS, never the default (see diagnosis, T37).
+V2_LOCAL, V2_SHARED = "grid-flat-v2-visits", "grid-flat-v2-visits-shared"
+OBS_IDS = (OBS_ID, "grid-flat-v1-map", V2_LOCAL, V2_SHARED)
 MAP_BLOCK = 4
+CROP = 2 * 2 + 1  # sense radius 2 crop
+# v2 layout: v0 (25 crop + 2 pose + 1 battery) | 25 own visit counts | 4 frontier [| 25 peer flags]
+V2_DIMS = {V2_LOCAL: 2 * CROP * CROP + 3 + 4, V2_SHARED: 3 * CROP * CROP + 3 + 4}  # 57, 82
 
 
 def obs_dim(obs_id=OBS_ID):
-    r = 2 * 2 + 1  # sense radius 2 crop
-    return r * r + 3 + ((ENV_KW["size"] // MAP_BLOCK) ** 2 if obs_id == OBS_IDS[1] else 0)
+    if obs_id in V2_DIMS:
+        return V2_DIMS[obs_id]
+    return CROP * CROP + 3 + ((ENV_KW["size"] // MAP_BLOCK) ** 2 if obs_id == OBS_IDS[1] else 0)
 
 
-def make_env(obs_id=OBS_ID):
+def make_env(obs_id=OBS_ID, reward_id=REWARD_ID):
     assert obs_id in OBS_IDS, obs_id
-    env = GridParallelEnv(**ENV_KW)
+    env = GridParallelEnv(**ENV_KW, reward_id=reward_id)
     env.obs_id = obs_id
     return env
 
@@ -154,6 +157,16 @@ def flat(env, agent):
         for x, y in d.known:
             m[y // MAP_BLOCK, x // MAP_BLOCK] += 1.0 / MAP_BLOCK**2
         o = np.concatenate([o, m.ravel()])
+    elif getattr(env, "obs_id", OBS_ID) in V2_DIMS:
+        mem = env.world.observe_memory(agent)
+        parts = [
+            o,
+            np.minimum(np.asarray(mem["visits"], np.float32).ravel(), VISIT_CAP) / VISIT_CAP,
+            np.asarray(mem["frontier"], np.float32),
+        ]
+        if env.obs_id == V2_SHARED:
+            parts.append(np.asarray(mem["peer"], np.float32).ravel())
+        o = np.concatenate(parts)
     return o
 
 
@@ -176,7 +189,9 @@ class InfoBus:
     rows or policy outputs ever travel on this channel; modes info_only and p2p use it identically.
     """
 
-    def __init__(self):
+    def __init__(self, share_visits=False):
+        self.share_visits = share_visits  # grid-flat-v2-visits-shared: also send stood-on cells
+        self.visit_sent = {}
         self.sent = {}  # (src, dst) -> cells dst already has from/for src
         self.marker_sent = {}
         self.msgs = 0
@@ -195,9 +210,16 @@ class InfoBus:
                 done = self.sent.setdefault((src, dst), set())
                 cells = sorted((c, v) for c, v in s.known.items() if c not in done)
                 marks = sorted(s.found - self.marker_sent.setdefault((src, dst), set()))
-                plan.append((src, dst, cells, marks))
-        for src, dst, cells, marks in plan:  # compute all messages first: order independent
+                vis = []
+                if self.share_visits:
+                    vis = sorted(set(s.visits) - self.visit_sent.setdefault((src, dst), set()))
+                plan.append((src, dst, cells, marks, vis))
+        for src, dst, cells, marks, vis in plan:  # compute all messages first: order independent
             d = world.drones[dst]
+            if vis:  # summary of cells src has stood on: 2 bytes each, no counts, no parameters
+                d.peer_visits |= set(vis)
+                self.visit_sent[src, dst] |= set(vis)
+                self.bytes += 2 * len(vis)
             for c, v in cells:
                 d.known.setdefault(c, v)
             d.found |= set(marks)
@@ -245,7 +267,8 @@ def play(env, scen, seed, act, hook=None, info=False):
     """
     env.reset(seed=seed)
     w = env.world
-    bus, spool = (InfoBus() if info else None), Spool()
+    bus = InfoBus(getattr(env, "obs_id", OBS_ID) == V2_SHARED) if info else None
+    spool = Spool()
     if bus:
         bus.exchange(w, scen.peer_up(0))
     obs = {a: flat(env, a) for a in env.agents}
@@ -290,5 +313,9 @@ def play(env, scen, seed, act, hook=None, info=False):
         "actions_sha": sha(log),
         "info_bytes": bus.bytes if bus else 0,
         "info_msgs": bus.msgs if bus else 0,
+        "targets_after_spawn": w.targets_after_spawn,
+        "coverage_gain": float(w.coverage_gain),
+        "counters": dict(w.counters),
+        "n_targets": len(w.targets),
         "telemetry": spool.summary(),
     }
