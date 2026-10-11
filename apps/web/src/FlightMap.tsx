@@ -5,6 +5,7 @@ import {
   type Anchor, type Bounds, type Camera, type Pose2,
 } from "./camera";
 import type { Panels } from "./live";
+import type { Spotlight } from "./demoScriptController";
 import { buildTerrainTexture } from "./terrainTexture";
 
 const COLORS = ["#4fc3f7", "#ffb74d", "#81c784", "#ba68c8", "#f06292", "#e0e0e0"];
@@ -26,10 +27,10 @@ function jet(g: CanvasRenderingContext2D, x: number, y: number, heading: number,
 const niceLen = (m: number) => [50, 100, 200, 500, 1000, 2000, 5000, 10000].find((n) => n >= m) ?? 20000;
 const km = (m: number) => `${(m / 1000).toFixed(2)} km`;
 
-export function FlightMap({ snap, panels, height, instant = false, getPoses, focus }: { snap: WorldSnapshot; panels?: Panels; height: string; instant?: boolean; getPoses?: () => Record<string, Pose2> | null; focus?: { ids: string[]; n: number } }) {
+export function FlightMap({ snap, panels, height, instant = false, getPoses, focus, spotlight }: { snap: WorldSnapshot; panels?: Panels; height: string; instant?: boolean; getPoses?: () => Record<string, Pose2> | null; focus?: { ids: string[]; n: number }; spotlight?: Spotlight }) {
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const snapRef = useRef(snap), panelsRef = useRef(panels), instantRef = useRef(instant);
+  const snapRef = useRef(snap), panelsRef = useRef(panels), instantRef = useRef(instant), spotRef = useRef(spotlight);
   const buf = useRef(new PoseBuffer());
   const tex = useRef<HTMLCanvasElement | null>(null), texKey = useRef("");
   const trails = useRef<Record<string, [number, number][]>>({});
@@ -42,7 +43,7 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
   const [following, setFollowing] = useState(false);
   const [, bump] = useState(0);
   const posesRef = useRef(getPoses);
-  snapRef.current = snap; panelsRef.current = panels; instantRef.current = instant; posesRef.current = getPoses;
+  snapRef.current = snap; panelsRef.current = panels; instantRef.current = instant; spotRef.current = spotlight; posesRef.current = getPoses;
 
   const world = snap.world;
   const sampled = useRef<Record<string, Pose2>>({});
@@ -167,6 +168,8 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
         g.strokeStyle = "#ffd54f"; g.lineWidth = 1.5; g.stroke();
       }
 
+      const sp = spotRef.current;
+      if (sp?.dim) { g.fillStyle = "rgba(5,8,16,0.62)"; g.fillRect(0, 0, W, H); } // guided demo: dim the map, keep links and aircraft bright
       const ids = Object.keys(poses).sort();
       const color = (id: string) => COLORS[ids.indexOf(id) % COLORS.length];
       if (zr >= LOD_ICON) { // trails: medium and close only
@@ -200,6 +203,12 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
         const m = Math.min(1, age / 1200); g.beginPath(); g.arc(x1 + (x2 - x1) * m, y1 + (y2 - y1) * m, 4, 0, 2 * Math.PI); g.fillStyle = `rgba(${col},${1 - k})`; g.fill();
       }
 
+      for (const [a, b] of sp?.links ?? []) { // guided demo: active P2P transmission, with a packet marching sender -> recipient
+        const p = poses[a], q = poses[b]; if (!p || !q) continue;
+        const [x1, y1] = S(p.x, p.y), [x2, y2] = S(q.x, q.y), m = (now / 1200) % 1;
+        g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.strokeStyle = "#00e5ff"; g.lineWidth = 3; g.shadowColor = "#00e5ff"; g.shadowBlur = 12; g.stroke(); g.shadowBlur = 0;
+        g.beginPath(); g.arc(x1 + (x2 - x1) * m, y1 + (y2 - y1) * m, 5, 0, 2 * Math.PI); g.fillStyle = "#fff"; g.fill();
+      }
       for (const id of ids) {
         const p = poses[id], [px, py] = S(p.x, p.y);
         if (px < -40 || py < -40 || px > W + 40 || py > H + 40) continue;
@@ -214,6 +223,16 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
           g.fillStyle = "#cfd8dc"; g.font = "11px system-ui, sans-serif";
           g.fillText(zr >= LOD_CLOSE ? `${id} · ${bearingDeg(p.heading)}° · ${Math.round(p.speed)} m/s` : id, px + 14, py - 12);
         }
+      }
+
+      for (const [id, text] of Object.entries(sp?.pills ?? {})) { // validation / status pills above nodes
+        const p = poses[id]; if (!p) continue;
+        const [px, py] = S(p.x, p.y);
+        g.font = "bold 12px system-ui, sans-serif";
+        const tw = g.measureText(text).width + 16;
+        g.fillStyle = "#0d1424"; g.strokeStyle = "#00e5ff"; g.lineWidth = 1.5;
+        g.beginPath(); g.roundRect(px - tw / 2, py - 46, tw, 22, 11); g.fill(); g.stroke();
+        g.fillStyle = "#e3eaf5"; g.textAlign = "center"; g.fillText(text, px, py - 31); g.textAlign = "left";
       }
 
       const len = niceLen(110 / c.zoom), bx = 16, by = H - 16; // scale bar
