@@ -79,7 +79,7 @@ export function App() {
     <main>
       {ctl && ds && <DemoControlsOverlay ctl={ctl} state={ds} scene={scene!} lineage={shownPanels.lineage} />}
       <header>
-        <h1>{landing ? "Archipelago" : <a href={location.pathname}>Archipelago</a>}</h1>
+        <h1><img src="/archipelago-logo.svg" alt="" />{landing ? "Archipelago" : <a href={location.pathname}>Archipelago</a>}</h1>
         {!landing && startForm}
       </header>
       {needLogin && (
@@ -89,7 +89,7 @@ export function App() {
       )}
       {landing && (
         <>
-          <p className="lede">A swarm of simulated drones explores an area together, shares what it finds over unreliable radio links, and hands improved flight policies from one drone to another. This page lets you watch a run.</p>
+          <p className="lede"><strong>No mainland required.</strong> A swarm of simulated drones explores an area together, shares what it finds over unreliable radio links, and hands improved flight policies from one drone to another. This page lets you watch a run.</p>
           <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> <span className="note">Runs in your browser. No backend needed.</span></p>
           <h2>Getting started</h2>
           <ol>

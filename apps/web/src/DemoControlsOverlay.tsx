@@ -2,8 +2,8 @@ import { ACTS, POLICY, type DemoController, type DemoState, type Scene } from ".
 import { LineagePanel } from "./Lineage";
 import type { Lineage } from "./live";
 
-const bar = { position: "sticky", top: 0, zIndex: 10, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", padding: 8, background: "#0d1424f2", color: "#e3eaf5", borderBottom: "1px solid #33476e" } as const;
-const card = { position: "fixed", right: 16, zIndex: 11, maxWidth: 360, padding: 12, background: "#0d1424f2", color: "#e3eaf5", border: "1px solid #00e5ff", borderRadius: 8 } as const;
+const bar = { position: "sticky", top: 0, zIndex: 10, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", padding: 8, background: "#0a0a0af2", color: "#ede7df", borderBottom: "1px solid #333" } as const;
+const card = { position: "fixed", right: 16, zIndex: 11, maxWidth: 360, padding: 12, background: "#0a0a0af2", color: "#ede7df", border: "1px solid #f47b3c", borderRadius: 0 } as const;
 
 export function DemoControlsOverlay({ ctl, state, scene, lineage }: { ctl: DemoController; state: DemoState; scene: Scene; lineage: Lineage }) {
   const done = scene.act === ACTS.length - 1;
