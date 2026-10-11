@@ -82,6 +82,12 @@ export type Radius = number;
 export type X1 = number;
 export type Y1 = number;
 export type TargetsFound = Marker[];
+export type Biome = string;
+export type ElevM = number[];
+export type Height = number;
+export type Observed = string;
+export type Size = number;
+export type VegPct = number[];
 export type WidthM = number;
 export type ArchitectureHash = string;
 export type EmittedAtUtc3 = string;
@@ -250,6 +256,7 @@ export interface WorldGeometry {
   sensor_radius_m: SensorRadiusM;
   shapes?: Shapes;
   targets_found?: TargetsFound;
+  terrain?: TerrainGrid | null;
   width_m: WidthM;
 }
 /**
@@ -263,6 +270,20 @@ export interface Marker {
   radius: Radius;
   x: X1;
   y: Y1;
+}
+/**
+ * Whole-map terrain for display, row-major (index = y * size + x, size columns, height rows).
+ *
+ * `observed` marks the cells the fleet has actually sensed, so a viewer can draw unobserved
+ * terrain dimmed. Display only: nodes never get it.
+ */
+export interface TerrainGrid {
+  biome: Biome;
+  elev_m: ElevM;
+  height: Height;
+  observed: Observed;
+  size: Size;
+  veg_pct: VegPct;
 }
 export interface PeerEnvelope {
   architecture_hash: ArchitectureHash;

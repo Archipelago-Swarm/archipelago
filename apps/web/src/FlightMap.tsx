@@ -5,6 +5,7 @@ import {
   type Anchor, type Bounds, type Camera, type Pose2,
 } from "./camera";
 import type { Panels } from "./live";
+import { buildTerrainTexture } from "./terrainTexture";
 
 const COLORS = ["#4fc3f7", "#ffb74d", "#81c784", "#ba68c8", "#f06292", "#e0e0e0"];
 const TRAIL_MAX = 600, TRAIL_STEP_M = 30, PULSE_MS = 3000;
@@ -25,11 +26,12 @@ function jet(g: CanvasRenderingContext2D, x: number, y: number, heading: number,
 const niceLen = (m: number) => [50, 100, 200, 500, 1000, 2000, 5000, 10000].find((n) => n >= m) ?? 20000;
 const km = (m: number) => `${(m / 1000).toFixed(2)} km`;
 
-export function FlightMap({ snap, panels, height, instant = false }: { snap: WorldSnapshot; panels?: Panels; height: string; instant?: boolean }) {
+export function FlightMap({ snap, panels, height, instant = false, getPoses, focus }: { snap: WorldSnapshot; panels?: Panels; height: string; instant?: boolean; getPoses?: () => Record<string, Pose2> | null; focus?: { ids: string[]; n: number } }) {
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const snapRef = useRef(snap), panelsRef = useRef(panels), instantRef = useRef(instant);
   const buf = useRef(new PoseBuffer());
+  const tex = useRef<HTMLCanvasElement | null>(null), texKey = useRef("");
   const trails = useRef<Record<string, [number, number][]>>({});
   const trailKey = useRef<string | null>(null);
   const cam = useRef<Camera>({ x: 0, y: 0, zoom: 0.04 }), tgt = useRef<Camera>({ x: 0, y: 0, zoom: 0.04 });
@@ -39,7 +41,8 @@ export function FlightMap({ snap, panels, height, instant = false }: { snap: Wor
   const [selected, setSelected] = useState<string | null>(null);
   const [following, setFollowing] = useState(false);
   const [, bump] = useState(0);
-  snapRef.current = snap; panelsRef.current = panels; instantRef.current = instant;
+  const posesRef = useRef(getPoses);
+  snapRef.current = snap; panelsRef.current = panels; instantRef.current = instant; posesRef.current = getPoses;
 
   const world = snap.world;
   const sampled = useRef<Record<string, Pose2>>({});
@@ -49,6 +52,14 @@ export function FlightMap({ snap, panels, height, instant = false }: { snap: Wor
     for (const [id, p] of Object.entries(snap.poses)) poses[id] = { x: p.x, y: p.y, heading: p.heading_rad ?? 0, speed: p.speed_mps ?? 0 };
     buf.current.push(snap.run_id, snap.sim_tick, poses, performance.now(), instantRef.current);
   }, [snap]);
+
+  useEffect(() => { // timeline event click: centre the camera on the involved nodes
+    if (!focus?.n) return;
+    const ps = focus.ids.map((id) => sampled.current[id]).filter(Boolean);
+    if (!ps.length) return;
+    follow.current = false; setFollowing(false); anchor.current = null;
+    tgt.current = { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: ps.reduce((a, p) => a + p.y, 0) / ps.length, zoom: Math.max(tgt.current.zoom, fit.current.zoom * LOD_ICON) };
+  }, [focus?.n]);
 
   const doFit = () => {
     const el = box.current; if (!el || !world) return;
@@ -109,14 +120,15 @@ export function FlightMap({ snap, panels, height, instant = false }: { snap: Wor
     };
     cv.addEventListener("wheel", onWheel, { passive: false });
     cv.addEventListener("pointerdown", onDown); cv.addEventListener("pointermove", onMove);
-    cv.addEventListener("pointerup", onUp); cv.addEventListener("pointercancel", () => { dragging = null; });
+    const onCancel = () => { dragging = null; };
+    cv.addEventListener("pointerup", onUp); cv.addEventListener("pointercancel", onCancel);
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(100, now - last); last = now;
       const s = snapRef.current, w = s.world, v = { w: W, h: H };
       if (!w || !W) return;
-      const poses = buf.current.sample(now);
+      const poses = posesRef.current?.() ?? buf.current.sample(now);
       sampled.current = poses;
       if (follow.current && sel.current && poses[sel.current]) { tgt.current = { ...tgt.current, x: poses[sel.current].x, y: poses[sel.current].y }; }
       cam.current = stepCamera(cam.current, tgt.current, v, anchor.current, dt);
@@ -135,6 +147,11 @@ export function FlightMap({ snap, panels, height, instant = false }: { snap: Wor
       g.fillStyle = "#070b14"; g.fillRect(0, 0, W, H);
       const [ox, oy] = S(0, 0), [ex, ey] = S(w.width_m, w.height_m);
       g.fillStyle = "#0d1424"; g.fillRect(ox, oy, ex - ox, ey - oy);
+      if (w.terrain) { // smooth terrain with unobserved areas dimmed; rebuilt only when the observed set changes
+        const key = w.terrain.observed + w.terrain.biome.length;
+        if (texKey.current !== key) { texKey.current = key; tex.current = buildTerrainTexture(w.terrain); }
+        g.imageSmoothingEnabled = true; g.drawImage(tex.current!, ox, oy, ex - ox, ey - oy);
+      }
       g.strokeStyle = "#2a3a5c"; g.lineWidth = 1; g.strokeRect(ox, oy, ex - ox, ey - oy);
 
       for (const sh of w.shapes ?? []) { // revealed terrain polygons, culled to the viewport
@@ -142,7 +159,7 @@ export function FlightMap({ snap, panels, height, instant = false }: { snap: Wor
         let b = shapeBox.get(key); if (!b) { b = boundsOf(sh.points as [number, number][]); shapeBox.set(key, b); }
         if (!intersects(b, vb)) continue;
         g.beginPath();
-        (sh.points as [number, number][]).forEach(([x, y], i) => { const [px, py] = S(x, y); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+        (sh.points as [number, number][]).forEach(([x, y], i) => { const [px, py] = S(x, y); if (i) g.lineTo(px, py); else g.moveTo(px, py); });
         g.closePath(); g.fillStyle = "rgba(120,135,165,0.28)"; g.fill(); g.strokeStyle = "rgba(160,175,205,0.55)"; g.lineWidth = 1; g.stroke();
       }
       for (const t of w.targets_found ?? []) {
@@ -155,7 +172,7 @@ export function FlightMap({ snap, panels, height, instant = false }: { snap: Wor
       if (zr >= LOD_ICON) { // trails: medium and close only
         for (const id of ids) {
           const t = trails.current[id]; if (!t || t.length < 2) continue;
-          g.beginPath(); t.forEach(([x, y], i) => { const [px, py] = S(x, y); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+          g.beginPath(); t.forEach(([x, y], i) => { const [px, py] = S(x, y); if (i) g.lineTo(px, py); else g.moveTo(px, py); });
           g.strokeStyle = color(id) + "55"; g.lineWidth = 1.5; g.stroke();
         }
       }
@@ -197,7 +214,10 @@ export function FlightMap({ snap, panels, height, instant = false }: { snap: Wor
     };
     raf = requestAnimationFrame(frame);
     const iv = setInterval(() => bump((n) => n + 1), 250); // refreshes the telemetry panel
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); clearInterval(iv); cv.removeEventListener("wheel", onWheel); };
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); clearInterval(iv);
+      cv.removeEventListener("wheel", onWheel); cv.removeEventListener("pointerdown", onDown); cv.removeEventListener("pointermove", onMove);
+      cv.removeEventListener("pointerup", onUp); cv.removeEventListener("pointercancel", onCancel);
+    };
   }, [!!world]);
 
   const p = selected ? sampled.current[selected] : undefined;
@@ -206,7 +226,7 @@ export function FlightMap({ snap, panels, height, instant = false }: { snap: Wor
   const feed = [...(panels?.offers ?? [])].slice(-4).reverse();
   const btn = { background: "#16213a", color: "#e3eaf5", border: "1px solid #33476e", borderRadius: 4, padding: "3px 8px", cursor: "pointer" } as const;
   return (
-    <div ref={box} style={{ position: "relative", height, background: "#070b14", borderRadius: 6, overflow: "hidden", userSelect: "none", color: "#e3eaf5", font: "12px system-ui, sans-serif" }}>
+    <div ref={box} style={{ position: "relative", height, background: "#070b14", borderRadius: getPoses ? "6px 6px 0 0" : 6, overflow: "hidden", userSelect: "none", color: "#e3eaf5", font: "12px system-ui, sans-serif" }}>
       <canvas ref={canvas} aria-label="Large-area map: aircraft, terrain, links" style={{ display: "block", touchAction: "none", cursor: "grab" }} />
       <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 6 }}>
         <button style={btn} onClick={doFit}>Fit world</button>

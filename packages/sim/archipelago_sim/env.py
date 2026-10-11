@@ -11,6 +11,8 @@ import json
 import random
 from dataclasses import dataclass, field
 
+from .terrain import Terrain
+
 ACTIONS = ("stay", "north", "east", "south", "west")
 DELTA = {"stay": (0, 0), "north": (0, -1), "east": (1, 0), "south": (0, 1), "west": (-1, 0)}
 UNKNOWN, FREE, WALL = -1, 0, 1
@@ -35,6 +37,10 @@ class Drone:
     peer_visits: set[tuple[int, int]] = field(
         default_factory=set
     )  # cells peers reported standing on
+    # Terrain-aware sensing (only populated when the world has terrain): the surface class and
+    # elevation this node saw when it first detected a marker, and this tick's attempts.
+    marker_info: dict[tuple[int, int], tuple[int, float]] = field(default_factory=dict)
+    sense_log: list[tuple[int, float, int, bool]] = field(default_factory=list)
 
     @property
     def alive(self) -> bool:
@@ -52,6 +58,8 @@ class GridWorld:
         max_ticks: int = 900,
         battery_scale: float = 1.0,
         reward_id: str = "rew-v0",
+        terrain_seed: int | None = None,
+        height: int | None = None,
     ):
         if reward_id not in REWARD_SPECS:
             raise ValueError(f"unknown reward_id {reward_id!r}")
@@ -59,8 +67,19 @@ class GridWorld:
             REWARD_SPECS[reward_id]
         )
         self.reward_id = reward_id
+        self.terrain_seed = terrain_seed  # None = uniform world (the pre-terrain behaviour)
+        self.terrain: Terrain | None = None
+        self.eval_p: dict[
+            str, list[float]
+        ] = {}  # PRIVILEGED, evaluation only: true p of each logged attempt; never in observe()
         self.r_revisit, self.pay_spawn_targets = REWARD_EXTRA[reward_id]
         self.size, self.n_targets, self.radius = size, n_targets, sense_radius
+        # `size` is the width in cells; `height` defaults to a square. Height may not exceed
+        # the width, so
+        # pose / size stays in [0, 1] for the observation encoders (which know only the width).
+        self.height = size if height is None else height
+        if not 1 <= self.height <= size:
+            raise ValueError(f"height {self.height} must be in 1..size ({size})")
         self.density, self.max_ticks, self.battery_scale = (
             obstacle_density,
             max_ticks,
@@ -75,9 +94,16 @@ class GridWorld:
     def reset(self, seed: int = 0, starts: dict[str, tuple[int, int]] | None = None):
         rng = random.Random(seed)
         n = self.size
-        cells = [(x, y) for x in range(n) for y in range(n)]
+        cells = [(x, y) for x in range(n) for y in range(self.height)]
         starts = starts or {}
         self.obstacles = self._gen_obstacles(rng, cells, starts)
+        self.terrain = (
+            None
+            if self.terrain_seed is None
+            else Terrain.generate(
+                n, getattr(self, "cell_m", 625.0), self.terrain_seed, height=self.height
+            )
+        )
         free = [c for c in cells if c not in self.obstacles]
         rng.shuffle(free)
         picks = (c for c in free if c not in starts.values())
@@ -113,23 +139,52 @@ class GridWorld:
         return len(ACTIONS)
 
     def _cell(self, c):
-        in_bounds = 0 <= c[0] < self.size and 0 <= c[1] < self.size
+        in_bounds = 0 <= c[0] < self.size and 0 <= c[1] < self.height
         return FREE if in_bounds and c not in self.obstacles else WALL
 
     def _sense(self, a: str) -> int:
-        d, new = self.drones[a], 0
+        d, new, t = self.drones[a], 0, self.terrain
+        d.sense_log = []
+        self.eval_p[a] = []
         for dx in range(-self.radius, self.radius + 1):
             for dy in range(-self.radius, self.radius + 1):
                 c = (d.pos[0] + dx, d.pos[1] + dy)
-                if not (0 <= c[0] < self.size and 0 <= c[1] < self.size):
+                if not (0 <= c[0] < self.size and 0 <= c[1] < self.height):
                     continue
-                d.known[c] = self._cell(c)
-                if c in self.targets:
-                    d.found.add(c)
+                if t is None:
+                    d.known[c] = self._cell(c)
+                    if c in self.targets:
+                        d.found.add(c)
+                elif t.los_clear(
+                    d.pos, c
+                ):  # terrain between drone and cell hides it: stays unknown
+                    d.known[c] = self._cell(c)
+                else:
+                    if c in self.targets:
+                        self._detect(a, c)
+                    continue
+                if t is not None and c in self.targets:
+                    self._detect(a, c)
                 if c not in self.visited:
                     self.visited.add(c)
                     new += c not in self.obstacles
         return new
+
+    def _detect(self, a: str, c: tuple[int, int]) -> None:
+        """Terrain-aware detection of a ground entity: LOS, vegetation concealment and distance.
+        A re-observation of an already-detected marker is logged: the node expected it, so a miss
+        is information it legitimately has. First detections are never logged (no success bias)."""
+        d, t = self.drones[a], self.terrain
+        p = t.detect_p(d.pos, c, self.radius)  # type: ignore[union-attr]
+        seen = random.Random(f"{self.terrain_seed}:{self.tick}:{a}:{c}").random() < p
+        if c in d.found:
+            biome, elev = d.marker_info[c]
+            dist = max(abs(c[0] - d.pos[0]), abs(c[1] - d.pos[1]))
+            self.eval_p[a].append(p)
+            d.sense_log.append((biome, round(t.drone_alt(d.pos) - elev, 1), dist, seen))  # type: ignore[union-attr]
+        elif seen:
+            d.found.add(c)
+            d.marker_info[c] = (t.biome[c[0]][c[1]], t.elev[c[0]][c[1]])  # type: ignore[union-attr]
 
     def observe(self, a: str) -> dict:
         """Local view only: crop/mask come from this node's own buffer, never the hidden world."""
@@ -138,13 +193,18 @@ class GridWorld:
             [d.known.get((d.pos[0] + dx, d.pos[1] + dy), UNKNOWN) for dx in range(-r, r + 1)]
             for dy in range(-r, r + 1)
         ]
-        return {
+        obs = {
             "crop": crop,
             "known_mask": [[v != UNKNOWN for v in row] for row in crop],
             "pose": d.pos,
             "battery": min(1.0, max(0.0, d.battery)),
             "visible_markers": sorted(d.found),
         }
+        if (
+            self.terrain is not None
+        ):  # (biome, rel_alt_m, dist_cells, detected) per known marker in range
+            obs["sense_log"] = list(d.sense_log)
+        return obs
 
     def observe_memory(self, a: str) -> dict:
         """Node-local memory features (grid-flat-v2-visits). Built only from this node's own
@@ -161,7 +221,7 @@ class GridWorld:
         peer = [[(px + dx, py + dy) in d.peer_visits for dx in span] for dy in span]
 
         def unknown(c):
-            return 0 <= c[0] < self.size and 0 <= c[1] < self.size and c not in d.known
+            return 0 <= c[0] < self.size and 0 <= c[1] < self.height and c not in d.known
 
         k = r + 1
         frontier = [
@@ -270,12 +330,12 @@ class GridWorld:
 
     @property
     def coverage_gain(self) -> float:
-        free = self.size * self.size - len(self.obstacles)
+        free = self.size * self.height - len(self.obstacles)
         return (len(self.visited - self.obstacles) - self.spawn_visited) / free
 
     @property
     def coverage(self) -> float:
-        free = self.size * self.size - len(self.obstacles)
+        free = self.size * self.height - len(self.obstacles)
         return len(self.visited - self.obstacles) / free
 
     def world_state(self) -> dict:
@@ -283,6 +343,7 @@ class GridWorld:
         return {
             "tick": self.tick,
             "size": self.size,
+            "height": self.height,
             "obstacles": sorted(self.obstacles),
             "targets": self.targets,
             "found": sorted(self.found_targets),
