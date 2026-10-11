@@ -2,7 +2,8 @@
 
 python -m archipelago_mission.serve [--port 8765]
 GET /api/mission/health
-GET /api/mission/run?seed=1002[&skills=0]            -> full result JSON, computed now
+GET /api/mission/run?seed=1002[&uavs=6][&skills=0]  -> full result JSON, computed now
+GET /api/mission/summary?seed=1002[&uavs=6]          -> final state + stats, skills on and off
 GET /api/mission/stream?seed=1002[&tps=4][&skills=0] -> Server-Sent Events, one tick per 1/tps s
 """
 
@@ -16,9 +17,27 @@ from .sim import MissionConfig, MissionSim, round_floats, run_mission
 
 
 def _cfg(q: dict) -> MissionConfig:
+    uavs = int(q.get("uavs", ["6"])[0])
+    if not 1 <= uavs <= 24:
+        raise ValueError("uavs must be 1..24")
     return MissionConfig(
-        seed=int(q.get("seed", ["1002"])[0]), skills_enabled=q.get("skills", ["1"])[0] != "0"
+        seed=int(q.get("seed", ["1002"])[0]),
+        n_uavs=uavs,
+        skills_enabled=q.get("skills", ["1"])[0] != "0",
     )
+
+
+def _arm(cfg: MissionConfig) -> dict:
+    r = run_mission(cfg)
+    return {"mission": r["frames"][-1]["mission"], "stats": r["stats"]}
+
+
+def summary(q: dict) -> dict:
+    """Final mission state + stats for one map, skills on and off (no frames: small payload)."""
+    cfg = _cfg(q)
+    off = MissionConfig(**{**cfg.__dict__, "skills_enabled": False})
+    on = MissionConfig(**{**cfg.__dict__, "skills_enabled": True})
+    return {"seed": cfg.seed, "uavs": cfg.n_uavs, "on": _arm(on), "off": _arm(off)}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -43,6 +62,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(
                     200,
                     json.dumps(round_floats(run_mission(_cfg(q))), separators=(",", ":")).encode(),
+                )
+            elif u.path == "/api/mission/summary":
+                self._send(
+                    200, json.dumps(round_floats(summary(q)), separators=(",", ":")).encode()
                 )
             elif u.path == "/api/mission/stream":
                 self._stream(_cfg(q), float(q.get("tps", ["4"])[0]))

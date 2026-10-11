@@ -12,12 +12,18 @@ import { DemoControlsOverlay } from "./DemoControlsOverlay";
 import { usePlayback } from "./replay";
 import { PastRuns } from "./PastRuns";
 import { View } from "./View";
+import { MissionApp } from "./MissionApp";
 
 // JSON imports widen tuples; the fixture is schema-validated by the contracts tests.
 const fixture = snapshot as unknown as WorldSnapshot;
 const COMMANDS = ["resume", "pause", "step", "stop"] as const;
 
 export function App() {
+  const p = new URLSearchParams(location.search);
+  return p.has("mission") || p.has("seed") ? <MissionApp /> : <RunApp />;
+}
+
+function RunApp() {
   const params = new URLSearchParams(location.search);
   const demo = params.has("demo"), guided = params.get("demo") === "guided";
   const ctl = useMemo(() => (guided ? createDemoController() : undefined), [guided]);
@@ -106,7 +112,7 @@ export function App() {
           <section className="hero">
             <p className="kicker">No mainland required.</p>
             <h2>Decentralized learning across UAV squadrons.</h2>
-            <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> </p>
+            <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> <a className="button" href="?mission=1">Mission simulator</a> </p>
           </section>
           <PastRuns />
           <h2>Start a run</h2>
