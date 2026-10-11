@@ -39,7 +39,6 @@ from archipelago_contracts.models import (
     Action,
     MetricSample,
     RunConfig,
-    Topology,
     WorldSnapshot,
 )
 
@@ -318,7 +317,9 @@ class Run:
                 cut |= {frozenset(link) for link in w.cut_links}
         alive = [n for n in self.nodes if self.health[n].state != "killed"]
         world = self.adapter.world if self.adapter else None
-        rf_down = {frozenset(p) for p in world.rf_links()[1]} if hasattr(world, "rf_links") else set()
+        rf_down = (
+            {frozenset(p) for p in world.rf_links()[1]} if hasattr(world, "rf_links") else set()
+        )
         pairs = list(combinations(alive, 2))
         up = [p for p in pairs if frozenset(p) not in cut | rf_down]
         return up, [p for p in pairs if frozenset(p) in rf_down]
@@ -336,7 +337,9 @@ class Run:
             self._was_down = {frozenset(p) for p in combinations(self.nodes, 2)} - now
             syncing = [p for p in links if self._sync_until.get(frozenset(p), -1) > tick]
             self._blocked = blocked
-            snap = self.adapter.public_snapshot(links, blocked, syncing)  # A10: only discovered obstacles
+            snap = self.adapter.public_snapshot(
+                links, blocked, syncing
+            )  # A10: only discovered obstacles
         self.spool.emit(
             self.run_id,
             self._global_tick(tick),

@@ -371,7 +371,11 @@ class GridWorld:
         ids = sorted(self.agents)
         pairs = [(a, b) for i, a in enumerate(ids) for b in ids[i + 1 :]]
         t = self.terrain
-        ok = [p for p in pairs if t is None or t.rf_clear(self.drones[p[0]].pos, self.drones[p[1]].pos)]
+        ok = [
+            p
+            for p in pairs
+            if t is None or t.rf_clear(self.drones[p[0]].pos, self.drones[p[1]].pos)
+        ]
         return ok, [p for p in pairs if p not in ok]
 
     def world_state(self) -> dict:

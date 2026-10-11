@@ -160,9 +160,17 @@ class FlightWorld(GridWorld):
                     f["heading"] += max(-lim, min(lim, wrap(desired - f["heading"])))
                 f["heading"] = wrap(f["heading"])
                 # deterministic turbulence: crosswind that flips sign over ~20 s
-                gust = m["wind"] * math.sin(0.3 * (self.tick * self.substeps + k) * dt + f["x"] / 900.0)
-                nx = f["x"] + (math.cos(f["heading"]) * f["speed"] - math.sin(f["heading"]) * gust) * dt
-                ny = f["y"] + (math.sin(f["heading"]) * f["speed"] + math.cos(f["heading"]) * gust) * dt
+                gust = m["wind"] * math.sin(
+                    0.3 * (self.tick * self.substeps + k) * dt + f["x"] / 900.0
+                )
+                nx = (
+                    f["x"]
+                    + (math.cos(f["heading"]) * f["speed"] - math.sin(f["heading"]) * gust) * dt
+                )
+                ny = (
+                    f["y"]
+                    + (math.sin(f["heading"]) * f["speed"] + math.cos(f["heading"]) * gust) * dt
+                )
                 nc, cc = self._cell_of(nx, ny), self._cell_of(f["x"], f["y"])
                 if (
                     self._cell(nc) == WALL

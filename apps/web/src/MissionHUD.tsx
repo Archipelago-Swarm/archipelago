@@ -7,7 +7,7 @@ const clock = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${S
 export function MissionHUD({ p }: { p: Panels }) {
   const m = p.mission;
   if (m.total === null) return null;
-  const found = m.finds.length, pct = m.total ? (found / m.total) * 100 : 0;
+  const found = m.finds.length;
   const boost = p.tick === null ? null : searchBoost(m, p.tick);
   const pill = m.adoptTick === null ? "P2P Capability Sync: waiting for first shared policy"
     : boost === null ? "P2P Capability Sync: measuring search speed"
