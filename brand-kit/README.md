@@ -14,7 +14,7 @@ A Chromium is needed: Playwright's (`npx playwright-core install chromium`), els
 
 ## Brand direction (defense is the core theme)
 
-ARCHIPELAGO is decentralized learning for collaborative autonomous platforms: UAV squadrons in contested, communications-constrained environments, with the Taiwan Strait as the demo scenario. Defense and military-adjacent imagery (fixed-wing UAVs, operational maps, sensor footprints, comms-denied zones) is on-brand and expected. This replaces the earlier media-kit rule that said to avoid military-specific positioning. The brand stays broad enough for search and rescue, robotics and disaster response, so the logo and system never depend on drone clipart. Avoid photorealistic war imagery, crypto and cyberpunk looks, and generic AI gradients. Slogan: **NO MAINLAND REQUIRED.** Palette: black 60 / stone+white 30 / orange <=10. Details in `docs/BRAND_DIRECTION.md`.
+ARCHIPELAGO is decentralized learning for collaborative autonomous platforms: UAV squadrons in contested, communications-constrained environments, with the Taiwan Strait as the demo scenario. Defense and military-adjacent imagery (fixed-wing UAVs, operational maps, sensor footprints, comms-denied zones) is on-brand and expected. This replaces the earlier media-kit rule that said to avoid military-specific positioning. The brand stays broad enough for search and rescue, robotics and disaster response, so the logo and system never depend on drone clipart. Avoid photorealistic war imagery, crypto and cyberpunk looks, and generic AI gradients. Slogan: **Decentralized learning across UAV squadrons.** Palette: black 60 / stone+white 30 / orange <=10. Details in `docs/BRAND_DIRECTION.md`.
 
 ## Layout
 
@@ -41,4 +41,4 @@ Change copy and layout in the component files and re-render. All maps, routes, t
 
 ## Needs human input
 
-See `docs/BRAND_DIRECTION.md` (open items): demo/Devpost URLs, roadmap status tags, the updated project story text, and whether to name Taiwan Strait labels on public assets.
+See `docs/BRAND_DIRECTION.md` (open items): demo URL, roadmap status tags, the updated project story text, and whether to name Taiwan Strait labels on public assets.

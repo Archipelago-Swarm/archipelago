@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { BrandLogo, Canvas, GridBackground } from "../components/primitives";
-import { c, mono } from "../tokens";
+import { c, mono, TAGLINE_CAPS } from "../tokens";
 
 export const W = 1920, H = 1080, TOTAL = 11;
 
@@ -15,7 +15,7 @@ export const Slide = ({ n, label, note, children, grid = true }: { n: number; la
     </div>
     <div style={{ position: "absolute", right: 80, top: 54, fontFamily: mono, fontSize: 16, letterSpacing: 3, color: c.grey }}>{String(n).padStart(2, "0")} / {TOTAL} · {label}</div>
     <div style={{ position: "absolute", left: 80, right: 80, bottom: 40, display: "flex", justifyContent: "space-between", fontFamily: mono, fontSize: 15, letterSpacing: 2.5 }}>
-      <span style={{ color: c.grey }}>{note ?? ""}</span><span style={{ color: c.orange }}>NO MAINLAND REQUIRED.</span>
+      <span style={{ color: c.grey }}>{note ?? ""}</span><span style={{ color: c.orange }}>{TAGLINE_CAPS}</span>
     </div>
   </Canvas>
 );

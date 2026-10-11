@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { c, font, LOGO_ASPECT, LOGO_SRC, mono } from "../tokens";
+import { c, font, LOGO_ASPECT, LOGO_SRC, mono, TAGLINE_CAPS } from "../tokens";
 
 export const Canvas = ({ w, h, children }: { w: number; h: number; children: ReactNode }) => (
   <div style={{ position: "relative", width: w, height: h, background: c.bg, overflow: "hidden", fontFamily: font, color: c.stone }}>{children}</div>
@@ -69,7 +69,7 @@ export const MetricCard = ({ label, value, unit, waiting }: { label: string; val
 
 export const Footer = ({ w, text }: { w: number; text: string }) => (
   <div style={{ position: "absolute", left: 64, bottom: 34, width: w - 128, display: "flex", justifyContent: "space-between" }}>
-    <Micro>{text}</Micro><Micro color={c.orange}>NO MAINLAND REQUIRED.</Micro>
+    <Micro>{text}</Micro><Micro color={c.orange}>{TAGLINE_CAPS}</Micro>
   </div>
 );
 

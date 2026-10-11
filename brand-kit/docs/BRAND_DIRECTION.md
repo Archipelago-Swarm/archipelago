@@ -12,7 +12,7 @@
 
 ## Open items (need a human)
 
-- Demo and Devpost URLs on slide 11 (placeholders).
+- Demo URL on slide 11 (shows COMING SOON until it exists). The Devpost link is set.
 - Slide 10 NOW/NEXT/LATER tags: only "continuous environment" is backed by the repo (continuous-flight demo merged); confirm the rest.
 - The updated project story text was not included in the prompt; copy was distilled from the repo (`agents/STATUS.yaml`, `agents/architecture/`, the demo video scenes) and your thesis. Review wording.
 - Measured results for slide 7 once an experiment is final.

@@ -2,7 +2,7 @@ import { FixedWing } from "../components/FixedWing";
 import { Callout, Card, SectionTitle, Tag, Telemetry } from "../components/motifs";
 import { StraitMap } from "../components/StraitMap";
 import { ArrowDefs, BrandLogo, Canvas, Wordmark } from "../components/primitives";
-import { c, mono } from "../tokens";
+import { c, mono, TAGLINE } from "../tokens";
 import { H, P, Slide, W } from "./frame";
 
 const box = (x: number, y: number, w: number, h: number, title: string, sub: string, accent = false, dashed = false) => (
@@ -183,11 +183,11 @@ export const S11End = () => (
     <div style={{ position: "absolute", left: 110, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 34 }}>
       <BrandLogo size={170} />
       <Wordmark size={96} />
-      <div style={{ fontFamily: mono, fontSize: 24, letterSpacing: 6, color: c.orange }}>NO MAINLAND REQUIRED.</div>
+      <div style={{ fontSize: 34, fontWeight: 700, color: c.orange, maxWidth: 820, lineHeight: 1.2 }}>{TAGLINE}</div>
       <P size={30} w={780}>Autonomous platforms that transfer learned capabilities, adapt collectively and keep operating without central AI infrastructure.</P>
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
-        {[["GITHUB", "github.com/Archipelago-Swarm/archipelago"], ["DEMO", "ADD DEMO URL"], ["DEVPOST", "ADD DEVPOST URL"]].map(([k, v]) => (
-          <div key={k} style={{ display: "flex", gap: 28, fontFamily: mono, fontSize: 22, letterSpacing: 2 }}><span style={{ width: 130, color: c.grey }}>{k}</span><span style={{ color: v.startsWith("ADD") ? c.orange : c.stone }}>{v}</span></div>
+        {[["GITHUB", "github.com/Archipelago-Swarm/archipelago"], ["DEVPOST", "devpost.com/software/archipelago-wpa5k9"], ["DEMO", "COMING SOON"]].map(([k, v]) => (
+          <div key={k} style={{ display: "flex", gap: 28, fontFamily: mono, fontSize: 22, letterSpacing: 2 }}><span style={{ width: 130, color: c.grey }}>{k}</span><span style={{ color: v === "COMING SOON" ? c.grey : c.stone }}>{v}</span></div>
         ))}
       </div>
     </div>

@@ -2,7 +2,7 @@ import { FixedWing } from "../components/FixedWing";
 import { Icon, Card, SectionTitle, Tag } from "../components/motifs";
 import { StraitScenario } from "../components/Scenario";
 import { BrandLogo, Canvas, Wordmark } from "../components/primitives";
-import { c, mono } from "../tokens";
+import { c, mono, TAGLINE, TAGLINE_CAPS } from "../tokens";
 import { H, P, Slide, W } from "./frame";
 
 const fadeLeft = (x: number, w: number) => <div style={{ position: "absolute", left: x, top: 0, width: w, height: H, background: `linear-gradient(90deg, ${c.bg}, rgba(10,10,10,0))` }} />;
@@ -15,8 +15,8 @@ export const S1Hero = () => (
     <div style={{ position: "absolute", left: 110, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 36 }}>
       <BrandLogo size={230} />
       <Wordmark size={118} />
-      <P size={34} w={780} style={{ opacity: 0.92 }}>Decentralized learning for collaborative autonomous platforms.</P>
-      <div style={{ fontFamily: mono, fontSize: 24, letterSpacing: 6, color: c.orange }}>NO MAINLAND REQUIRED.</div>
+      <P size={34} w={780} style={{ opacity: 0.92 }}>Autonomous platforms that transfer validated capabilities peer to peer.</P>
+      <div style={{ fontSize: 34, fontWeight: 700, color: c.orange, maxWidth: 820, lineHeight: 1.2 }}>{TAGLINE}</div>
     </div>
     <div style={{ position: "absolute", left: 110, bottom: 40, fontFamily: mono, fontSize: 14, letterSpacing: 2, color: c.grey }}>ILLUSTRATIVE SCENARIO · TAIWAN STRAIT TERRAIN FROM DEMO MAP</div>
   </Canvas>
@@ -169,7 +169,7 @@ export const S5Scenario = () => (
       <span>▭ SENSOR FOOTPRINT · ┄ PLANNED ROUTE</span>
     </div>
     <div style={{ position: "absolute", left: 80, right: 80, bottom: 40, display: "flex", justifyContent: "space-between", fontFamily: mono, fontSize: 15, letterSpacing: 2.5 }}>
-      <span style={{ color: c.grey }}>ILLUSTRATIVE ROUTES · COASTLINE FROM DEMO TERRAIN MASK</span><span style={{ color: c.orange }}>NO MAINLAND REQUIRED.</span>
+      <span style={{ color: c.grey }}>ILLUSTRATIVE ROUTES · COASTLINE FROM DEMO TERRAIN MASK</span><span style={{ color: c.orange }}>{TAGLINE_CAPS}</span>
     </div>
     <div style={{ position: "absolute", right: 80, top: 54, fontFamily: mono, fontSize: 16, letterSpacing: 3, color: c.grey }}>05 / 11 · SCENARIO</div>
   </Canvas>

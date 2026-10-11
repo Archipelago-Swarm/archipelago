@@ -17,7 +17,8 @@ export const mono = "Consolas, 'Courier New', monospace";
 // Traced vector logo from the media kit, embedded unaltered (viewBox 1400x1336).
 export const LOGO_SRC = `data:image/svg+xml;base64,${readFileSync(new URL("../public/brand/archipelago-logo.svg", import.meta.url)).toString("base64")}`;
 export const LOGO_ASPECT = 1400 / 1336;
-export const TAGLINE = "NO MAINLAND REQUIRED.";
+export const TAGLINE = "Decentralized learning across UAV squadrons.";
+export const TAGLINE_CAPS = TAGLINE.toUpperCase();
 export const DESCRIPTION = "A decentralized capability-sharing layer for autonomous edge systems.";
 
 const b64 = (f: string) => readFileSync(new URL(`../public/brand/${f}`, import.meta.url)).toString("base64");
