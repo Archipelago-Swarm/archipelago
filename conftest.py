@@ -1,4 +1,4 @@
-"""Per-test hang guard: a test running past ARCH_TEST_TIMEOUT seconds (default 120) dumps stacks and kills the
+"""Per-test hang guard: a test running past ARCH_TEST_TIMEOUT seconds (default 120), the whole run past ARCH_SESSION_TIMEOUT (default 900) dumps stacks and kills the
 whole pytest process tree, so a stuck subprocess wait ends the run instead of freezing it (no pytest-timeout dep)."""
 import faulthandler
 import os
@@ -8,6 +8,7 @@ import threading
 
 import pytest
 
+SESSION = float(os.environ.get("ARCH_SESSION_TIMEOUT", "900"))  # whole pytest run
 LIMIT = float(os.environ.get("ARCH_TEST_TIMEOUT", "120"))
 
 
@@ -29,3 +30,9 @@ def _hang_guard(request):
     t.start()
     yield
     t.cancel()
+
+
+def pytest_sessionstart(session):
+    t = threading.Timer(SESSION, _die, args=("<whole session>", None))
+    t.daemon = True
+    t.start()
