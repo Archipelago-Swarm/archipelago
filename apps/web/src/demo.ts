@@ -5,6 +5,7 @@ export function startDemo(dispatch: (e: LiveEvent) => void, intervalMs = 100): (
   const run_id = "demo-run", ids = ["node-01", "node-02", "node-03", "node-04"];
   const revealed = new Set<number>();
   let tick = 0, seq = 0, version = 0;
+  const held: Record<string, { id: string; gen: number }> = Object.fromEntries(ids.map((i) => [i, { id: `root-${i}`, gen: 0 }]));
   const send = (r: object) => dispatch({ t: "message", data: JSON.stringify({ ...r, run_id, sequence: ++seq, schema_version: "0.1.0", emitted_at_utc: new Date().toISOString(), event_id: `ev-${seq}` }) });
   dispatch({ t: "open" });
   const iv = setInterval(() => {
@@ -17,7 +18,10 @@ export function startDemo(dispatch: (e: LiveEvent) => void, intervalMs = 100): (
     if (tick % 6 === 0) {
       const to = ids[(tick / 6) % 4], from = ids[(tick / 6 + 1) % 4], ok = (tick / 6) % 3 !== 0;
       send({ kind: "peer_envelope", sender: from, recipient: to, model_version: ++version });
-      send({ kind: "learning_event", sim_tick: tick, source_node_id: to, new_version: version, update_count: version, loss: 0.1, transfer: ok ? "accepted" : "rejected", reason: ok ? null : "score below threshold", bytes: 2048 });
+      const cand = held[from], mine = held[to], gen = Math.max(cand.gen, mine.gen) + 1;
+      const lin = ok ? { policy_id: `p${version}`, parent_ids: [mine.id, cand.id], origin_node: from, generation_count: gen } : { policy_id: `bad${version}`, parent_ids: [cand.id], origin_node: from, generation_count: cand.gen + 1, flagged_peer: from };
+      if (ok) held[to] = { id: lin.policy_id, gen };
+      send({ kind: "learning_event", sim_tick: tick, source_node_id: to, new_version: version, update_count: version, loss: 0.1, transfer: ok ? "accepted" : "rejected", reason: ok ? null : "output outside safety envelope", bytes: 2048, ...lin });
     }
     const N = 40, NH = 24; // synthetic terrain: 40x24 cells of 250 m (10 x 6 km), observed near the flight paths
     for (const p of Object.values(poses) as { x: number; y: number }[]) {

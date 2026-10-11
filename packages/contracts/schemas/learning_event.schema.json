@@ -32,6 +32,27 @@
       "title": "Event Id",
       "type": "string"
     },
+    "flagged_peer": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flagged Peer"
+    },
+    "generation_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Generation Count",
+      "type": "integer"
+    },
     "kind": {
       "const": "learning_event",
       "default": "learning_event",
@@ -53,6 +74,47 @@
       "minimum": 0,
       "title": "New Version",
       "type": "integer"
+    },
+    "origin_node": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Origin Node"
+    },
+    "parent_ids": {
+      "default": [],
+      "items": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "policy_id": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Policy Id"
     },
     "previous_version": {
       "minimum": 0,

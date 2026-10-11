@@ -16,18 +16,29 @@ class LearnerNode:
         self.records: list[LearningEvent] = []
         self._emitted = 0  # index into learner.events
 
-    def broadcast(self):
-        """Non-blocking send of the current policy; cut links just count as dropped."""
-        payload = encode(self.learner)
+    def broadcast(self, keep=1.0):
+        """Non-blocking send of the current policy (a delta if learner.base_params is set); cut
+        links just count as dropped."""
+        payload = encode(self.learner, keep)
         for p in self.peers:
             self.net.send(Envelope.make(self.learner.node_id, p, self.learner.version, payload))
 
-    def poll(self, eval_fn, margin=0.0, alpha=None, window=None):
+    def poll(self, eval_fn, margin=0.0, alpha=None, window=None, safety_fn=None, max_drop=None):
         """Offer every delivered candidate, in arrival order, as ONE exchange window (A1): at most
         one is accepted, the rest are rejected as ``window_limit`` without validation cost."""
         window = OfferWindow() if window is None else window
         while (env := self.net.receive(self.learner.node_id)) is not None:
-            offer(self.learner, env.payload, eval_fn, margin, alpha, sender=env.src, window=window)
+            offer(
+                self.learner,
+                env.payload,
+                eval_fn,
+                margin,
+                alpha,
+                env.src,
+                window,
+                safety_fn,
+                max_drop,
+            )
         return window
 
     def flush(self, tick=0):
@@ -65,6 +76,10 @@ class LearnerNode:
                 previous_version=ev["local_version"], candidate_score=ev.get("candidate_score")
             )
             f.update(new_version=ev["new_version"] if ok else ev["local_version"])
+            lin = ev.get("lineage") or {}
+            f.update(policy_id=lin.get("policy_id"), parent_ids=lin.get("parent_ids", []))
+            f.update(origin_node=lin.get("origin_node"), flagged_peer=ev.get("flagged"))
+            f.update(generation_count=lin.get("generation_count", 0))
             f.update(transfer="accepted" if ok else "rejected")
         else:  # rollback
             f = dict(update_count=self.learner.steps, loss=None, reason="rollback")

@@ -187,6 +187,12 @@ class LearningEvent(Event):
     candidate_score: Finite | None = None
     bytes: Annotated[int, Field(ge=0)] = 0
     wall_seconds: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 0.0
+    # Lineage DAG node: the candidate if rejected, the adopted policy if accepted.
+    policy_id: Id | None = None
+    parent_ids: list[Id] = []
+    origin_node: Id | None = None
+    generation_count: Annotated[int, Field(ge=0)] = 0
+    flagged_peer: Id | None = None  # set when the candidate failed a safety check
 
 
 class MetricSample(Event):
