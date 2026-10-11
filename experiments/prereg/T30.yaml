@@ -34,8 +34,8 @@ arms:
     description: "live-trained fleet with exchange; partition between halves {node-01,node-02} | {node-03,node-04} during ticks [40,90) of EVERY episode"
     fault_schedule: [{start_tick: 40, end_tick: 90, cut_links: [[node-01, node-03], [node-01, node-04], [node-02, node-03], [node-02, node-04]]}]
   isolated:
-    description: "isolated-nodes control: all six links cut for the whole run (ticks [0,900) of every episode), so no model offer and no visit summary is ever delivered; otherwise identical"
-    fault_schedule: [{start_tick: 0, end_tick: 900, cut_links: ALL_PAIRS}]
+    description: "isolated-nodes control: all six links cut for the whole run (ticks [0,150) of every episode) AND no node is given any peer address (PEER_URLS empty), so no model offer and no visit summary is ever sent or delivered, including the final episode-end window at tick 150 that no schedule can cover (amendment 1); otherwise identical"
+    fault_schedule: [{start_tick: 0, end_tick: 150, cut_links: ALL_PAIRS}]
 plan:   # identical for both arms; seeds never overlap
   episodes:
     - {kind: train, seed: 1000, count: 50}
@@ -84,3 +84,15 @@ decision:
   claim_D_exchange_helps: "fleet minus isolated: CI lower bound > 0 on ref_return. Containing 0: inconclusive; entirely below 0: exchange (and visit sharing) hurt."
   isolated_learning_helps: "isolated minus idle, same rule as claim_D_learning_helps."
 negative_results: "Reported as they are. A failed/aborted arm is reported with its logs and not re-run for a better outcome; no tuning on test seeds; the test stage runs once per arm. If an arm crashes, the harness exits non-zero and the summary says which claims are therefore unsupported."
+
+amendments:
+  - id: 1
+    made: "after a --smoke run of the harness (seeds 5200-5201, 3+2 training episodes) and before any registered run or any result was read"
+    change: >
+      Isolated arm: fault window [0,900) -> [0,150) and PEER_URLS empty on its four nodes. Reason: the
+      coordinator refuses fault windows ending past max_ticks (A13: "fault window ends at tick 900, past
+      the 150 ticks a moving fleet survives"), and the final exchange window at episode_end runs at tick
+      == max_ticks, which lies outside every expressible window, so a schedule alone cannot isolate the
+      nodes at that window. With no peer address nothing can be sent. The schedule is kept so that
+      offers_cut/summaries_cut count the suppressed sends during ticks 0-149. Claim B for the isolated
+      arm additionally requires offers_sent == 0 and summaries_sent == 0. Nothing else changed.
