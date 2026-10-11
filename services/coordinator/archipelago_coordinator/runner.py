@@ -322,6 +322,7 @@ class Run:
                 obstacles=snap.obstacles,
                 coverage=snap.coverage,
                 topology=Topology(links=links),
+                world=snap.world,
             ),
         )
 
