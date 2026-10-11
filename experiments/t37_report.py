@@ -242,6 +242,16 @@ def write(out: Path, pre: dict):
         "reward-free coverage gain and targets-after-spawn.",
         "- Stage A used 4 seeds, so the top-4 cut is noisy; the one-factor-at-a-time grid does not "
         "test interactions beyond the two combined cells.",
+        "- The shared id changes two things relative to the local id: peer stood-on flags (indices 57-81) "
+        "and, because the InfoBus also merges peer map cells into the buffer, a frontier feature that "
+        "reflects peer knowledge. No ablation separates the two; Stage A only shows shared > local "
+        "(26.5 vs -3.5 mean reference return, 4 seeds).",
+        "- The selected learner still trails the rule explorer (return CI excludes 0 on the negative side, "
+        "coverage gain equal, targets after spawn inconclusive) and bumps walls ~5 times per episode "
+        "(rule: 0). Revisit rate 0.40 vs rule 0.15.",
+        "- Hyperparameters other than the 11 registered cells (hidden size, gamma, batch, target sync, "
+        "longer training) were not explored; the learner may still be improving at 400 episodes "
+        "(see curves.csv).",
         "- Prereg amendment 1 (stage B 500 -> 400 episodes) is recorded in the YAML.",
         "",
     ]

@@ -272,3 +272,9 @@ def test_bootstrap_ci_sane():
     assert lo < m < hi and lo > 1.5 and slo > 1.5
     z = np.zeros((6, 5))
     assert t37.hboot(z, n=200)[1:3] == (0.0, 0.0)
+
+
+def test_train_cell_is_deterministic():
+    cfg = t37.Config(episodes=3, obs=H.V2_SHARED, reward="rew-v1", double=True, replay=500)
+    a, b = t37.train_cell(cfg, 1), t37.train_cell(cfg, 1)
+    assert a["sel"] == b["sel"] and a["train_log"] == b["train_log"]
