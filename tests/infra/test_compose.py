@@ -98,6 +98,7 @@ def test_secrets_are_required_with_no_default_in_compose(raw):
         assert example.get(name, "") == "", f".env.example must not carry a value for {name}"
 
 
+@pytest.mark.docker  # runs `docker compose config`: needs the compose CLI, not a daemon
 def test_dev_values_live_only_in_local_env_and_are_distinct_and_long():
     local = env_file(LOCAL)
     vals = [local[k] for k in SECRETS]
