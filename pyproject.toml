@@ -46,6 +46,8 @@ select = ["E", "F", "I", "B", "UP"]
 "packages/recon/**" = ["E501"]
 "experiments/recon/**" = ["E501"]
 "tests/recon/**" = ["E501"]
+"packages/mission/**" = ["E501", "E741", "E731"]  # dense hackathon engine; ruff format still applies
+"tests/mission/**" = ["E501", "E741", "E731"]
 
 [tool.mypy]
 strict = true
