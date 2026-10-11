@@ -1,0 +1,101 @@
+{
+  "name": "ARCHIPELAGO",
+  "tagline": "NO MAINLAND REQUIRED.",
+  "description": "Decentralized learning for collaborative autonomous platforms: nodes learn locally and transfer validated capabilities peer to peer, with no central AI dependency.",
+  "palette": {
+    "black": "#0A0A0A",
+    "orange": "#F47B3C",
+    "stone": "#EDE7DF",
+    "white": "#FFFFFF",
+    "grey": "#8A8A8A"
+  },
+  "typography": {
+    "family": "Arial, Helvetica, sans-serif",
+    "mono": "Consolas, monospace",
+    "scale": {
+      "display": 80,
+      "h1": 56,
+      "h2": 36,
+      "h3": 24,
+      "body": 16,
+      "small": 13,
+      "label": 10,
+      "metric": 44
+    },
+    "labelTracking": "0.16em"
+  },
+  "spacing": [
+    4,
+    8,
+    12,
+    16,
+    24,
+    32,
+    48,
+    64,
+    96
+  ],
+  "radius": {
+    "none": 0,
+    "small": 3,
+    "panel": 6
+  },
+  "border": {
+    "width": 1,
+    "color": "#333333"
+  },
+  "motion": {
+    "fast": 160,
+    "normal": 320,
+    "slow": 640,
+    "easing": [
+      0.22,
+      1,
+      0.36,
+      1
+    ],
+    "cycleSeconds": 12
+  },
+  "usage": {
+    "primaryTheme": "dark",
+    "dominantColor": "black",
+    "accentColor": "orange",
+    "orangeMaximumVisualWeight": 0.1,
+    "proportions": {
+      "black": 0.6,
+      "stoneWhite": 0.3,
+      "orange": 0.1
+    },
+    "audience": "Defense and autonomy first (UAV squadrons in contested, communications-constrained environments); the brand stays broad enough for search and rescue, robotics, disaster response and other edge systems."
+  },
+  "visualKeywords": [
+    "decentralized",
+    "edge",
+    "capability transfer",
+    "autonomous",
+    "technical",
+    "resilient",
+    "contested comms",
+    "mission systems"
+  ],
+  "avoid": [
+    "photorealistic war imagery",
+    "crypto aesthetics",
+    "generic AI gradients",
+    "excessive orange",
+    "cyberpunk neon",
+    "cartoon or toy drone clipart"
+  ],
+  "dataPolicy": "All demonstration data is illustrative. Experimental claims require measured results.",
+  "assets": {
+    "mark": "Original island-network logo traced from the supplied deck. Use public/assets/archipelago-logo.svg. Preserve island shapes, curved links, and five orange nodes.",
+    "wordmark": "Arial Bold. Preserve ARCHIPELAGO uppercase.",
+    "logoSourceColors": {
+      "islands": "#EEEAE4",
+      "links": "#D2D4D3",
+      "nodes": "#FA702E"
+    },
+    "logoColorRule": "The original logo uses source colors. The interface palette remains the canonical deck palette."
+  },
+  "avoidNote": "SUPERSEDES the earlier rule against military-specific imagery. Defense is the core theme and the hackathon track: UAV squadrons, contested-comms operational geography and mission-systems graphics are on-brand. Keep it technical and credible, not propaganda."
+}

@@ -1,0 +1,24 @@
+{
+  "name": "archipelago-brand-kit",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Devpost graphics factory. Standalone: not part of the root npm workspaces, not run by CI.",
+  "scripts": {
+    "render:graphics": "tsx scripts/render-graphics.ts",
+    "render:devpost": "tsx scripts/render-graphics.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@types/node": "^22.0.0",
+    "playwright-core": "1.64.0",
+    "tsx": "^4.19.0",
+    "typescript": "5.6.3"
+  }
+}
