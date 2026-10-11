@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer, useState } from "react";
 import type { WorldSnapshot } from "@archipelago/contracts";
-import runConfig from "../../../packages/contracts/fixtures/good/run_config.json";
+// 4-node base config matching the deployed stack (generated from infra/demo/run_demo.py build_run_config, plan "demo").
+import runConfig from "./live_run_config.json";
 import snapshot from "../../../packages/contracts/fixtures/good/world_snapshot.json";
 import { ApiError, getRun, loadReplayRecords, login, sendCommand, startRun } from "./client";
 import { emptyPanels, panelsAtFrame, panelsReducer, recordOf } from "./live";
