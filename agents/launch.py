@@ -285,19 +285,29 @@ def liveness(machine: str) -> tuple[str, str]:
 # ------------------------------------------------------------------ one tick
 
 
-def fingerprint(task_id: str, remote: str) -> tuple[str, str]:
-    """(ledger state of the task, remote head of its branch): changes when a session made progress."""
+def fingerprint(task_id: str, remote: str, worktree: Path) -> tuple[str, str, str]:
+    """(ledger state, remote head, local head + dirty files): changes when a session made progress.
+
+    The local part counts unpushed commits and edits, so a healthy slow session is not a stall.
+    """
     ctl.git_out("fetch", "-q", "origin", check=False)
+    local = ctl.git_out(
+        "rev-parse", "HEAD", cwd=worktree, check=False
+    ).stdout.strip() + dirty_files(worktree)
     try:
         task = ctl.get_task(ctl.load_ledger(), task_id)
     except ctl.ControllerError:
-        return ("?", "?")
+        return ("?", "?", local)
     head = ""
     if task["branch"]:
         head = ctl.git_out(
             "rev-parse", "--verify", "-q", f"origin/{task['branch']}", check=False
         ).stdout.strip()
-    return (f"{task['state']}:{task['last_good_commit']}:{len(task.get('history', []))}", head)
+    return (
+        f"{task['state']}:{task['last_good_commit']}:{len(task.get('history', []))}",
+        head,
+        local,
+    )
 
 
 def dirty_files(path: Path) -> str:
@@ -353,7 +363,15 @@ def unsafe_reason(worktree: Path) -> str | None:
 def run_session(
     prompt: str, minutes: int, log: Path, extra: list[str], cwd: Path
 ) -> tuple[int | None, str]:
-    argv = ["claude", "-p", prompt, *SESSION_FLAGS, "--disallowedTools", *DENIED, *extra]
+    argv = [
+        shutil.which("claude") or "claude",
+        "-p",
+        prompt,
+        *SESSION_FLAGS,
+        "--disallowedTools",
+        *DENIED,
+        *extra,
+    ]
     with log.open("ab") as out:
         out.write(f"\n=== {iso(now())} session start\n".encode())
         proc = subprocess.Popen(
@@ -443,7 +461,7 @@ def _tick(
             return "error", f"{role} {task['id']}: {problem}"
     except ctl.ControllerError as error:
         return "error", f"{role} {task['id']}: {error}"
-    before = fingerprint(task["id"], remote)
+    before = fingerprint(task["id"], remote, worktree)
     RUNTIME.mkdir(exist_ok=True)
     code, text = run_session(
         prompt_for(role, task, machine),
@@ -457,7 +475,7 @@ def _tick(
             "limit",
             f"provider limit text in output while running {role} {task['id']}; wait for reset",
         )
-    after = fingerprint(task["id"], remote)
+    after = fingerprint(task["id"], remote, worktree)
     if code is None:
         return (
             "progress" if after != before else "no_progress",
