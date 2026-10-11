@@ -212,7 +212,9 @@ class LiveBackend:
     async def create(
         self, key: str, config: RunConfig, plan_name: str, map_offset: int = 0
     ) -> tuple[Run, bool]:
-        fingerprint = config.model_dump_json() + "\n" + plan_name + (f"\n{map_offset}" if map_offset else "")
+        fingerprint = config.model_dump_json() + "\n" + plan_name
+        if map_offset:
+            fingerprint += f"\n{map_offset}"
         async with self._create_lock:
             existing = self.mgr.precheck(key, config, fingerprint)
             if existing is not None:

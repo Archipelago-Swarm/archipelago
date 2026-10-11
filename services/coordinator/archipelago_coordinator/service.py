@@ -207,7 +207,8 @@ class Coordinator:
             err = "plan_unavailable" if e.status == 503 else "invalid_request"
             return e.status, {"error": err, "detail": str(e)}
         if req.map_offset:
-            eps = [e.model_copy(update={"seed": e.seed + req.map_offset}) for e in loaded.plan.episodes]
+            shift = req.map_offset
+            eps = [e.model_copy(update={"seed": e.seed + shift}) for e in loaded.plan.episodes]
             loaded = replace(loaded, plan=loaded.plan.model_copy(update={"episodes": eps}))
         plan_reward = loaded.plan.reward_id
         if plan_reward is not None:  # A18: the plan's versioned reward id is authoritative

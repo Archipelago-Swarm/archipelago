@@ -411,7 +411,7 @@ def test_settings_reject_weak_or_shared_tokens(tmp_path: Any) -> None:
 def test_map_offset_shifts_episode_seeds_before_the_gate_check(live: Any, nodes: Any) -> None:
     lv, ns = live(), nodes()
     body = run_body("off", ns, ticks=5)
-    body["plan"].update(node_config={"gate_seeds": [6]})  # fine for seed 1, collides once shifted by 5
+    body["plan"].update(node_config={"gate_seeds": [6]})  # ok at seed 1, collides at +5
     assert lv.call("POST", "/v1/runs", body)[0] == 201
     shifted = run_body("off2", ns, ticks=5)
     shifted["plan"].update(node_config={"gate_seeds": [6]})
