@@ -69,7 +69,12 @@ def test_node_runs_the_t37_ids_end_to_end(pair):
 def test_encoder_hash_differs_between_v1_v2_and_geometry():
     from archipelago_learning import encoders
 
-    ids = ["grid-flat-v1-s8-r2", "grid-flat-v2-visits-s8-r2", ENC, "grid-flat-v2-visits-shared-s16-r2"]
+    ids = [
+        "grid-flat-v1-s8-r2",
+        "grid-flat-v2-visits-s8-r2",
+        ENC,
+        "grid-flat-v2-visits-shared-s16-r2",
+    ]
     assert len({encoders.get(i).sha256 for i in ids}) == 4
     assert [encoders.get(i).obs_dim for i in ids] == [28, 57, 82, 82]
 
@@ -226,7 +231,15 @@ def test_summary_endpoint_needs_the_peer_token_and_a_declared_sender(pair):
 
 
 def test_summary_size_is_bounded_by_the_grid_not_by_play():
-    p16 = summary.encode(N1, "r", 0, 0, "grid-flat-v2-visits-shared-s16-r2", 16, [(x, y) for x in range(16) for y in range(16)])
+    p16 = summary.encode(
+        N1,
+        "r",
+        0,
+        0,
+        "grid-flat-v2-visits-shared-s16-r2",
+        16,
+        [(x, y) for x in range(16) for y in range(16)],
+    )
     p256 = summary.encode(N1, "r", 0, 0, "x", 256, [(x, y) for x in range(256) for y in range(256)])
     assert len(p16) < 400 and len(p256) <= summary.MAX_SUMMARY_BYTES
     s = summary.decode(p16, expect_size=16, expect_encoder="grid-flat-v2-visits-shared-s16-r2")
@@ -235,7 +248,7 @@ def test_summary_size_is_bounded_by_the_grid_not_by_play():
         summary.encode(N1, "r", 0, 0, "x", 257, [])
 
 
-# --- per-episode epsilon (sched-t37-v1) ------------------------------------------------------------
+# --- per-episode epsilon (sched-t37-v1) -----------------------------------------------------------
 def test_epsilon_decays_per_training_episode_and_eval_episodes_do_not_count(tmp_path):
     c = Cluster(tmp_path, (N1,), **t37_over(eps_decay_episodes=4, exchange_every_ticks=0))
     try:
@@ -263,7 +276,7 @@ def test_epsilon_decays_per_training_episode_and_eval_episodes_do_not_count(tmp_
         c.close()
 
 
-# --- configure / restart / checkpoint identity -------------------------------------------------------
+# --- configure / restart / checkpoint identity ----------------------------------------------------
 def conf(**over):
     body = {
         "hyperparameters": {"lr": 1e-3, "gamma": 0.95, "hidden": 32, "capacity": 50000,
@@ -290,13 +303,29 @@ def test_configure_selects_the_ids_and_refuses_contradictions(tmp_path):
         c = Client(rt.control_url)
         for label, bad, needle in (
             ("lr", conf(hyperparameters={**conf()["hyperparameters"], "lr": 0.01}), "requires lr"),
-            ("capacity", conf(hyperparameters={**conf()["hyperparameters"], "capacity": 500}), "capacity"),
-            ("double", conf(hyperparameters={**conf()["hyperparameters"], "double_dqn": False}), "double_dqn"),
-            ("eps", conf(epsilon_schedule={"start": 0.5, "end": 0.05, "decay_episodes": 3}), "epsilon start"),
+            (
+                "capacity",
+                conf(hyperparameters={**conf()["hyperparameters"], "capacity": 500}),
+                "capacity",
+            ),
+            (
+                "double",
+                conf(hyperparameters={**conf()["hyperparameters"], "double_dqn": False}),
+                "double_dqn",
+            ),
+            (
+                "eps",
+                conf(epsilon_schedule={"start": 0.5, "end": 0.05, "decay_episodes": 3}),
+                "epsilon start",
+            ),
             ("unknown", conf(learner_schedule_id="sched-nope"), "unknown learner_schedule_id"),
             ("encoder", conf(encoder_id="grid-flat-v2-visits-shared-s9-r2"), "encoder_id"),
             ("encoder2", conf(encoder_id="grid-flat-v3-s8-r2"), "unknown"),
-            ("reward", conf(world_config={**conf()["world_config"], "reward_id": "rew-x"}), "reward_id"),
+            (
+                "reward",
+                conf(world_config={**conf()["world_config"], "reward_id": "rew-x"}),
+                "reward_id",
+            ),
         ):
             st, out = c.control("configure", run_id="run-c", **bad)
             assert st == 422 and needle in json.dumps(out), (label, st, out)
@@ -412,7 +441,7 @@ def test_node_restarted_from_its_run_config_comes_back_under_the_same_ids(tmp_pa
         n2.close()
 
 
-# --- node-private validation world under v2 ------------------------------------------------------------
+# --- node-private validation world under v2 -------------------------------------------------------
 def test_validation_world_scores_a_v2_policy_deterministically(tmp_path):
     cfg = make_cfg(tmp_path, N1, (N1, N2), **t37_over(n_validation_agents=2, world_max_ticks=40))
     v = ValidationWorld(cfg)
@@ -426,3 +455,27 @@ def test_validation_world_scores_a_v2_policy_deterministically(tmp_path):
     s1, s2 = v.evaluate(p), v.evaluate(p)
     assert np.isfinite(s1) and s1 == s2
     assert v.world.reward_id == "rew-v1" and v.episodes_run == 4
+
+
+# --- the node reads no privileged world state ---------------------------------------------------------
+def test_node_side_encoding_and_memory_never_import_the_simulator():
+    """The v2 observation is built from the node's own observations and received summaries only:
+    the modules that build it (and the node's act/feedback path) do not import the world."""
+    import ast
+    from pathlib import Path
+
+    import archipelago_learning.encoders as enc_mod
+    import archipelago_learning.visits as visits_mod
+    import archipelago_noderuntime.encoder as adapter_mod
+    import archipelago_noderuntime.node as node_mod
+    import archipelago_noderuntime.summary as summary_mod
+
+    for mod in (enc_mod, visits_mod, adapter_mod, node_mod, summary_mod):
+        tree = ast.parse(Path(mod.__file__).read_text())
+        names = {
+            n.module if isinstance(n, ast.ImportFrom) else a.name
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Import | ast.ImportFrom)
+            for a in (n.names if isinstance(n, ast.Import) else [None])
+        }
+        assert not [x for x in names if x and "archipelago_sim" in x], (mod.__name__, names)

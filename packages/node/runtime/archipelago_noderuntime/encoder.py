@@ -38,7 +38,7 @@ def for_id(encoder_id: str, size: int, radius: int) -> Encoder:
 def encode_observation(
     enc: Encoder, obs: Observation, mem: NodeMemory | None = None, tick: int = 0
 ) -> np.ndarray:
-    """v1: stateless. v2: folds the observation of ``tick`` into ``mem`` and appends its features."""
+    """v1: stateless. v2: folds the observation of ``tick`` into ``mem``, appends its features."""
     try:
         if isinstance(enc, GridFlatV2):
             assert mem is not None
@@ -57,9 +57,7 @@ def check_observation(enc: Encoder, obs: Observation) -> None:
             raise EncodeError(str(e)) from e
 
 
-def encode_raw(
-    enc: Encoder, obs: dict, mem: NodeMemory | None = None, tick: int = 0
-) -> np.ndarray:
+def encode_raw(enc: Encoder, obs: dict, mem: NodeMemory | None = None, tick: int = 0) -> np.ndarray:
     try:
         if isinstance(enc, GridFlatV2):
             assert mem is not None

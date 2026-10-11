@@ -5,7 +5,7 @@
 * the old (single) DQN update is unchanged;
 * peer candidates and checkpoints with another encoder / reward id are rejected with a named reason;
 * a short deterministic training run on the real v2 observation + rew-v1 beats an untrained network
-  and the idle policy on the validation seeds (thresholds taken from the T37 numbers, not wall clock).
+  and the idle policy on the validation seeds (thresholds from the T37 numbers, not wall clock).
 """
 
 from __future__ import annotations
@@ -91,10 +91,12 @@ def test_default_learner_is_the_legacy_single_dqn_with_legacy_ids():
     assert nl.reward_id == tl.reward_id and tl.action_space == "act-v0"
 
 
-# --- identity: encoder / reward id mismatches are named refusals -------------------------------------
+# --- identity: encoder / reward id mismatches are named refusals ----------------------------------
 def learner(**kw):
     kw = {"encoder": SHARED, "reward_id": "rew-v1", "double": True, "obs_dim": 82, **kw}
-    return TorchLearner("node-01", kw.pop("obs_dim"), 5, hidden=32, seed=3, threads=1, capacity=64, **kw)
+    return TorchLearner(
+        "node-01", kw.pop("obs_dim"), 5, hidden=32, seed=3, threads=1, capacity=64, **kw
+    )
 
 
 def offers(sender, receiver):
@@ -124,6 +126,9 @@ def test_same_ids_exchange_and_the_payload_carries_the_ids():
     a.params_numpy()  # same shapes
     meta, _ = decode(encode(a), b)
     assert meta["encoder"] == SHARED and meta["reward_id"] == "rew-v1" and meta["obs_dim"] == 82
+    assert meta["learner_schedule"] == "sched-v0"  # recorded for evidence, never a match criterion
+    c = learner(schedule_id="sched-t37-v1")
+    assert decode(encode(c), b)[0]["learner_schedule"] == "sched-t37-v1"
     assert len(meta["encoder_sha256"]) == 64
 
 
@@ -139,7 +144,7 @@ def test_checkpoint_with_another_encoder_or_reward_id_is_refused_by_name(tmp_pat
         learner(schedule_id="sched-t37-v1").load_latest(tmp_path)
 
 
-# --- learning actually works on the v2 observation with rew-v1 ---------------------------------------
+# --- learning actually works on the v2 observation with rew-v1 ------------------------------------
 EPISODES, SEED = 200, 0
 
 
@@ -176,7 +181,10 @@ def trained():
 
 def score(make_act):
     runs = t37.eval_policy(H.V2_SHARED, make_act, H.VAL, info=True)
-    return {k: float(np.mean([r[k] for r in runs])) for k in ("ref_return", "coverage_gain", "targets_after_spawn")}
+    return {
+        k: float(np.mean([r[k] for r in runs]))
+        for k in ("ref_return", "coverage_gain", "targets_after_spawn")
+    }
 
 
 def test_trained_torch_learner_beats_untrained_and_idle_on_the_validation_seeds(trained):

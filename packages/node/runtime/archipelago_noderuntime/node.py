@@ -1225,7 +1225,8 @@ class Node:
 
     def _ids_event(self) -> None:
         """Record the ids in telemetry. Canonical records and the ingest context have no field for
-        them, so they ride in the metric name (Id charset): ``ids:<encoder>:<reward>:<schedule>``."""
+        them, so they ride in the metric name (Id charset):
+        ``ids:<encoder>:<reward>:<schedule>``."""
         i = self.ids()
         name = f"ids:{i['encoder_id']}:{i['reward_id']}:{i['learner_schedule_id']}"
         self._metric(name, 1.0, "flag", "other")

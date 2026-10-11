@@ -31,9 +31,11 @@ Required: `NODE_ID`, `NODE_CONTROL_TOKEN` and `PEER_TOKEN` (both >= 16 chars, el
 | `SEED` | 0 | learner seed is `SEED*1000 + index of NODE_ID in the sorted NODE_IDS` |
 | `HIDDEN LR GAMMA REPLAY_CAPACITY BATCH_SIZE TARGET_EVERY TRAIN_STEPS_PER_FEEDBACK` | 32 .01 .95 5000 32 50 1 | learner |
 | `EPS_START EPS_END EPS_DECAY_ACTS` | .5 .05 5000 | linear exploration schedule over train-mode acts |
+| `LEARNER_SCHEDULE_ID DOUBLE_DQN EPS_DECAY_EPISODES` | `sched-v0` 0 (unset) | A18: `sched-t37-v1` fixes lr 1e-3, replay 50000, double DQN and makes epsilon decay per TRAINING episode (1.0 to 0.05 over the first half); a registered id supplies these defaults and refuses contradicting values |
+| `ENCODER_FAMILY SUMMARY_TIMEOUT SUMMARY_TRACE` | `grid-flat-v1` 0.5 0 | A18: `grid-flat-v2-visits[-shared]` adds node-local visit memory (57/82 floats) and, for `-shared`, visited-cell summaries to peers (not model offers; see live-runtime.md section 15); `SUMMARY_TRACE=1` lists in status the ticks at which each peer's summary was applied |
 | `LEARNER_MODE` / `MIX_ALPHA` | `independent` | `independent`, `mixing` (needs 0<alpha<=.5), `information_only` |
 | `PEER_MARGIN PEER_TIMEOUT PEER_RETRIES` | 0.0 1.0 1 | gate margin and peer HTTP behaviour |
-| `WORLD_SIZE WORLD_N_TARGETS WORLD_OBSTACLE_DENSITY WORLD_SENSE_RADIUS WORLD_MAX_TICKS WORLD_BATTERY_SCALE REWARD_ID` | 16 3 .12 2 900 1.0 `rew-v0` | the node-private validation world; size and radius also fix the encoder id `grid-flat-v1-s{size}-r{radius}` |
+| `WORLD_SIZE WORLD_N_TARGETS WORLD_OBSTACLE_DENSITY WORLD_SENSE_RADIUS WORLD_MAX_TICKS WORLD_BATTERY_SCALE REWARD_ID` | 16 3 .12 2 900 1.0 `rew-v0` | the node-private validation world; size and radius also fix the encoder id `{ENCODER_FAMILY}-s{size}-r{radius}` |
 | `VALIDATION_SEEDS` / `N_VALIDATION_AGENTS` / `VALIDATION_MAX_TICKS` / `TEST_SEEDS` | 9001,9002,9003 / 1 / `WORLD_MAX_TICKS` / empty | gate seeds, drones in the private world; `TEST_SEEDS` is only used to refuse overlap |
 | `TELEMETRY_SPOOL_MAX_RECORDS` etc. | 20000 | spool cap, segment size, batch, interval, timeout, local-update window |
 | `GIT_COMMIT` | `unknown` | sent in the telemetry request `context` with `config_hash`, `seed`, `host`, `boot_id`, `episode` |

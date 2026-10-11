@@ -104,7 +104,9 @@ class NodeMemory:
 
     def peer_cells(self) -> frozenset[Cell]:
         with self._lock:
-            return frozenset().union(*self.peer_by_src.values()) if self.peer_by_src else frozenset()
+            return (
+                frozenset().union(*self.peer_by_src.values()) if self.peer_by_src else frozenset()
+            )
 
     def features(self, x: int, y: int) -> tuple[list[int], list[float], list[bool]]:
         """(own counts crop, frontier fractions, peer flags crop), flattened row-major."""
@@ -112,7 +114,9 @@ class NodeMemory:
         span = range(-r, r + 1)
         with self._lock:
             visits = [self.visits.get((x + dx, y + dy), 0) for dy in span for dx in span]
-            peer = frozenset().union(*self.peer_by_src.values()) if self.peer_by_src else frozenset()
+            peer = (
+                frozenset().union(*self.peer_by_src.values()) if self.peer_by_src else frozenset()
+            )
             peer_flags = [(x + dx, y + dy) in peer for dy in span for dx in span]
             known, size, k = self.known, self.size, r + 1
 
@@ -190,7 +194,11 @@ class GridFlatV2:
     @property
     def definition(self) -> str:
         n = self.n
-        peer = f" | {n * n} peer stood-on flags (0/1, non-model information message)" if self.shared else ""
+        peer = (
+            f" | {n * n} peer stood-on flags (0/1, non-model information message)"
+            if self.shared
+            else ""
+        )
         return (
             f"{self.id}: float32[{self.obs_dim}] = "
             f"crop {n}x{n} row-major dy-outer (-1 unknown,0 free,1 wall), floor(x)/{self.size}, "

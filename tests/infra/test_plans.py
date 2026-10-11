@@ -133,7 +133,12 @@ def test_node_compose_env_matches_the_plans_ids():
 
 def test_node_boots_from_the_compose_env_under_the_plans_ids(tmp_path):
     """The env block above must itself be a valid node configuration."""
-    for p in ("packages/node/runtime", "packages/learning", "packages/sim", "packages/contracts/src"):
+    for p in (
+        "packages/node/runtime",
+        "packages/learning",
+        "packages/sim",
+        "packages/contracts/src",
+    ):
         sys.path.insert(0, str(ROOT / p))
     from archipelago_noderuntime.config import Config
 

@@ -116,8 +116,10 @@ def load(learner, root) -> dict:
         for k, v in learner.replay.items():
             got = replay[k]
             # the filled prefix (new files) or the whole ring (files written before the prefix form)
-            if got.dtype != v.dtype or got.shape[1:] != v.shape[1:] or got.shape[0] not in (
-                rows, v.shape[0]
+            if (
+                got.dtype != v.dtype
+                or got.shape[1:] != v.shape[1:]
+                or got.shape[0] not in (rows, v.shape[0])
             ):
                 raise ValueError(f"checkpoint replay mismatch for {k}")
         rng = json.loads(files[FILE_RNG])

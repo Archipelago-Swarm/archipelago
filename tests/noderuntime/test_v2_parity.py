@@ -6,9 +6,9 @@ at cell centre, crop, battery) and, for the shared id, visited-cell summaries th
 real wire codec. The two vectors must be identical element for element at every tick, for several
 seeds, both ids. A golden file of hashes also pins the harness output itself.
 
-Not covered by parity (a documented deviation): the study's InfoBus also merged peers' MAP cells into
-each drone's buffer, so its crop and frontier saw them. The live world has no such merge, so this test
-runs the harness with the bus's visit half only (``visit_bus``).
+Not covered by parity (a documented deviation): the study's InfoBus also merged peers' MAP cells
+into each drone's buffer, so its crop and frontier saw them. The live world has no such merge, so
+this test runs the harness with the bus's visit half only (``visit_bus``).
 
 Regenerate the golden file (only after a deliberate, reviewed change of the encoder definition):
     PYTHONPATH=packages/learning:packages/sim:packages/contracts/src:packages/node/runtime:\
@@ -81,9 +81,7 @@ def run_pair(seed: int, obs_id: str, ticks: int = TICKS):
             mems[a].observe(tick, *raws[a]["pose"], raws[a]["crop"])
         if enc.shared:
             for a in env.agents:
-                payload = summary.encode(
-                    a, "run-p", 0, tick, enc.id, SIZE, mems[a].own_cells()
-                )
+                payload = summary.encode(a, "run-p", 0, tick, enc.id, SIZE, mems[a].own_cells())
                 for b in env.agents:
                     if b != a:
                         s = summary.decode(payload, expect_size=SIZE, expect_encoder=enc.id)

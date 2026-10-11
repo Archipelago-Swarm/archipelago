@@ -1,6 +1,7 @@
-"""T38 acceptance (2): the coordinator's world runs the versioned reward id the plan selects, and its
-per-step reward equals the NumPy harness (experiments/protocol_harness over GridWorld) for the same
-recorded action sequences. Also: ids in the manifest, schedule/encoder validation, old ids unchanged.
+"""T38 acceptance (2): the coordinator's world runs the versioned reward id the plan selects,
+and its per-step reward equals the NumPy harness (experiments/protocol_harness over GridWorld)
+for the same recorded action sequences. Also: ids in the manifest, schedule/encoder validation,
+old ids unchanged.
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ def coordinator_rewards(live, nodes, run_id: str, seed: int, reward_id: str | No
     if reward_id:
         plan["reward_id"] = reward_id
     body = run_body(run_id, nodes, ticks=TICKS, seed=seed, **plan)
-    for n, f in nodes.items():
+    for f in nodes.values():
         f.policy = lambda node, ep, tick, obs, seqs=seqs: ACTIONS[seqs[node][tick]]
     live.start_run(body)
     status = live.wait_done(run_id)
@@ -208,6 +209,9 @@ def test_registry_mirror_matches_the_learning_package():
 def test_sha_of_reward_spec_is_pinned():
     """rew-v1 constants are part of the id: changing them must change the id, not the meaning."""
     spec = repr((REWARD_SPECS["rew-v1"], REWARD_EXTRA["rew-v1"]))
-    assert hashlib.sha256(spec.encode()).hexdigest()[:12] == hashlib.sha256(
-        repr(((0.5, 5.0, -0.01, -2.0, -0.1), (-0.25, False))).encode()
-    ).hexdigest()[:12]
+    assert (
+        hashlib.sha256(spec.encode()).hexdigest()[:12]
+        == hashlib.sha256(
+            repr(((0.5, 5.0, -0.01, -2.0, -0.1), (-0.25, False))).encode()
+        ).hexdigest()[:12]
+    )

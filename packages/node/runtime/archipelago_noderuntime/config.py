@@ -137,7 +137,12 @@ class Config:
                 {
                     k: getattr(self, k)
                     for k in (
-                        "lr", "gamma", "hidden", "capacity", "batch", "target_every",
+                        "lr",
+                        "gamma",
+                        "hidden",
+                        "capacity",
+                        "batch",
+                        "target_every",
                         "train_steps_per_feedback",
                     )
                 },  # fmt: skip

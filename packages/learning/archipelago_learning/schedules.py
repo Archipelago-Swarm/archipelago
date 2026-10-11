@@ -2,15 +2,17 @@
 
 A learner schedule id names the whole training recipe, so a manifest, telemetry record or checkpoint
 that carries the id is unambiguous. ``sched-v0`` is the legacy free-form recipe (whatever the
-configure message says, epsilon decaying per act). ``sched-t37-v1`` is the T37-selected recipe and is
-FIXED: a configure message that names it but disagrees on any value is refused with a clear reason.
+configure message says, epsilon decaying per act). ``sched-t37-v1`` is the T37-selected recipe and
+is FIXED: a configure message that names it but disagrees on any value is refused with a clear
+reason.
 
-``sched-t37-v1``: epsilon 1.0 -> 0.05 linearly over the first 50% of the TRAINING episodes (evaluated
-once at each training episode start, then constant), Adam lr 1e-3, gamma 0.95, batch 32, hidden 32,
-target sync every 50 optimizer steps, one optimizer step per recorded transition, replay 50000
-transitions per node, double DQN, MSE (Huber-free) TD loss, no gradient clipping, done = termination
-only. The coordinator mirrors ``SCHEDULES`` in ``archipelago_coordinator.models``; a test keeps the
-two in sync (the coordinator image does not ship this package).
+``sched-t37-v1``: epsilon 1.0 -> 0.05 linearly over the first 50% of the TRAINING episodes
+(evaluated once at each training episode start, then constant), Adam lr 1e-3, gamma 0.95,
+batch 32, hidden 32, target sync every 50 optimizer steps, one optimizer step per recorded
+transition, replay 50000 transitions per node, double DQN, 0.5 * mean squared TD error as the
+loss, no gradient clipping, done = termination only. The coordinator mirrors ``SCHEDULES`` in
+``archipelago_coordinator.models``; a test keeps the two in sync (the coordinator image does not
+ship this package).
 """
 
 from __future__ import annotations
@@ -65,7 +67,7 @@ def known(schedule_id: str) -> bool:
 
 
 def epsilon_at(episode: int, start: float, end: float, decay_episodes: float) -> float:
-    """Linear decay by training-episode index, constant after ``decay_episodes`` (T37 ``epsilon``)."""
+    """Linear decay by training-episode index, constant after ``decay_episodes`` (T37)."""
     f = min(1.0, max(0, episode) / max(1.0, decay_episodes))
     return start + (end - start) * f
 

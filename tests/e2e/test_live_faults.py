@@ -95,6 +95,42 @@ def test_local_updates_continue_during_the_cut_and_no_candidate_crosses_it(cut_r
     assert crossing == [], f"candidates crossed the cut: {crossing}"
 
 
+def test_no_summary_crosses_the_cut_and_open_peers_keep_exchanging(cut_run):
+    """A18: visited-cell summaries obey the same partition as model candidates. The run is paced, so
+    delivery (milliseconds) is fast against a tick (30 ms) and the positive control is meaningful."""
+    c, samples = cut_run
+    for n in NODE_IDS:
+        st = c.node_status(n)
+        k = st["counters"]
+        assert (
+            k["summaries_cut"] > 0 and k["summaries_applied"] > 0 and k["summaries_rejected"] == 0
+        ), (n, k)
+        rx = st["summaries"]["rx_ticks"]["0"]
+        assert set(rx) == {p for p in NODE_IDS if p != n}, rx  # every peer was heard before the cut
+        for src, ticks in rx.items():
+            inside = [t for t in ticks if 20 <= t < 70]
+            if HALF[src] != HALF[n]:
+                assert inside == [], f"{n} applied a summary from {src} inside the cut: {inside}"
+                assert any(t < 20 for t in ticks), f"{n} heard nothing from {src} before the cut"
+            else:
+                assert inside, f"{n} heard nothing from its open peer {src} during the cut"
+        # a summary is information, never a model transfer: it left the offer counters alone
+        assert k["offers_cut"] > 0
+    # data level: what a node knows of the far half's visits is frozen while the cut lasts
+    inside = [
+        s for stt, tick, s in samples if tick is not None and 30 <= tick <= 60 and stt == "running"
+    ]
+    assert len(inside) >= 5
+    for n in NODE_IDS:
+        for p in NODE_IDS:
+            if HALF[p] != HALF[n]:
+                counts = {s[n]["summaries"]["peer_sources"].get(p) for s in inside}
+                assert len(counts) == 1, f"{n}'s picture of {p} changed during the cut: {counts}"
+            elif p != n:
+                grown = [s[n]["summaries"]["peer_sources"].get(p, 0) for s in inside]
+                assert grown[-1] > grown[0], f"{n}'s picture of its open peer {p} did not grow"
+
+
 def test_exchange_windows_run_on_a_tick_cadence_and_see_the_cut(cut_run):
     """A1: windows fire inside the episode, so some fall inside the cut and find the cross-half links closed.
     With exchange only at episode_end (tick 119, after the cut ends at 100) no exchange can ever see the cut."""
@@ -147,6 +183,9 @@ def test_restarted_node_resumes_with_continued_sequence_numbers(make_cluster):
     st = c.node_status(victim)
     assert st["boot_id"] != old_boot and st["restore"]["restored"] is True, st["restore"]
     assert st["train_steps"] > 0, "restart lost the learner state"
+    # A18: the restart comes back under the same versioned ids and restores the node-local memory
+    assert {k: st[k] for k in c.expected_ids} == c.expected_ids and st["obs_dim"] == 82
+    assert st["restore"]["memory"] is True and st["train_episode"] == 0
 
     c.start_run("after", episodes=[{"kind": "train", "seed": 5}], seed=5)
     assert c.wait_run("after")["status"] == "completed"

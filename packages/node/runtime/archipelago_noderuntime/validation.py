@@ -62,7 +62,9 @@ class ValidationWorld:
             # v2 encoders need node-local memory: one per drone, built from its own observations
             # only, plus (shared id) the visited-cell summaries the drones swap every tick, i.e.
             # the study's information bus with every link up (the private world has no cuts).
-            mems = {a: self.enc.new_memory() for a in self.world.agents} if self.enc.stateful else {}
+            mems = (
+                {a: self.enc.new_memory() for a in self.world.agents} if self.enc.stateful else {}
+            )
             while self.world.agents:
                 if cancel is not None and cancel.is_set():
                     raise WindowCancelled
