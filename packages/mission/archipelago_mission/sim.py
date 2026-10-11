@@ -655,6 +655,16 @@ class MissionSim:
                 "frames": self.frames, "events": self.events, "decisions": self.decisions, "stats": st}  # fmt: skip
 
 
+def round_floats(o, n: int = 3):
+    if isinstance(o, float):
+        return round(o, n)
+    if isinstance(o, dict):
+        return {k: round_floats(v, n) for k, v in o.items()}
+    if isinstance(o, list):
+        return [round_floats(v, n) for v in o]
+    return o
+
+
 def run_mission(cfg: MissionConfig) -> dict:
     sim = MissionSim(cfg)
     while sim.status == "RUNNING":

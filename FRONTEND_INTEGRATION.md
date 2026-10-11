@@ -1,6 +1,8 @@
 # Mission Frontend Integration
 
-Source of truth: `packages/mission/archipelago_mission/sim.py` (`MissionSim.frame()`, `result()`, `emit()`, `decide_log()`, `Skill.to_dict()`), `rf.py` (`RFEngine.compute_links`) and `__main__.py`. All names below are camelCase exactly as emitted. Engine tuning is finished; the JSON schema is stable and `apps/web/public/mission/seed-1002.json` is committed and final (floats rounded to 3 decimals by the CLI). Sample payloads in section 15 are real output of `--seed 1002`.
+Source of truth: `packages/mission/archipelago_mission/sim.py` (`MissionSim.frame()`, `result()`, `emit()`, `decide_log()`, `Skill.to_dict()`), `rf.py` (`RFEngine.compute_links`) and `__main__.py`. All names below are camelCase exactly as emitted. Engine tuning is finished; the JSON schema is stable. **The mission is simulated LIVE, on the spot, for the requested seed** by the server `python -m archipelago_mission.serve` (section 12). It is NOT played from a pre-recorded replay and NOT scripted. `apps/web/public/mission/seed-1002.json` is kept only as an OFFLINE FALLBACK with identical shapes (floats rounded to 3 decimals by both the CLI and the server). Sample payloads in section 15 are real output of seed 1002.
+
+**Nothing is scripted.** Only the *inputs* are generated from the seed: disruptions (type, time, place, radius), POI positions/types and UAV start positions. Everything else (search, discovery, verification, RF partitions, skill learning and transfer, adoption, success or failure) emerges from the simulation. Seed 1002 is recommended for demos only because its emergent outcome is a good story (same code + same seed => same run). It is a seed, not a script: if the code or the seed changes, outcomes and timestamps change. **Timestamps quoted in this document (section 14, checklists) are what seed 1002 produced with the current code and are NOT guaranteed. The UI must key off event types and fields, never hardcoded times.**
 
 ```
 Mission begins -> UAVs search -> POIs discovered -> verified -> RF links change
@@ -37,7 +39,7 @@ Mission begins -> UAVs search -> POIs discovered -> verified -> RF links change
 
 **knowledgeCoverage definition** (`_fleet`): let V = set of POIs verified by at least one operational UAV. Per operational UAV, coverage = |V intersect that UAV's own locally-verified POIs| / |V|. `fleetKnowledgeCoverage` = mean of that over operational UAVs (0 if V empty or no UAV alive). It measures how much of the verified truth has propagated to every node over P2P links, not just what exists somewhere.
 
-**Success condition** (`_update_status`): `verifiedPois >= requiredPois AND fleetKnowledgeCoverage >= knowledgeThreshold` -> `SUCCESS`, event `MISSION_SUCCESS`. Otherwise `elapsedTime >= timeLimit` or no operational UAVs -> `FAILED`, event `MISSION_FAILED`. Seed 1002 ends SUCCESS at **8520 s** (6/6 verified, coverage 0.972 >= 0.8). The same seed with `--no-skills` FAILS at the 28800 s limit (5/6 verified, 5 of 6 UAVs left because UAV-02 fails at 13417 s). In local scans most seeds (1000-1011, 1, 2, 3, 1002) succeed with skills; seeds 1006 and 7 fail even with skills. Only 1002 has a committed replay.
+**Success condition** (`_update_status`): `verifiedPois >= requiredPois AND fleetKnowledgeCoverage >= knowledgeThreshold` -> `SUCCESS`, event `MISSION_SUCCESS`. Otherwise `elapsedTime >= timeLimit` or no operational UAVs -> `FAILED`, event `MISSION_FAILED`. Seed 1002 ends SUCCESS at **8520 s** (6/6 verified, coverage 0.972 >= 0.8). The same seed with `--no-skills` FAILS at the 28800 s limit (5/6 verified, 5 of 6 UAVs left because UAV-02 fails at 13417 s). In local scans most seeds (1000-1011, 1, 2, 3, 1002) succeed with skills; seeds 1006 and 7 fail even with skills. Any seed can be run live; only 1002 has a committed offline fallback file.
 
 ## 2. UAV state: `frame.uavs[]` (6 entries, order stable, always present even when failed)
 
@@ -271,25 +273,85 @@ MissionSim.step()  (every dt=30 s of sim time)
         |
    frames[] + events[] + decisions[] + stats   (result())
         |
- CLI: python -m archipelago_mission --out seed-1002.json
+ PRIMARY: serve.py (live, simulated now per request)
+   GET /api/mission/stream?seed=N  -> SSE: meta, tick xN (frame + NEW events + NEW decisions), end
+   GET /api/mission/run?seed=N     -> whole result JSON at once (~1-2 s)
+ FALLBACK: CLI python -m archipelago_mission --out seed-1002.json -> static file
         |
- apps/web: fetch replay JSON -> pick frame by playhead time
+ apps/web: client frame buffer (frames[], events[], decisions[] appended per tick)
+        -> pick/interpolate frame by playhead time (buffered frames only)
         -> HUD (mission/stats), map (uavs/pois/links/disruptions)
-        -> feed = events/decisions with timestamp <= playhead time
+        -> feed = appended delta events/decisions with timestamp <= playhead time
 ```
 
 ## 12. Transport
 
-Currently a **static replay JSON** produced by the CLI:
+### 12.a PRIMARY: live server (IMPLEMENTED, stdlib only, `serve.py`)
+
+Start it from the repo root (PowerShell, then bash):
+
+```
+$env:PYTHONPATH="packages/mission;packages/sim"; python -m archipelago_mission.serve --port 8765
+PYTHONPATH="packages/mission:packages/sim" python -m archipelago_mission.serve --port 8765     # Linux/macOS (Git Bash + Windows Python: use ';')
+```
+
+Binds `127.0.0.1:8765` (default port 8765). CORS is open (`Access-Control-Allow-Origin: *`, `OPTIONS` answers 204), so the Vite app may call `http://127.0.0.1:8765` directly, or through a proxy. Query params: `seed` (int, default 1002), `skills` (`0` = baseline without skills, anything else = on), `tps` (stream only, default 4). A bad param returns HTTP 400 `{"error":...}`; unknown path 404.
+
+| Endpoint | Response |
+|---|---|
+| `GET /api/mission/health` | `{"ok":true}` |
+| `GET /api/mission/run?seed=N[&skills=0]` | the full result JSON (`MissionReplay`: `meta, frames, events, decisions, stats`), simulated now, ~1-2 s, floats rounded to 3 dp. Same seed => identical bytes |
+| `GET /api/mission/stream?seed=N[&tps=4][&skills=0]` | Server-Sent Events (`text/event-stream`), see below |
+
+**Stream protocol** (one simulation per connection, stepped in real time):
+
+```
+event: meta   data: ReplayMeta      (world, searchGrid, uavSpec, rfModel, missionRules, config; sent first)
+event: tick   data: {frame, events, decisions}   (repeated; frame 0 is sent immediately, then one per 1/tps s)
+event: end    data: {stats}         (sent once after the terminal tick, then the server closes)
+```
+- `tick.frame` is a normal `Frame` (section 19.a). `tick.events` / `tick.decisions` are only the **NEW** items since the previous tick (the first tick carries `MISSION_STARTED`); append them to your own arrays. `frame.eventCount`/`decisionCount` equal the running totals, usable as a consistency check.
+- The stream ends by itself after the tick whose `frame.mission.status` is `SUCCESS` or `FAILED` (the terminal tick also carries `MISSION_SUCCESS`/`MISSION_FAILED`), followed by `event: end`. Time limit is 28800 s = 960 ticks max.
+- `tps` = sim ticks per wall second. 1 tick = 30 sim seconds, so `tps=4` = 120x real time (seed 1002: 285 ticks ~ 71 s), `tps=2` = 60x. The server clamps `tps >= 0.1`; very large `tps` (e.g. 1000) streams as fast as the CPU allows. The server paces the **simulation**, the client paces the **view**: the existing playback speed-up multiplier should be applied client-side (buffer frames and play them at `rate`), and/or by picking `tps` when opening the stream (a changed `tps` needs a reconnect).
+- Reconnect / seek-past-buffer = **restart the same seed**: the run is deterministic, so a new stream produces the identical sequence. `EventSource` auto-reconnects on error: close it yourself once `end` arrives (otherwise it restarts the mission), and on a mid-stream error reset the buffers (a restart re-sends `meta` and tick 0) before resuming.
+- Each connection simulates its own mission (threaded server); there is no shared session state.
+
+Vite proxy (optional, avoids hardcoding the host; `apps/web/vite.config.ts`):
+
+```ts
+server: { proxy: { "/api/mission": { target: "http://127.0.0.1:8765", changeOrigin: true } } }
+```
+Then the client uses the relative URL `/api/mission/stream?seed=1002`. Note: some dev proxies buffer SSE; if events arrive in bursts, connect directly to `http://127.0.0.1:8765` (CORS is open).
+
+**Judge view "compare skills on/off"**: call `GET /api/mission/run?seed=N&skills=1` and `...&skills=0` in parallel (two computed runs, ~1-2 s each; the skills-off run to the 28800 s limit may take longer) and show `stats` (plus last-frame `mission`) side by side. Exact numbers for seed 1002 with the current code:
+
+| | skills=1 | skills=0 |
+|---|---|---|
+| missionStatus / elapsedTime | SUCCESS / 8520 s | FAILED / 28800 s |
+| verifiedPois (frame `mission`) | 6 / 6 | 5 / 6 (5 of 6 UAVs operational) |
+| fleetKnowledgeCoverage | 0.972 | 1.0 |
+| redundancyRatio | 0.639 (565 of 884 marks) | 0.781 (993 of 1272 marks) |
+| skillsLearned / skillTransfers / skillAdoptions | 2 / 4 / 4 | 0 / 0 / 0 |
+| finalSkillHolders | 6 | 0 |
+| partitions | 5 | 4 |
+| dataSyncs | 1520 | 6995 |
+
+(These are what seed 1002 produced today; read the numbers from the responses, do not hardcode them.)
+
+### 12.b FALLBACK: static replay file (offline)
+
+Produced by the CLI, same shapes as `/run`:
 
 ```
 python -m archipelago_mission --seed 1002 --out apps/web/public/mission/seed-1002.json
 ```
-(PYTHONPATH setup: PowerShell `$env:PYTHONPATH="packages/mission;packages/sim"`; Git Bash/Linux/macOS `PYTHONPATH="packages/mission:packages/sim"` (Windows Python under Git Bash needs `;`). Other flags: `--no-skills` baseline, `--compare` prints skills-on vs off stats to stdout.) The file for seed 1002 is already committed at that path (parse it as JSON; do not hand-edit); regenerate only if the engine changes.
+(PYTHONPATH setup: PowerShell `$env:PYTHONPATH="packages/mission;packages/sim"`; Git Bash/Linux/macOS `PYTHONPATH="packages/mission:packages/sim"` (Windows Python under Git Bash needs `;`). Other flags: `--no-skills` baseline, `--compare` prints skills-on vs off stats to stdout.) The file for seed 1002 is committed at that path (parse it as JSON; do not hand-edit); regenerate only if the engine changes. It is used only when the live server is unreachable.
 
-Top-level keys: `meta` (seed, dt, skillsEnabled, world{width,height,tileMeters,tilesX,tilesY,units}, searchGrid{nx,ny}, uavSpec, rfModel, missionRules, config{...}; see section 20), `frames[]` (285 for seed 1002, index = tick, frame 0 = t 0, one per 30 s), `events[]`, `decisions[]`, `stats`. Each frame: `tick, time, mission, uavs, pois, links, disruptions, eventCount, decisionCount`. Feed for a frame = events and decisions with `timestamp <= frame.time` (or slice the first `eventCount` events / `decisionCount` decisions: equivalent and cheaper). `stats`: redundantCellMarks, uniqueCellMarks, skillsLearned, skillTransfers, skillAdoptions, skillRejections, partitions, dataSyncs, redundancyRatio, missionStatus, elapsedTime, firstSkillLearnedAt, finalSkillHolders.
+### 12.c Result / replay shape
 
-**Live endpoint: NOT IMPLEMENTED.** No HTTP/WebSocket/SSE server exists in `packages/mission`. To step live in Python:
+Top-level keys (the `/run` response and the fallback file; the stream delivers the same data incrementally): `meta` (seed, dt, skillsEnabled, world{width,height,tileMeters,tilesX,tilesY,units}, searchGrid{nx,ny}, uavSpec, rfModel, missionRules, config{...}; see section 20), `frames[]` (285 for seed 1002, index = tick, frame 0 = t 0, one per 30 s), `events[]`, `decisions[]`, `stats`. Each frame: `tick, time, mission, uavs, pois, links, disruptions, eventCount, decisionCount`. Feed for a frame = events and decisions with `timestamp <= frame.time` (or slice the first `eventCount` events / `decisionCount` decisions: equivalent and cheaper). `stats`: redundantCellMarks, uniqueCellMarks, skillsLearned, skillTransfers, skillAdoptions, skillRejections, partitions, dataSyncs, redundancyRatio, missionStatus, elapsedTime, firstSkillLearnedAt, finalSkillHolders.
+
+Embedding in Python (what `serve.py` does internally):
 ```python
 from archipelago_mission.sim import MissionSim, MissionConfig
 sim = MissionSim(MissionConfig(seed=1002))
@@ -303,11 +365,13 @@ run = sim.result()
 
 Main: map (terrain, tile grid, comm/nav zones as translucent circles, RF links styled by `state` with opacity from `rfQuality`, UAV markers with objective colour, skill glow and altitude badge, POIs as `?`/`!`/typed icon by `state`; scale to `meta.world`). Top HUD: status, clock vs `timeLimit`, verified N/required, coverage bar with `knowledgeThreshold` mark, nodes alive. Right: event feed (demo:true), decisions "why" panel for the selected UAV. Bottom: timeline scrubber with event markers; skill lineage (`createdAt`, `receivedFrom` chain, status per node). Selecting a UAV shows the node inspector, `skills`, `knownPois`, `lastSync`; selecting a link shows the link inspector.
 
-## 14. Demo moments (seed 1002, times in sim seconds from the committed replay)
+## 14. Demo moments (seed 1002, times in sim seconds)
+
+**Not a script.** These are the moments seed 1002 produced with the current code; nothing forces them to happen. A different seed, or a code change, gives different times and possibly different outcomes. The UI must trigger highlights from event types and fields (`POI_VERIFIED`, `NETWORK_PARTITIONED`, `SKILL_TRANSFERRED`, `climb_for_los`, ...), never from the timestamps below. Disruptions, POIs and UAV starts are seed-generated inputs; the rest is emergent.
 
 A. Search + first POI: `POI_DISCOVERED` POI-03 t=420 s, `POI_VERIFIED` POI-03 t=720 s (UAV-01). B. Navigation disruption and first skill: `DISRUPTION_STARTED` NAVIGATION_DEGRADATION **t=1320 s** (ends 7440 s); POI-02 discovered 1380 s / verified 1560 s; `SKILL_LEARNED` **UAV-02 t=1590 s** (11 redundant selections, utility 1.0), `SKILL_USED` 1620 s. C. Partition + independent learning: `NETWORK_PARTITIONED` **t=1620 s** (UAV-06 alone), `SKILL_LEARNED` **UAV-06 t=1620 s** (10 redundant selections), UAV-06 isolated and **climbs** (`climb_for_los` at 1710 s, 400 -> 550 m), `rejoin_peer` decision 1860 s, `NETWORK_RECONNECTED` t=1890 s. D. P2P propagation (bandwidth-paced): `SKILL_TRANSFERRED` UAV-02 -> UAV-03 and UAV-04 at **1680 s** (rfQuality 0.803 / 0.844, bandwidth 0.901 / 0.922), UAV-02 -> UAV-05 at **1710 s** (rfQuality 0.435, bandwidth 0.452); `SKILL_ADOPTED` UAV-03 and UAV-04 at 1740 s, UAV-05 at 1770 s; `SKILL_USED` 1770-1800 s; multi-hop `SKILL_TRANSFERRED` UAV-05 -> UAV-01 at **2010 s** over a weak link (rfQuality 0.314, bandwidth 0.307), `SKILL_ADOPTED` UAV-01 2070 s. Final skill holders 6 of 6 (UAV-02 and UAV-06 learned it themselves). E. Another partition at 2100 s (UAV-01 alone); POI-06 discovered 2280 s / verified 2520 s. F. Communication disruption: `DISRUPTION_STARTED` COMMUNICATION_DEGRADATION **t=2610 s**, `DISRUPTION_ENDED` **t=6270 s** (links through the zone get `disruptionFactor < 1`; some UAVs show `communicationState` DEGRADED); POI-01 2670 / 2940 s; POI-05 4320 / 4440 s; more partitions at 6300 / 6810 / 6960 s (reconnects 6270 / 6750 / 6900 / 7890 s); NAV zone ends 7440 s. 5 partitions in total (`stats.partitions` = 5). G. Outcome: POI-04 discovered 8460 s, verified 8520 s, `MISSION_SUCCESS` **t=8520 s** (6/6 verified, coverage 0.972 >= 0.8). Contrast: the `--no-skills` baseline for the same seed FAILS at 28800 s (5/6 verified, 5 of 6 UAVs operational, 0 skills). The `PLATFORM_FAILURE` (UAV-02, 13417 s) is scheduled but not reached in this replay.
 
-## 15. Sample payloads (seed 1002, copied from the committed `apps/web/public/mission/seed-1002.json`)
+## 15. Sample payloads (seed 1002, copied from the committed fallback `apps/web/public/mission/seed-1002.json`; identical shape to live `/run` and stream data)
 
 MissionState (`frames[-1].mission`):
 ```json
@@ -353,7 +417,7 @@ Stats (`stats`): `{"redundantCellMarks":565,"uniqueCellMarks":319,"skillsLearned
 
 ## 16. Mock / fallback
 
-The committed replay file for seed 1002 is the mock and the fallback: `apps/web/public/mission/seed-1002.json` (committed, final; regenerate with the section 12 command only if the engine changes). **1002 is the recommended demo seed and the only committed replay.** Other seeds are untuned: in local scans most seeds (1000-1011, 1, 2, 3, 1002) succeed with skills, seeds 1006 and 7 fail even with skills. The `?seed=` URL param is a frontend concern: map seed -> `/mission/seed-<seed>.json`; any seed without a file shows an error panel with the regenerate command (or falls back to 1002). If the fetch fails, show an error panel, not synthetic data.
+The primary source is the live server (section 12.a). The committed file `apps/web/public/mission/seed-1002.json` is an **OFFLINE FALLBACK only**, used when the live server is unreachable (health check or stream fails to open): same shapes as `/run`, regenerate with the section 12.b command only if the engine changes. **1002 is the recommended demo seed and the only committed fallback file.** It is a seed whose emergent outcome is a good demo, not a script. Other seeds are untuned: in local scans most seeds (1000-1011, 1, 2, 3, 1002) succeed with skills, seeds 1006 and 7 fail even with skills (also valid live demos of failure). The `?seed=` URL param is a frontend concern: pass it to the live endpoints; only in fallback mode map seed -> `/mission/seed-<seed>.json`, and any seed without a file shows an error panel ("start the server: ..." with the section 12.a command) or falls back to 1002 with a visible "offline replay" badge. If both fail, show an error panel, not synthetic data.
 
 ## 17. Source map
 
@@ -365,7 +429,8 @@ The committed replay file for seed 1002 is the mock and the fallback: `apps/web/
 | Altitude / climb | `sim.py` `_decide` (`ALT_MAX_M`, `CLIMB_M_PER_TICK`) |
 | World / units | `sim.py` (`TILE_M`, `TILES_X/Y`, `W`, `H`, `tiles_to_m`, `m_to_tiles`) |
 | Disruptions | `sim.py` `_build_events`, `_update_disruptions` |
-| CLI (rounds floats to 3 dp) | `packages/mission/archipelago_mission/__main__.py` |
+| Live server (health / run / SSE stream, CORS open) | `packages/mission/archipelago_mission/serve.py` (`Handler`, `_stream`), test `tests/mission/test_serve.py` |
+| CLI (rounds floats to 3 dp; offline fallback file) | `packages/mission/archipelago_mission/__main__.py` |
 | Frontend | see section 19.h |
 
 ## 18. Implementation status
@@ -378,16 +443,17 @@ The committed replay file for seed 1002 is the mock and the fallback: `apps/web/
 - [x] IMPLEMENTED: COMMUNICATION_DEGRADATION, NAVIGATION_DEGRADATION, PLATFORM_FAILURE
 - [x] IMPLEMENTED: skill learn / transfer (bandwidth-paced) / validate / adopt / reject / use; decisions log; event feed with demo flag
 - [x] IMPLEMENTED: deterministic data sync over every connected link
-- [x] IMPLEMENTED: CLI replay export, `--no-skills` baseline, `--compare`
+- [x] IMPLEMENTED: CLI replay export (offline fallback), `--no-skills` baseline, `--compare`
+- [x] IMPLEMENTED: live server `serve.py` (`/api/mission/health`, `/run`, SSE `/stream`, open CORS), simulated on the spot per request; covered by `tests/mission/test_serve.py` (stream == batch run)
 - NOT IMPLEMENTED (by design): stochastic packet loss / random link failure
 - PARTIAL: skills (a single skill type, `adaptive_search_spacing`; spacing fixed at 80 km); only seed 1002 is committed (others untuned)
-- PARTIAL: frontend wiring (existing web files predate this schema; they must be updated to 400 x 500 km metres and the RFLink fields, section 19)
-- MOCKED: the committed static replay file (seed 1002) is the only data source for the UI
-- NOT IMPLEMENTED: live HTTP/WebSocket/SSE endpoint; POI_CHANGED disruption; ROLE_CHANGED disruption; multi-seed pre-generated files (only 1002); UAV roles (all UAVs identical); `SKILL_VALIDATING` event
+- NOT IMPLEMENTED: frontend client for the live server (EventSource/`/run` client, frame buffer, mission mode); existing web files predate this schema and must be updated to 400 x 500 km metres and the RFLink fields (section 19)
+- FALLBACK ONLY: the committed static replay file (seed 1002), used when the server is unreachable
+- NOT IMPLEMENTED: WebSocket transport; mid-stream seek/pause on the server (client-side buffer instead); POI_CHANGED disruption; ROLE_CHANGED disruption; multi-seed pre-generated files (only 1002); UAV roles (all UAVs identical); `SKILL_VALIDATING` event
 
 ## 19. Frontend implementation guide
 
-Everything needed to build the core demo from the replay JSON alone. Sections 0-18 define semantics; this section is the build recipe.
+Everything needed to build the core demo from the live stream (fallback: the replay JSON). Sections 0-18 define semantics; this section is the build recipe. Demo-moment times (section 14) are seed-1002 observations, not requirements: drive highlights from event types.
 
 ### 19.a TypeScript interfaces (copy-paste; keys are the real JSON keys)
 
@@ -517,23 +583,60 @@ export interface Stats {
 }
 ```
 
-### 19.b Loading
+### 19.a.1 SSE payload types (live stream)
 
 ```ts
-const seed = Number(new URLSearchParams(location.search).get("seed") ?? 1002);
+export interface TickMessage { frame: Frame; events: MissionEvent[]; decisions: DecisionEvent[] }  // events/decisions = NEW since last tick
+export interface EndMessage { stats: Stats }
+// event: meta -> ReplayMeta, event: tick -> TickMessage, event: end -> EndMessage
+```
+
+### 19.b Loading
+
+**Primary: live stream** (server from section 12.a must be running; base is `""` with the Vite proxy, else `http://127.0.0.1:8765`).
+
+```ts
+const BASE = import.meta.env.VITE_MISSION_API ?? "";          // "" = same origin via the /api/mission proxy
+const q = new URLSearchParams(location.search);
+const seed = Number(q.get("seed") ?? 1002), skills = q.get("skills") === "0" ? 0 : 1, tps = Number(q.get("tps") ?? 4);
+
+export function openMission(on: { meta(m: ReplayMeta): void; tick(t: TickMessage): void; end(s: Stats): void; fail(): void }) {
+  const es = new EventSource(`${BASE}/api/mission/stream?seed=${seed}&tps=${tps}&skills=${skills}`);
+  es.addEventListener("meta", (e) => on.meta(JSON.parse((e as MessageEvent).data)));
+  es.addEventListener("tick", (e) => on.tick(JSON.parse((e as MessageEvent).data)));
+  es.addEventListener("end", (e) => { es.close(); on.end(JSON.parse((e as MessageEvent).data).stats); }); // close, or EventSource restarts the mission
+  es.onerror = () => { es.close(); on.fail(); };   // reconnect = restart the same seed (deterministic): clear buffers, call openMission again
+  return es;
+}
+```
+- Client buffer: `frames: Frame[]`, `events: MissionEvent[]`, `decisions: DecisionEvent[]`. On `meta` reset all three; on `tick` push `frame` and `concat` the delta `events`/`decisions` (frame index = `frame.tick`). The playback clock (19.c) then reads from this buffer exactly as it would from the replay file, so scrubbing and rewind are free; clamp the playhead to the last **buffered** frame (when the clock catches up with the stream, wait; do not extrapolate). The stream is complete when `end` arrives or the last buffered frame has `mission.status !== "RUNNING"`.
+- Health/availability: optionally `fetch(`${BASE}/api/mission/health`)` first. Server unreachable (`onerror` before any `meta`, or health fails): fall back below and show an "offline replay" badge.
+- Scrubbing beyond what has been streamed is not possible; either wait, or use `GET /api/mission/run?seed=N` to get the whole run at once (~1-2 s) and play it like a file.
+
+**Judge compare** (`skills=1` vs `skills=0`):
+
+```ts
+const [on, off] = await Promise.all([1, 0].map((s) => fetch(`${BASE}/api/mission/run?seed=${seed}&skills=${s}`).then((r) => r.json() as Promise<MissionReplay>)));
+// show on.stats vs off.stats (+ last frame .mission) side by side; section 12.a lists the seed-1002 numbers
+```
+
+**Secondary: offline fallback file** (only when the server is unreachable).
+
+```ts
 const res = await fetch(`/mission/seed-${seed}.json`);
 if (!res.ok) throw new Error(`No replay for seed ${seed} (HTTP ${res.status})`);
 const replay = (await res.json()) as MissionReplay;
 ```
-- Missing file or non-OK (note: a dev server may return 200 with `index.html` for a missing file, so also catch the JSON parse error): show an error panel ("No replay for seed N. Generate it: ..." with the command below) and a link to `?seed=1002`. Never show synthetic data. Validate `replay.frames.length > 0` and `meta.world.units === "meters"`.
-- Regenerate from the repo root. PowerShell: `$env:PYTHONPATH="packages/mission;packages/sim"; python -m archipelago_mission --seed N --out apps/web/public/mission/seed-N.json`. Bash (Linux/macOS): `PYTHONPATH="packages/mission:packages/sim" python -m archipelago_mission --seed N --out apps/web/public/mission/seed-N.json` (Git Bash with Windows Python: use `;` as the separator). The file is a few MB; one `fetch` + `JSON.parse` is fine.
+- Missing file or non-OK (note: a dev server may return 200 with `index.html` for a missing file, so also catch the JSON parse error): show an error panel ("Mission server not reachable and no offline replay for seed N. Start the server: ..." with the section 12.a command) and a link to `?seed=1002`. Never show synthetic data. Validate `replay.frames.length > 0` and `meta.world.units === "meters"`.
+- Regenerate the fallback from the repo root. PowerShell: `$env:PYTHONPATH="packages/mission;packages/sim"; python -m archipelago_mission --seed N --out apps/web/public/mission/seed-N.json`. Bash (Linux/macOS): `PYTHONPATH="packages/mission:packages/sim" python -m archipelago_mission --seed N --out apps/web/public/mission/seed-N.json` (Git Bash with Windows Python: use `;` as the separator). The file is a few MB; one `fetch` + `JSON.parse` is fine.
 
 ### 19.c Playback clock
 
-- State: `t` (sim seconds, 0..`frames[last].time`), `playing`, `rate` (sim-seconds per real second; offer 15, 60, 120, 300; **default 60**). The mission is 8520 sim-seconds, so reuse the app's playback speed-up control; the backend does not accelerate UAVs. Advance `t += rate * realDeltaSeconds` per animation frame; clamp at the last frame time and stop. Pause, play, seek (scrubber sets `t`) and restart are just setting `t`/`playing`. No `Math.random`, no wall-clock in rendered values: the same `t` always renders identically.
+- State: `t` (sim seconds, 0..`frames[last].time` of the **buffered** frames), `playing`, `rate` (sim-seconds per real second; offer 15, 60, 120, 300; **default 60**). The mission is 8520 sim-seconds on seed 1002 (length varies per seed), so reuse the app's playback speed-up control; the backend does not accelerate UAVs. With the live stream the server produces `tps * 30` sim-seconds per wall second (`tps=4` => 120), so a `rate` above that outruns the stream: the playhead then waits at the newest buffered frame. Choose `tps >= rate / 30` when opening the stream (or use `/run` for instant full data).
+- **Interpolate between ticks** (positions, altitude, heading; below) and keep the whole buffer so the user can scrub or rewind to any already-received time. Advance `t += rate * realDeltaSeconds` per animation frame; clamp at the last frame time and stop. Pause, play, seek (scrubber sets `t`) and restart are just setting `t`/`playing`. No `Math.random`, no wall-clock in rendered values: the same `t` always renders identically.
 - `i = Math.min(frames.length - 1, Math.floor(t / meta.dt))`; `A = frames[i]`, `B = frames[Math.min(i + 1, last)]`, `a = (t - A.time) / meta.dt` (0 at the last frame).
 - **Interpolate only continuous motion** between A and B (match UAVs by id; skip if either is `FAILED`): `position.x/y` and `altitudeMeters` linearly; `heading` along the shortest arc (`d = ((hB - hA + 3*PI) % (2*PI)) - PI; h = hA + a*d`). Everything else is stepped from the **floor frame A**: `links`, `pois`, `skills`, `neighbors`, `communicationState`, `mission`; `disruptions` are stepped except zone `position`, which may be lerped. This keeps edges appearing/disappearing exactly at tick boundaries (the RF graph is a 30 s snapshot).
-- Feed at time `t`: `events.filter(e => e.timestamp <= t)` (or `events.slice(0, A.eventCount)`) with `demo:true`; decisions likewise. For the selected UAV's "why" panel use the last decision with `nodeId === id && timestamp <= t`.
+- Feed at time `t`: built from the appended delta arrays: `events.filter(e => e.timestamp <= t)` (or `events.slice(0, A.eventCount)`) with `demo:true`; decisions likewise. Appending deltas as ticks arrive and then filtering by playhead keeps the feed correct under scrubbing and rewind. For the selected UAV's "why" panel use the last decision with `nodeId === id && timestamp <= t`.
 
 ### 19.d World to screen
 
@@ -626,7 +729,10 @@ Link inspector (selected `l`): table from section 4 (distance km, altitudes, rfQ
 
 ### 19.i Acceptance checklist
 
-- [ ] `/?seed=1002` loads `/mission/seed-1002.json`; a missing seed shows an error panel with the regenerate command; no synthetic fallback.
+- [ ] `/?seed=1002` opens `EventSource /api/mission/stream?seed=1002` (live, simulated on the spot); `meta` then `tick`s fill a client frame buffer; delta events/decisions are appended; stream closed on `end`; reconnect restarts the same seed with cleared buffers.
+- [ ] Server unreachable => falls back to `/mission/seed-1002.json` with an "offline replay" badge; if that also fails, an error panel with the section 12.a start command; no synthetic data.
+- [ ] Judge view fetches `/run?seed=N&skills=1` and `&skills=0` and shows `stats` side by side (seed 1002: SUCCESS 8520 s / redundancy 0.639 vs FAILED 28800 s / 0.781).
+- [ ] Highlights/markers are driven by event types and fields, not hardcoded timestamps; the moment timestamps below are seed-1002 observations only.
 - [ ] Map is 400 x 500 km (4 x 5 tiles) taken from `meta.world`, tile grid every 100 km, km scale bar, y down; zone circles scale with radius in metres.
 - [ ] Play / pause / seek / rate work (default 60x); UAVs move smoothly between 30 s frames; links/POIs/skills change only at frame boundaries; the same `t` renders the same picture.
 - [ ] HUD shows clock and remaining time, verified N/6, coverage % with 80% tick, nodes 6/6, status banner; final state SUCCESS at 8520 s.
@@ -645,8 +751,8 @@ Link inspector (selected `l`): table from section 4 (distance km, altitudes, rfQ
 
 ### 19.j Known gaps and limitations
 
-- No live stream (static replay only); there is no HTTP/WebSocket/SSE endpoint.
-- Only seed 1002 has a committed replay. In local scans most seeds (1000-1011, 1, 2, 3, 1002) succeed with skills; seeds 1006 and 7 fail even with skills; the skills-off baseline for 1002 fails (use `--compare` for the contrast numbers).
+- The live server has no pause/seek/speed control: pacing is fixed by `tps` at connect time; do pause, scrub and speed in the client buffer. Each connection re-simulates from t=0 (deterministic).
+- Only seed 1002 has a committed offline fallback file. In local scans most seeds (1000-1011, 1, 2, 3, 1002) succeed with skills; seeds 1006 and 7 fail even with skills; the skills-off baseline for 1002 fails (use `--compare` for the contrast numbers).
 - `POI_CHANGED` and `ROLE_CHANGED` disruptions are not implemented (UAV roles do not exist: all UAVs are identical); there is one skill type; no stochastic packet loss; no `SKILL_VALIDATING` event.
 - `UAV_FAILED` does not occur in the 1002 replay (failure scheduled for UAV-02 at 13417 s, mission ends at 8520 s); `BLOCKED` LOS never appears in it. Implement these paths anyway.
 - Frames carry a 30 s snapshot; edges can only change at tick boundaries. Interpolated positions between ticks may briefly show a drawn link longer than its nominal range; that is expected.
@@ -708,7 +814,7 @@ Unit helpers: km = m / 1000, one decimal if < 100 else integer; `hms(s)` for dur
 1. **All 6 UAVs are identical** (same platform, sensor and radio from `meta.uavSpec`); no roles, no leader.
 2. **No global communications**: each UAV knows only its own observations; data and skills travel only over RF links of the current graph (`links[]` with `connected:true`); partitions really isolate nodes (5 partitions in seed 1002).
 3. **Radio is physical**: range, horizon from altitude, terrain line of sight and jamming zones decide each link; isolated UAVs climb to extend their horizon.
-4. **Deterministic**: the same seed always produces the same run and the same replay (no wall-clock randomness); the demo plays a recorded run.
+4. **Deterministic, not scripted**: the same code + seed always produces the same run (no wall-clock randomness), but the run is simulated live on the spot; only disruptions, POIs and UAV starts come from the seed, everything else emerges.
 5. **A skill changes behaviour, measurably**: `adaptive_search_spacing` changes search-cell selection (skips cells peers covered or claimed in the last 150 s, keeps 80 km spacing). Measured, seed 1002: with skills redundancy ratio 0.639 (565 redundant of 884 cell marks) and the mission succeeds at 8520 s; without skills 0.781 (993 of 1272) and the mission FAILS at 28800 s with 5/6 POIs verified. Numbers come from `stats` (skills) and the `--no-skills` run; reproduce with the `--compare` command below.
 6. **What "skill" means here**: a small versioned behaviour package (name, version, source node, utility, confidence, trigger) that one UAV learns from its own experience (repeatedly searching cells a peer had already covered), shares over RF links, and peers validate and adopt before using; transfer takes `skillTransferSecondsAtFullBandwidth` (60 s) at full bandwidth, so weak links are slower.
 7. **Why not real reinforcement learning**: out of scope for this demo. The learning is a rule-triggered behaviour change with a measurable effect, not a trained policy; the contribution shown is decentralised skill sharing under realistic communication limits.

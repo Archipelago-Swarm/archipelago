@@ -4,17 +4,7 @@ import argparse
 import json
 import sys
 
-from .sim import MissionConfig, run_mission
-
-
-def _round(o):
-    if isinstance(o, float):
-        return round(o, 3)
-    if isinstance(o, dict):
-        return {k: _round(v) for k, v in o.items()}
-    if isinstance(o, list):
-        return [_round(v) for v in o]
-    return o
+from .sim import MissionConfig, round_floats, run_mission
 
 
 def main() -> None:
@@ -27,7 +17,7 @@ def main() -> None:
     run = run_mission(MissionConfig(seed=a.seed, skills_enabled=not a.no_skills))
     if a.out:
         with open(a.out, "w") as f:
-            json.dump(_round(run), f, separators=(",", ":"))
+            json.dump(round_floats(run), f, separators=(",", ":"))
     out = {"seed": a.seed, "mission": run["frames"][-1]["mission"], "stats": run["stats"]}
     if a.compare:
         base = run_mission(MissionConfig(seed=a.seed, skills_enabled=False))
