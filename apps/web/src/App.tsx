@@ -109,18 +109,15 @@ export function App() {
             <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> </p>
           </section>
           <PastRuns />
-          <h2>Getting started</h2>
-          <ol>
-            <li><strong>Watch the demo.</strong> A fast synthetic run. Use the timeline to pause, rewind, or jump to a policy offer.</li>
-            <li><strong>Start your own run.</strong> This needs the API: <code>python3 infra/demo/run_demo.py up --plan demo</code>, then <code>npm run dev</code> in <code>apps/web</code>. The seed fixes the random numbers, so the same seed gives the same run.{startForm}</li>
-            <li><strong>Replay a finished run.</strong> Pick one under Past runs, or open <code>?run=&lt;id&gt;&amp;replay=1</code>.</li>
-          </ol>
+          <h2>Start a run</h2>
+          <p>Needs the API: <code>python3 infra/demo/run_demo.py up --plan demo</code>. The same seed gives the same run.</p>
+          {startForm}
           <h2>Reading the map</h2>
           <dl>
-            <dt>Aircraft</dt><dd>One per drone. Select one to see its heading, speed and policy version.</dd>
+            <dt>Aircraft</dt><dd>One per drone. Select one for heading, speed and policy version.</dd>
             <dt>Link</dt><dd>A radio connection between two drones. Links drop and return.</dd>
-            <dt>Coverage</dt><dd>Share of free cells the swarm has sensed so far.</dd>
-            <dt>Policy offer</dt><dd>A drone sends its learned policy to a neighbour, who accepts or rejects it.</dd>
+            <dt>Coverage</dt><dd>Share of free cells sensed so far.</dd>
+            <dt>Policy offer</dt><dd>A drone sends its policy to a neighbour, who accepts or rejects it.</dd>
           </dl>
           <h2>Example snapshot</h2>
         </>
