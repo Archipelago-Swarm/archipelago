@@ -146,8 +146,8 @@ def wait_status(run_id: str, want: str, timeout: float = 60) -> dict[str, Any]:
     raise AssertionError(f"run {run_id} never reached {want}: {view}")
 
 
+def settle_events(run_id: str, quiet: float = 4.0, timeout: float = 90) -> None:
     """Wait until a finished run's event log stops growing (node shippers flush on their own)."""
-    """Wait until a finished run's event log stops growing (node shippers flush on their own clock)."""
     end, last, since = time.time() + timeout, None, time.time()
     while time.time() < end:
         n = call("GET", f"/v1/runs/{run_id}/events?limit=500")["latest_sequence"]
