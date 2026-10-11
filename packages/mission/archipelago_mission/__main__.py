@@ -21,7 +21,13 @@ def main() -> None:
     out = {"seed": a.seed, "mission": run["frames"][-1]["mission"], "stats": run["stats"]}
     if a.compare:
         base = run_mission(MissionConfig(seed=a.seed, skills_enabled=False))
-        out = {"with_skills": out, "baseline_no_skills": {"mission": base["frames"][-1]["mission"], "stats": base["stats"]}}
+        out = {
+            "with_skills": out,
+            "baseline_no_skills": {
+                "mission": base["frames"][-1]["mission"],
+                "stats": base["stats"],
+            },
+        }
     json.dump(out, sys.stdout, indent=2)
     print()
 

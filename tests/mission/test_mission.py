@@ -12,17 +12,26 @@ def _sim(n=3, **kw):
 
 
 def _place(sim, *xs):  # xs in km along a line, y fixed
-    for u, x in zip(sim.uavs, xs):
+    for u, x in zip(sim.uavs, xs, strict=False):
         u.x, u.y = 100_000.0 + x * 1000.0, 200_000.0
 
 
 def _obs(u):
-    u.obs[f"{u.id}|POI-01"] = {"node": u.id, "poi": "POI-01", "conf": 0.5, "cls": "VEHICLE", "n": 1, "t": 0.0}
+    u.obs[f"{u.id}|POI-01"] = {
+        "node": u.id,
+        "poi": "POI-01",
+        "conf": 0.5,
+        "cls": "VEHICLE",
+        "n": 1,
+        "t": 0.0,
+    }
     return f"{u.id}|POI-01"
 
 
 def _skill(u):
-    u.skills[SKILL] = Skill(SKILL, 1, u.id, 0.0, 0.8, 0.9, "SEARCH_REGION_SELECTION", {"spacing_m": 2500.0})
+    u.skills[SKILL] = Skill(
+        SKILL, 1, u.id, 0.0, 0.8, 0.9, "SEARCH_REGION_SELECTION", {"spacing_m": 2500.0}
+    )
 
 
 def _run(sim, n=15):
@@ -42,7 +51,9 @@ def _ticks_to_skill(sim, b, cap=60):
 def test_determinism():
     run = lambda s: json.dumps(run_mission(MissionConfig(seed=s, time_limit=300)), sort_keys=True)  # noqa: E731
     assert run(7) == run(7)
-    assert [p["x"] for p in MissionSim(MissionConfig(seed=7)).pois] != [p["x"] for p in MissionSim(MissionConfig(seed=8)).pois]
+    assert [p["x"] for p in MissionSim(MissionConfig(seed=7)).pois] != [
+        p["x"] for p in MissionSim(MissionConfig(seed=8)).pois
+    ]
 
 
 def test_rf_range_blocks_then_allows():
@@ -128,7 +139,15 @@ def test_comm_degradation_zone_lowers_quality():
     sim._compute_links()
     q0 = sim.links[0]["rfQuality"]
     z = sim.disruptions[0]
-    z.update(active=True, x=sim.uavs[0].x + 10_000.0, y=sim.uavs[0].y, radius=50_000.0, severity=0.9, vx=0.0, vy=0.0)
+    z.update(
+        active=True,
+        x=sim.uavs[0].x + 10_000.0,
+        y=sim.uavs[0].y,
+        radius=50_000.0,
+        severity=0.9,
+        vx=0.0,
+        vy=0.0,
+    )
     sim._compute_links()
     assert sim.links[0]["rfQuality"] < q0
 
@@ -147,7 +166,14 @@ def test_success_and_failed():
     sim = _sim(3)
     for u in sim.uavs:
         for p in sim.pois:
-            u.obs[f"{u.id}|{p['id']}"] = {"node": u.id, "poi": p["id"], "conf": 0.95, "cls": p["trueType"], "n": 1, "t": 0.0}
+            u.obs[f"{u.id}|{p['id']}"] = {
+                "node": u.id,
+                "poi": p["id"],
+                "conf": 0.95,
+                "cls": p["trueType"],
+                "n": 1,
+                "t": 0.0,
+            }
     assert sim.frame()["mission"]["status"] == "SUCCESS"
     sim = _sim(3, time_limit=10.0)
     for _ in range(5):

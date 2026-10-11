@@ -1,9 +1,10 @@
 """Deterministic RF link model: distance, horizon, terrain LOS, attenuation, disruption zones."""
+
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 
 @dataclass(frozen=True)
@@ -64,7 +65,7 @@ _BW = ((0.10, 0.05), (0.35, 0.35), (0.60, 0.65), (0.80, 0.90), (1.0, 1.0))
 
 def _distance_quality(dist: float, nominal: float, ext: float, tail_ok: bool) -> float:
     ref = dist * 40_000.0 / nominal
-    for (a, qa), (b, qb) in zip(_KNOTS, _KNOTS[1:]):
+    for (a, qa), (b, qb) in zip(_KNOTS, _KNOTS[1:], strict=False):
         if ref <= b:
             return qa + (qb - qa) * _smooth(a, b, ref)
     if not tail_ok:
@@ -78,20 +79,28 @@ def _distance_quality(dist: float, nominal: float, ext: float, tail_ok: bool) ->
 def _bandwidth(q: float) -> float:
     if q < _BW[0][0]:
         return 0.0
-    for (a, fa), (b, fb) in zip(_BW, _BW[1:]):
+    for (a, fa), (b, fb) in zip(_BW, _BW[1:], strict=False):
         if q <= b:
             return fa + (fb - fa) * (q - a) / (b - a)
     return 1.0
 
 
 def _link_class(d: float) -> str:
-    return "SHORT" if d < 20e3 else "NORMAL" if d < 50e3 else "STRONG_LOS" if d < 80e3 else "EXTENDED_LOS"
+    return (
+        "SHORT"
+        if d < 20e3
+        else "NORMAL"
+        if d < 50e3
+        else "STRONG_LOS"
+        if d < 80e3
+        else "EXTENDED_LOS"
+    )
 
 
 class RFEngine:
-    def __init__(self, ground_elev: Callable[[float, float], float], cfg: RFConfig = RFConfig()):
+    def __init__(self, ground_elev: Callable[[float, float], float], cfg: RFConfig | None = None):
         self.ground_elev = ground_elev
-        self.cfg = cfg
+        self.cfg = cfg or RFConfig()
         self.use_cache = True
         self._cache: dict = {}
 
@@ -108,7 +117,10 @@ class RFEngine:
         ax, ay, bx, by = (qz(a.x) * q, qz(a.y) * q, qz(b.x) * q, qz(b.y) * q)
         za = self.ground_elev(ax, ay) + qz(a.alt_agl_m) * q
         zb = self.ground_elev(bx, by) + qz(b.alt_agl_m) * q
-        n = min(self.cfg.los_max_samples, max(3, math.ceil(math.hypot(bx - ax, by - ay) / self.cfg.los_step_m) + 1))
+        n = min(
+            self.cfg.los_max_samples,
+            max(3, math.ceil(math.hypot(bx - ax, by - ay) / self.cfg.los_step_m) + 1),
+        )
         c = min(
             (za + (zb - za) * t) - self.ground_elev(ax + (bx - ax) * t, ay + (by - ay) * t)
             for t in (i / (n - 1) for i in range(n))
@@ -133,7 +145,10 @@ class RFEngine:
             inside = 0
             for i in range(16):
                 t = i / 15
-                if math.hypot(a.x + (b.x - a.x) * t - z["x"], a.y + (b.y - a.y) * t - z["y"]) <= z["radius"]:
+                if (
+                    math.hypot(a.x + (b.x - a.x) * t - z["x"], a.y + (b.y - a.y) * t - z["y"])
+                    <= z["radius"]
+                ):
                     inside += 1
             cov = inside / 16
             if cov > 0:
@@ -143,7 +158,9 @@ class RFEngine:
     def _state(self, q: float, connected: bool) -> str:
         if not connected:
             return "DISCONNECTED"
-        for name, th in zip(("EXCELLENT", "GOOD", "DEGRADED", "MARGINAL"), self.cfg.state_thresholds):
+        for name, th in zip(
+            ("EXCELLENT", "GOOD", "DEGRADED", "MARGINAL"), self.cfg.state_thresholds, strict=False
+        ):
             if q >= th:
                 return name
         return "MARGINAL"
@@ -153,7 +170,7 @@ class RFEngine:
         ns = sorted(nodes, key=lambda n: n.id)
         out = []
         for i, a in enumerate(ns):
-            for b in ns[i + 1:]:
+            for b in ns[i + 1 :]:
                 hd = math.hypot(a.x - b.x, a.y - b.y)
                 d = math.sqrt(hd * hd + (a.alt_agl_m - b.alt_agl_m) ** 2)
                 if d > cfg.report_range_m:
@@ -163,8 +180,11 @@ class RFEngine:
                 nominal = min(pa.nominal_range_m, pb.nominal_range_m)
                 horizon = geometric_horizon_m(a.alt_agl_m, b.alt_agl_m)
                 reject = (
-                    "BEYOND_MAX_RANGE" if d > min(cfg.max_routine_range_m, ext)
-                    else "BEYOND_HORIZON" if d > horizon else None
+                    "BEYOND_MAX_RANGE"
+                    if d > min(cfg.max_routine_range_m, ext)
+                    else "BEYOND_HORIZON"
+                    if d > horizon
+                    else None
                 )
                 dq = tf = pf = 0.0
                 att = dis = 1.0
@@ -180,14 +200,33 @@ class RFEngine:
                     q = 0.0
                 q = round(q, 4)
                 conn = q >= cfg.connected_threshold
-                out.append({
-                    "id": f"{a.id}~{b.id}", "sourceNodeId": a.id, "targetNodeId": b.id,
-                    "distanceMeters": d, "horizontalDistanceMeters": hd, "distanceKm": d / 1000.0,
-                    "sourceAltitudeMeters": a.alt_agl_m, "targetAltitudeMeters": b.alt_agl_m,
-                    "geometricHorizonMeters": horizon, "lineOfSight": los, "rfQuality": q,
-                    "bandwidthFactor": _bandwidth(q) if conn else 0.0, "state": self._state(q, conn),
-                    "connected": conn, "attenuationFactor": att, "disruptionFactor": dis, "lastUpdated": t,
-                    "debug": {"distanceQuality": dq, "terrainFactor": tf, "platformFactor": pf,
-                              "minClearanceMeters": minc, "linkClass": _link_class(d), "rejectReason": reject},
-                })
+                out.append(
+                    {
+                        "id": f"{a.id}~{b.id}",
+                        "sourceNodeId": a.id,
+                        "targetNodeId": b.id,
+                        "distanceMeters": d,
+                        "horizontalDistanceMeters": hd,
+                        "distanceKm": d / 1000.0,
+                        "sourceAltitudeMeters": a.alt_agl_m,
+                        "targetAltitudeMeters": b.alt_agl_m,
+                        "geometricHorizonMeters": horizon,
+                        "lineOfSight": los,
+                        "rfQuality": q,
+                        "bandwidthFactor": _bandwidth(q) if conn else 0.0,
+                        "state": self._state(q, conn),
+                        "connected": conn,
+                        "attenuationFactor": att,
+                        "disruptionFactor": dis,
+                        "lastUpdated": t,
+                        "debug": {
+                            "distanceQuality": dq,
+                            "terrainFactor": tf,
+                            "platformFactor": pf,
+                            "minClearanceMeters": minc,
+                            "linkClass": _link_class(d),
+                            "rejectReason": reject,
+                        },
+                    }
+                )
         return out

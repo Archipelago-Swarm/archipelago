@@ -1,9 +1,9 @@
 """Live mission server (stdlib only). The simulation runs on the spot for the requested seed.
 
-  python -m archipelago_mission.serve [--port 8765]
-  GET /api/mission/health
-  GET /api/mission/run?seed=1002[&skills=0]            -> full result JSON, computed now
-  GET /api/mission/stream?seed=1002[&tps=4][&skills=0] -> Server-Sent Events, one tick per 1/tps s
+python -m archipelago_mission.serve [--port 8765]
+GET /api/mission/health
+GET /api/mission/run?seed=1002[&skills=0]            -> full result JSON, computed now
+GET /api/mission/stream?seed=1002[&tps=4][&skills=0] -> Server-Sent Events, one tick per 1/tps s
 """
 
 import argparse
@@ -16,7 +16,9 @@ from .sim import MissionConfig, MissionSim, round_floats, run_mission
 
 
 def _cfg(q: dict) -> MissionConfig:
-    return MissionConfig(seed=int(q.get("seed", ["1002"])[0]), skills_enabled=q.get("skills", ["1"])[0] != "0")
+    return MissionConfig(
+        seed=int(q.get("seed", ["1002"])[0]), skills_enabled=q.get("skills", ["1"])[0] != "0"
+    )
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -38,7 +40,10 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/api/mission/health":
                 self._send(200, b'{"ok":true}')
             elif u.path == "/api/mission/run":
-                self._send(200, json.dumps(round_floats(run_mission(_cfg(q))), separators=(",", ":")).encode())
+                self._send(
+                    200,
+                    json.dumps(round_floats(run_mission(_cfg(q))), separators=(",", ":")).encode(),
+                )
             elif u.path == "/api/mission/stream":
                 self._stream(_cfg(q), float(q.get("tps", ["4"])[0]))
             else:
@@ -56,13 +61,22 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
         def send(name: str, data: dict) -> None:
-            self.wfile.write(f"event: {name}\ndata: {json.dumps(round_floats(data), separators=(',', ':'))}\n\n".encode())
+            self.wfile.write(
+                f"event: {name}\ndata: {json.dumps(round_floats(data), separators=(',', ':'))}\n\n".encode()
+            )
             self.wfile.flush()
 
         send("meta", sim.result()["meta"])
         ev = dec = 0
         while True:
-            send("tick", {"frame": sim.frames[-1], "events": sim.events[ev:], "decisions": sim.decisions[dec:]})
+            send(
+                "tick",
+                {
+                    "frame": sim.frames[-1],
+                    "events": sim.events[ev:],
+                    "decisions": sim.decisions[dec:],
+                },
+            )
             ev, dec = len(sim.events), len(sim.decisions)
             if sim.status != "RUNNING":
                 break
