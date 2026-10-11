@@ -94,12 +94,7 @@ export function App() {
             <h2>Decentralized learning across UAV squadrons.</h2>
             <p className="lede">A decentralized capability-sharing layer for autonomous edge systems. Simulated platforms explore together, share what they learn over unreliable links, and hand improved flight policies from one to another.</p>
             <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> <span className="note">Runs in your browser. No backend needed.</span></p>
-            <p className="tags">{["Contested comms", "No central learner", "Recipient-side validation"].map((t) => <span key={t} className="pill">{t}</span>)}</p>
           </section>
-          <h2>What it does</h2>
-          <div className="cards">
-            {[["Independent learning", "Each platform trains its own policy on its own experience."], ["Peer capability exchange", "Learned models move node to node. No central learner."], ["Recipient-side validation", "The receiver checks a candidate before it changes behavior."], ["Resilient under partitions", "Links drop. Platforms keep acting and re-sync when links return."]].map(([t, d]) => <div key={t} className="card"><strong>{t}</strong><p>{d}</p></div>)}
-          </div>
           <h2>Getting started</h2>
           <ol>
             <li><strong>Watch the demo.</strong> A fast synthetic run. Use the timeline to pause, rewind, or jump to a policy offer.</li>
