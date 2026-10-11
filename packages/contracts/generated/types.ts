@@ -272,8 +272,10 @@ export interface Marker {
   y: Y1;
 }
 /**
- * Whole-map terrain for display, row-major (index = y * size + x, size columns, height rows). `observed` marks the cells the
- * fleet has actually sensed, so a viewer can draw unobserved terrain dimmed. Display only: nodes never get it.
+ * Whole-map terrain for display, row-major (index = y * size + x, size columns, height rows).
+ *
+ * `observed` marks the cells the fleet has actually sensed, so a viewer can draw unobserved
+ * terrain dimmed. Display only: nodes never get it.
  */
 export interface TerrainGrid {
   biome: Biome;
