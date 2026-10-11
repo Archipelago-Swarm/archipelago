@@ -1,0 +1,205 @@
+{
+ "A": {
+  "checks": {
+   "every node train_steps > 0": true,
+   "every node own replay non-empty": true,
+   "local_update telemetry events on every node": true,
+   "backend is torch-cpu": true
+  },
+  "supported": true
+ },
+ "B": {
+  "checks": {
+   "(i) train_steps rose inside the cut window in every sampled episode, every node": true,
+   "(ii) no cross-cut offer decided inside the cut window": true,
+   "(iii) no cross-cut visit summary applied inside the cut window": true,
+   "(iv) offers_cut>0 and summaries_cut>0 on every node (receiver refusals are reported, amendment 2)": true,
+   "(v) cross-cut offers decided after the cut ended (exchange resumed), with reasons": true,
+   "(v') open same-side peers kept exchanging inside the cut (positive control)": true,
+   "cross-cut summaries do flow outside the window (positive control)": true
+  },
+  "supported": true
+ },
+ "C": {
+  "node": "node-03",
+  "kill_executed": true,
+  "pre": {
+   "boot_id": "dfa6b09e",
+   "train_steps": 872,
+   "replay_size": 980,
+   "policy_sha256": "09f3fa87e88015e1ccd06bb910437e0b02ba217db95bfe09ccb409dd6b45f4fc",
+   "checkpoint_generation": 13,
+   "sequence_ceiling": 3000,
+   "episode": 9,
+   "tick": 1
+  },
+  "post": {
+   "boot_id": "76375976",
+   "train_steps": 871,
+   "replay_size": 978,
+   "policy_sha256": "df25bd99034c98cbe99df0416bdcfbc314d9c740db2ca0f730edd7f50926d7ff",
+   "checkpoint_generation": 13,
+   "sequence_ceiling": 4000,
+   "episode": 8,
+   "tick": 21
+  },
+  "restore_info": {
+   "restored": true,
+   "generation": 13,
+   "prev_boot_id": "dfa6b09e",
+   "train_steps": 871,
+   "pending": 0,
+   "memory": true
+  },
+  "restart_seconds": 5.89,
+  "pids": [
+   23518,
+   1931
+  ],
+  "sequence_continuity": {
+   "boots": [
+    {
+     "boot_id": "dfa6b09e",
+     "first": 0,
+     "last": 2005,
+     "n": 1028
+    },
+    {
+     "boot_id": "76375976",
+     "first": 3000,
+     "last": 4591,
+     "n": 842
+    }
+   ],
+   "duplicate_event_ids": 0,
+   "ranges_overlap": false
+  },
+  "train_steps_after_restart_max": 1569,
+  "ckpt_pre": {
+   "error": "no CURRENT"
+  },
+  "ckpt_post": {
+   "error": "no CURRENT"
+  },
+  "checks": {
+   "new_boot_id": true,
+   "restored_from_checkpoint": true,
+   "train_steps_restored_positive_and_not_ahead": true,
+   "replay_restored": true,
+   "sequences_continue_above_pre_kill": true,
+   "no_event_id_reused": true,
+   "sequence_ceiling_not_lower": true,
+   "learning_resumed": true
+  }
+ },
+ "B_decisions": {
+  "decisions": 623,
+  "accepted": 187,
+  "rejected": 436,
+  "cross_inside_cut": [],
+  "cross_outside_cut": 351,
+  "same_side_inside_cut": 86,
+  "same_side_outside_cut": 186,
+  "unknown_source": 0,
+  "by_reason": {
+   "candidate": 235,
+   "accepted": 187,
+   "window_limit": 201
+  }
+ },
+ "B_summaries": {
+  "cross_applied_inside_cut": 0,
+  "cross_applied_outside_cut": 9817,
+  "same_side_applied_inside_cut": 2227,
+  "same_side_applied_outside_cut": 4912
+ },
+ "B_counters": {
+  "node-01": {
+   "offers_sent": 181,
+   "offers_cut": 54,
+   "offers_received": 178,
+   "received_cut": 1,
+   "exchanges": 79,
+   "decisions_accepted": 52,
+   "decisions_rejected": 109,
+   "decisions_window_limit": 60,
+   "summaries_sent": 4388,
+   "summaries_cut": 1188,
+   "summaries_received": 4348,
+   "summaries_received_cut": 0,
+   "summaries_applied": 4348,
+   "feedback_deadline_missed": 0,
+   "feedbacks": 1878
+  },
+  "node-02": {
+   "offers_sent": 181,
+   "offers_cut": 54,
+   "offers_received": 178,
+   "received_cut": 3,
+   "exchanges": 79,
+   "decisions_accepted": 41,
+   "decisions_rejected": 124,
+   "decisions_window_limit": 49,
+   "summaries_sent": 4387,
+   "summaries_cut": 1188,
+   "summaries_received": 4349,
+   "summaries_received_cut": 0,
+   "summaries_applied": 4349,
+   "feedback_deadline_missed": 0,
+   "feedbacks": 1878
+  },
+  "node-03": {
+   "offers_sent": 169,
+   "offers_cut": 50,
+   "offers_received": 173,
+   "received_cut": 8,
+   "exchanges": 73,
+   "decisions_accepted": 39,
+   "decisions_rejected": 110,
+   "decisions_window_limit": 42,
+   "summaries_sent": 4096,
+   "summaries_cut": 1088,
+   "summaries_received": 4213,
+   "summaries_received_cut": 0,
+   "summaries_applied": 4096,
+   "feedback_deadline_missed": 0,
+   "feedbacks": 1728
+  },
+  "node-04": {
+   "offers_sent": 176,
+   "offers_cut": 54,
+   "offers_received": 175,
+   "received_cut": 6,
+   "exchanges": 79,
+   "decisions_accepted": 55,
+   "decisions_rejected": 93,
+   "decisions_window_limit": 50,
+   "summaries_sent": 4337,
+   "summaries_cut": 1188,
+   "summaries_received": 4298,
+   "summaries_received_cut": 0,
+   "summaries_applied": 4298,
+   "feedback_deadline_missed": 0,
+   "feedbacks": 1878
+  }
+ },
+ "B_local_learning_in_cut": {
+  "node-01": {
+   "episodes_with_growth_in_window": 11,
+   "episodes_flat_in_window": 0
+  },
+  "node-02": {
+   "episodes_with_growth_in_window": 11,
+   "episodes_flat_in_window": 0
+  },
+  "node-03": {
+   "episodes_with_growth_in_window": 11,
+   "episodes_flat_in_window": 0
+  },
+  "node-04": {
+   "episodes_with_growth_in_window": 11,
+   "episodes_flat_in_window": 0
+  }
+ },
+ "n_decisions": 623
+}
