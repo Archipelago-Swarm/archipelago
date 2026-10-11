@@ -85,7 +85,7 @@ class Sim2DAdapter:
         if len(set(starts.values())) != len(starts):
             raise ValueError("node start poses must be distinct")
         if any(
-            not (0 <= x < self.world.size and 0 <= y < self.world.size) for x, y in starts.values()
+            not (0 <= x < self.world.size and 0 <= y < self.world.height) for x, y in starts.values()
         ):
             raise ValueError("node start poses must be inside the grid")
         raw = self.world.reset(seed=config.seeds["env"], starts=starts)
@@ -128,6 +128,12 @@ class Sim2DAdapter:
         w.agents.remove(node)
         self.replay.append({"tick": w.tick, "removed": node, "state_hash": w.trace_hash()})
 
+    def _known_cells(self) -> set[tuple[int, int]]:
+        known = set(self._vanished_known)
+        for d in self.world.drones.values():  # type: ignore[union-attr]
+            known.update(d.known)
+        return known
+
     def discovered_obstacles(self) -> list[tuple[int, int]]:
         """Obstacles in the union of the nodes' discovered cells (what the fleet itself knows)."""
         w = self.world
@@ -157,6 +163,7 @@ class Sim2DAdapter:
                 cell_m=cm,
                 sensor_radius_m=w.sensor_radius_m,
                 shapes=w.revealed_shapes(set(obstacles)),
+                terrain=w.terrain_grid(self._known_cells()),
                 targets_found=[
                     {"x": (t[0] + 0.5) * cm, "y": (t[1] + 0.5) * cm, "radius": cm / 2}
                     for t in s["found"]

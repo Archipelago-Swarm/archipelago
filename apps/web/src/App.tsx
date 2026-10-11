@@ -6,6 +6,8 @@ import snapshot from "../../../packages/contracts/fixtures/good/world_snapshot.j
 import { ApiError, getRun, loadReplayRecords, login, sendCommand, startRun } from "./client";
 import { emptyPanels, panelsAtFrame, panelsReducer, recordOf } from "./live";
 import { commandsDisabled, connectStream, liveReducer, type Source } from "./status";
+import { startDemo } from "./demo";
+import { usePlayback } from "./replay";
 import { View } from "./View";
 
 // JSON imports widen tuples; the fixture is schema-validated by the contracts tests.
@@ -14,7 +16,8 @@ const COMMANDS = ["resume", "pause", "step", "stop"] as const;
 
 export function App() {
   const params = new URLSearchParams(location.search);
-  const runId = params.get("run");
+  const demo = params.has("demo");
+  const runId = params.get("run") ?? (demo ? "demo-run" : null);
   const source: Source = runId ? (params.get("replay") ? "replay" : "live") : "fixture";
   const [live, dispatch] = useReducer(liveReducer, { snap: null, conn: "disconnected" });
   const [panels, pdispatch] = useReducer(panelsReducer, undefined, emptyPanels);
@@ -24,6 +27,7 @@ export function App() {
   const [frame, setFrame] = useState(0);
   const [error, setError] = useState("");
   const [needLogin, setNeedLogin] = useState(false);
+  const pb = usePlayback(source === "live" ? live.snap : null);
   const present = params.get("present") === "1";
   const [details, setDetails] = useState(!present);
 
@@ -31,14 +35,15 @@ export function App() {
 
   useEffect(() => {
     if (!runId || source !== "live") return;
-    const stop = connectStream(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/v1/runs/${runId}/stream`, (e) => {
+    const onEvent = (e: Parameters<typeof dispatch>[0]) => {
       dispatch(e);
       if (e.t === "message") { try { pdispatch({ t: "record", record: recordOf(JSON.parse(e.data)), at: Date.now() }); } catch { /* unparseable frames are ignored, as in liveReducer */ } }
-    });
-    getRun(runId).catch(fail);
+    };
+    const stop = demo ? startDemo(onEvent) : connectStream(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/v1/runs/${runId}/stream`, onEvent);
+    if (!demo) getRun(runId).catch(fail);
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => { stop(); clearInterval(tick); };
-  }, [runId, source]);
+  }, [runId, source, demo]);
 
   useEffect(() => {
     if (!runId || source !== "replay") return;
@@ -52,7 +57,7 @@ export function App() {
     () => (source === "replay" ? panelsAtFrame(replayRecords, frame) : panels),
     [source, replayRecords, frame, panels],
   );
-  const snap = source === "fixture" ? fixture : source === "replay" ? frames[frame] ?? null : live.snap;
+  const snap = source === "fixture" ? fixture : source === "replay" ? frames[frame] ?? null : pb.visible ?? live.snap;
   const conn = source === "live" ? live.conn : "connected";
   const run = (c: string) => { setError(""); sendCommand(runId!, c).catch(fail); };
 
@@ -95,7 +100,7 @@ export function App() {
           <h2>Example snapshot</h2>
         </>
       )}
-      <View present={present} details={details} source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : shownPanels} now={now} status={source === "live" ? live.status : undefined} />
+      <View playback={source === "live" ? pb : undefined} present={present} details={details} source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : shownPanels} now={now} status={source === "live" ? live.status : undefined} />
       {source === "replay" && frames.length > 0 && (
         <label>Frame {frame + 1}/{frames.length} <input type="range" min={0} max={frames.length - 1} value={frame} onChange={(e) => setFrame(+e.target.value)} /></label>
       )}

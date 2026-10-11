@@ -99,6 +99,58 @@
       "title": "Shape",
       "type": "object"
     },
+    "TerrainGrid": {
+      "additionalProperties": false,
+      "description": "Whole-map terrain for display, row-major (index = y * size + x, size columns, height rows). `observed` marks the cells the\nfleet has actually sensed, so a viewer can draw unobserved terrain dimmed. Display only: nodes never get it.",
+      "properties": {
+        "biome": {
+          "title": "Biome",
+          "type": "string"
+        },
+        "elev_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Elev M",
+          "type": "array"
+        },
+        "height": {
+          "maximum": 256,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "observed": {
+          "title": "Observed",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 256,
+          "minimum": 1,
+          "title": "Size",
+          "type": "integer"
+        },
+        "veg_pct": {
+          "items": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Veg Pct",
+          "type": "array"
+        }
+      },
+      "required": [
+        "size",
+        "height",
+        "biome",
+        "observed",
+        "elev_m",
+        "veg_pct"
+      ],
+      "title": "TerrainGrid",
+      "type": "object"
+    },
     "Topology": {
       "additionalProperties": false,
       "properties": {
@@ -166,6 +218,17 @@
           },
           "title": "Targets Found",
           "type": "array"
+        },
+        "terrain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TerrainGrid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "width_m": {
           "exclusiveMinimum": 0,
