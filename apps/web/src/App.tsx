@@ -36,6 +36,19 @@ export function App() {
   const present = params.get("present") === "1";
   const [details, setDetails] = useState(!present);
 
+  // Landing example: advance the synthetic demo to a mid-run frame, then freeze it (the old fixture has no terrain/world).
+  const [preview, setPreview] = useState<WorldSnapshot | null>(null);
+  useEffect(() => {
+    if (runId) return;
+    let n = 0;
+    const stop = startDemo((e) => {
+      if (e.t !== "message") return;
+      const r = JSON.parse(e.data);
+      if (r.kind === "world_snapshot" && ++n === 150) { setPreview(r); stop(); }
+    }, 1);
+    return stop;
+  }, [runId]);
+
   const fail = (e: unknown) => { if (e instanceof ApiError && e.status === 401) setNeedLogin(true); setError(e instanceof Error ? e.message : String(e)); };
 
   useEffect(() => {
@@ -62,7 +75,7 @@ export function App() {
     () => (source === "replay" ? panelsAtFrame(replayRecords, frame) : panels),
     [source, replayRecords, frame, panels],
   );
-  const snap = source === "fixture" ? fixture : source === "replay" ? frames[frame] ?? null : pb.visible ?? live.snap;
+  const snap = source === "fixture" ? preview ?? fixture : source === "replay" ? frames[frame] ?? null : pb.visible ?? live.snap;
   const conn = source === "live" ? live.conn : "connected";
   const run = (c: string) => { setError(""); sendCommand(runId!, c).catch(fail); };
 
@@ -111,7 +124,7 @@ export function App() {
           <h2>Example snapshot</h2>
         </>
       )}
-      <View spotlight={scene?.spotlight} playback={source === "live" ? pb : undefined} present={present} details={details} source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : shownPanels} now={now} status={source === "live" ? live.status : undefined} />
+      <View spotlight={scene?.spotlight} playback={source === "live" ? pb : undefined} present={present} details={details && !landing} source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : shownPanels} now={now} status={source === "live" ? live.status : undefined} />
       {source === "replay" && frames.length > 0 && (
         <label>Frame {frame + 1}/{frames.length} <input type="range" min={0} max={frames.length - 1} value={frame} onChange={(e) => setFrame(+e.target.value)} /></label>
       )}
