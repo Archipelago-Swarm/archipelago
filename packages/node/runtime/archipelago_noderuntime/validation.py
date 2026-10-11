@@ -12,6 +12,7 @@ import hashlib
 import time
 
 import numpy as np
+from archipelago_learning.skills import mean_skills, world_skills
 from archipelago_sim.env import ACTIONS, GridWorld
 
 from .config import Config
@@ -49,13 +50,17 @@ class ValidationWorld:
         self.episodes_run = 0  # evaluations performed over the node's lifetime
 
     def evaluate(self, params: dict[str, np.ndarray], cancel=None) -> float:
-        """Mean undiscounted per-drone return of the greedy policy over the gate seeds.
+        return self.run(params, cancel)[0]
+
+    def run(self, params: dict[str, np.ndarray], cancel=None) -> tuple[float, dict[str, float]]:
+        """(mean undiscounted per-drone return, mean skill proficiencies) of the greedy policy
+        over the gate seeds.
 
         ``cancel`` (a threading.Event) aborts between world steps with WindowCancelled.
         """
         w1, b1, w2, b2 = (np.asarray(params[k], np.float32) for k in KEYS)
         n = len(self.world.possible_agents)
-        total = 0.0
+        total, per_skill = 0.0, []
         for seed in self.seeds:
             obs = self.world.reset(seed)
             ret = 0.0
@@ -87,5 +92,6 @@ class ValidationWorld:
                 ret += sum(rew.values())
                 time.sleep(0)  # yield the GIL: act/feedback handlers must never queue behind us
             total += ret / n
+            per_skill.append(world_skills(self.world))
             self.episodes_run += 1
-        return total / len(self.seeds)
+        return total / len(self.seeds), mean_skills(per_skill)

@@ -7,6 +7,7 @@ import copy
 import numpy as np
 from archipelago_sim.pz import GridParallelEnv
 
+from . import skills
 from .dqn import Learner
 from .peer import encode, offer
 
@@ -100,6 +101,18 @@ def evaluate(params, seeds):
             [episode(env, dict.fromkeys(env.possible_agents, probe), s, 0.0, False) for s in seeds]
         )
     )
+
+
+def eval_skills(params, seeds):
+    """Greedy per-skill proficiency of a parameter set over fixed seeds (no learning)."""
+    env, runs = make_env(), []
+    for s in seeds:
+        obs = reset(env, s)
+        while env.agents:
+            acts = {a: int(np.argmax(Learner.forward(params, _norm(obs[a]))[1])) for a in env.agents}
+            obs = env.step(acts)[0]
+        runs.append(skills.world_skills(env.world))
+    return skills.mean_skills(runs)
 
 
 def transfer_experiment(

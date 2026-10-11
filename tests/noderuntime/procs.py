@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import threading
 import sys
 from pathlib import Path
 
@@ -59,7 +60,15 @@ class NodeProc:
             cwd=str(self.tmp),
         )
         assert self.proc.stdout is not None and self.proc.stderr is not None
-        line = self.proc.stdout.readline()
+        # A node that never prints its ready line (hangs at startup, e.g. Windows) must fail fast, not block the suite.
+        box: list[str] = []
+        t = threading.Thread(target=lambda: box.append(self.proc.stdout.readline()), daemon=True)
+        t.start()
+        t.join(60)
+        if t.is_alive():
+            self.proc.kill()
+            raise RuntimeError("node produced no ready line within 60s")
+        line = box[0]
         if not line:
             raise RuntimeError("node exited early: " + self.proc.stderr.read())
         self.info = json.loads(line)

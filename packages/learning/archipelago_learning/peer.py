@@ -24,6 +24,7 @@ import zipfile
 
 import numpy as np
 
+from . import skills as skills_mod
 from .compat import KEYS, PARAM_MAP, param_shapes
 
 MAX_BYTES = 1 << 20
@@ -224,6 +225,8 @@ def offer(
     window=None,
     safety_fn=None,
     max_drop=None,
+    skills_fn=None,
+    skill_margin=0.0,
 ):
     """Accept the candidate only if eval_fn(params) beats the current policy by > margin.
 
@@ -236,6 +239,9 @@ def offer(
     max_drop: a candidate scoring more than this below the current policy is rejected as a severe
     drop. Safety failures and severe drops flag the peer (learner.flagged); a flagged peer's later
     offers are rejected before decoding.
+    skills_fn (params -> {skill: proficiency}): the event records the skill the candidate improved
+    most (``skill``, ``skill_gain``) and acceptance also needs that gain > skill_margin; on adoption
+    the receiver's learner.skills take the candidate's measured proficiencies (source = sender).
     Returns the logged event.
     """
     ev = {
@@ -290,6 +296,11 @@ def offer(
             raise Unsafe("severe performance drop")
         if not new > cur + margin:
             raise PeerError("candidate not better than current policy")
+        if skills_fn is not None:
+            before, ev["skills_after"] = skills_fn(own), skills_fn(cand)
+            ev["skill"], ev["skill_gain"] = skills_mod.best_gain(before, ev["skills_after"])
+            if not ev["skill_gain"] > skill_margin:
+                raise PeerError("no skill improved")
     except PeerError as e:
         ev.update(accepted=False, reason=str(e))
         if flagged is not None:
@@ -315,6 +326,8 @@ def offer(
         )
         learner.dag[rec["policy_id"]] = rec
         learner.dag.setdefault(cl["policy_id"], cl)
+        if skills_fn is not None:
+            skills_mod.record(learner, ev["skills_after"], source=meta["node"])
         ev.update(accepted=True, new_version=learner.version, post_version=learner.version)
         ev["lineage"] = dict(rec)
     learner.events.append(ev)
