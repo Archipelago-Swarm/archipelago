@@ -6,7 +6,7 @@ const age = (at: number | undefined, now: number) => (at == null ? "no events" :
 
 const W = 320, H = 150, PAD = { l: 44, r: 8, t: 8, b: 30 };
 
-function Curves({ train, ev }: { train: Curve; ev: Curve }) {
+export function Curves({ train, ev }: { train: Curve; ev: Curve }) {
   const all = [...train.points, ...ev.points];
   const unit = train.unit || ev.unit || "value";
   if (!all.length) return <p>Training vs frozen evaluation: no episode_return samples yet.</p>;
@@ -61,7 +61,7 @@ export function LivePanels({ p, now, recorded }: { p: Panels; now: number; recor
           </tbody>
         </table>
       ) : <p>No node data received yet.</p>}
-      <h2>Peer offers</h2>
+      <h2>Policy candidate offers (peer exchange)</h2>
       <table aria-label="Peer offers">
         <thead><tr><th>Tick</th><th>Sender → recipient</th><th>Version</th><th>Decision</th><th>Reason</th><th>Candidate score</th><th>Size (bytes)</th></tr></thead>
         <tbody>

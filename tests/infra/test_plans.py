@@ -148,6 +148,6 @@ def test_node_boots_from_the_compose_env_under_the_plans_ids(tmp_path):
         TELEMETRY_TOKEN="t" * 20, NODE_CHECKPOINT_DIR=str(tmp_path),
     )  # fmt: skip
     cfg = Config.from_env(env)
-    assert cfg.encoder_id == "grid-flat-v2-visits-shared-s16-r2"
+    assert cfg.encoder_id == "grid-flat-v2-visits-shared-s32-r2"
     assert (cfg.reward_id, cfg.learner_schedule_id) == ("rew-v1", "sched-t37-v1")
     assert cfg.obs_dim == 82 and cfg.double_dqn and cfg.capacity == 50000 and cfg.lr == 1e-3

@@ -24,6 +24,8 @@ export function App() {
   const [frame, setFrame] = useState(0);
   const [error, setError] = useState("");
   const [needLogin, setNeedLogin] = useState(false);
+  const present = params.get("present") === "1";
+  const [details, setDetails] = useState(!present);
 
   const fail = (e: unknown) => { if (e instanceof ApiError && e.status === 401) setNeedLogin(true); setError(e instanceof Error ? e.message : String(e)); };
 
@@ -66,13 +68,14 @@ export function App() {
           .then((r) => { location.search = `?run=${r.run_id}`; }).catch(fail); }}>
         <label>Seed <input name="seed" type="number" min={0} step={1} defaultValue={1} required /></label> <button>Start run</button>
       </form>
-      <View source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : shownPanels} now={now} status={source === "live" ? live.status : undefined} />
+      <View present={present} details={details} source={source} conn={conn} snap={snap} runId={runId} learning={live.learning} panels={source === "fixture" ? undefined : shownPanels} now={now} status={source === "live" ? live.status : undefined} />
       {source === "replay" && frames.length > 0 && (
         <label>Frame {frame + 1}/{frames.length} <input type="range" min={0} max={frames.length - 1} value={frame} onChange={(e) => setFrame(+e.target.value)} /></label>
       )}
       <div role="group" aria-label="Run controls">
         {COMMANDS.map((c) => <button key={c} disabled={commandsDisabled(source, conn, live.status)} onClick={() => run(c)}>{c}</button>)}
       </div>
+      {present && <label><input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details</label>}
       {error && <p role="alert">{error}</p>}
     </main>
   );

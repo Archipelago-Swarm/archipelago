@@ -96,6 +96,12 @@
           "title": "Heading Rad",
           "type": "number"
         },
+        "speed_mps": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Speed Mps",
+          "type": "number"
+        },
         "x": {
           "title": "X",
           "type": "number"

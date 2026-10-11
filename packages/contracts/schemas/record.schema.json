@@ -407,6 +407,30 @@
       "title": "LearningEvent",
       "type": "object"
     },
+    "Marker": {
+      "additionalProperties": false,
+      "properties": {
+        "radius": {
+          "title": "Radius",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "radius"
+      ],
+      "title": "Marker",
+      "type": "object"
+    },
     "MetricSample": {
       "additionalProperties": false,
       "properties": {
@@ -831,6 +855,12 @@
           "title": "Heading Rad",
           "type": "number"
         },
+        "speed_mps": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Speed Mps",
+          "type": "number"
+        },
         "x": {
           "title": "X",
           "type": "number"
@@ -982,6 +1012,43 @@
       "title": "RunConfig",
       "type": "object"
     },
+    "Shape": {
+      "additionalProperties": false,
+      "description": "Obstacle polygon in world meters (a publicly revealed one: some node has sensed it).",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 3,
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "points"
+      ],
+      "title": "Shape",
+      "type": "object"
+    },
     "Topology": {
       "additionalProperties": false,
       "properties": {
@@ -1013,6 +1080,56 @@
         "links"
       ],
       "title": "Topology",
+      "type": "object"
+    },
+    "WorldGeometry": {
+      "additionalProperties": false,
+      "description": "Continuous-flight world description (meters). Absent for the legacy grid world.",
+      "properties": {
+        "cell_m": {
+          "exclusiveMinimum": 0,
+          "title": "Cell M",
+          "type": "number"
+        },
+        "height_m": {
+          "exclusiveMinimum": 0,
+          "title": "Height M",
+          "type": "number"
+        },
+        "sensor_radius_m": {
+          "minimum": 0,
+          "title": "Sensor Radius M",
+          "type": "number"
+        },
+        "shapes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Shape"
+          },
+          "title": "Shapes",
+          "type": "array"
+        },
+        "targets_found": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Marker"
+          },
+          "title": "Targets Found",
+          "type": "array"
+        },
+        "width_m": {
+          "exclusiveMinimum": 0,
+          "title": "Width M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "width_m",
+        "height_m",
+        "cell_m",
+        "sensor_radius_m"
+      ],
+      "title": "WorldGeometry",
       "type": "object"
     },
     "WorldSnapshot": {
@@ -1125,6 +1242,17 @@
         },
         "topology": {
           "$ref": "#/$defs/Topology"
+        },
+        "world": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorldGeometry"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
