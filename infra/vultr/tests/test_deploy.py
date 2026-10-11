@@ -234,6 +234,7 @@ def test_rollback_uses_previous_manifest_and_smoke_script(ws: dict[str, Path]) -
     assert SECRETS["ARCHIPELAGO_API_TOKEN"] not in "\n".join(printed)
 
 
+@pytest.mark.docker  # runs `docker compose config`: needs the compose CLI, not a daemon
 def test_env_file_values_survive_compose_interpolation_literally(tmp_path: Path) -> None:
     """Secrets with $, #, spaces, double quotes and backslashes must reach containers unchanged."""
     tricky = {
