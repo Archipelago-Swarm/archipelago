@@ -209,6 +209,13 @@ class MissionSim:
             min(t.height - 1, max(0, int(y // CELL_M)))
         ]
 
+    def terrain_grid(self) -> dict:
+        """The sim's own heightfield for the viewer (archipelago_contracts TerrainGrid; row-major, whole map observed)."""
+        t = self.terrain
+        cells = [(x, y) for y in range(t.height) for x in range(t.size)]
+        return {"size": t.size, "height": t.height, "biome": "".join(str(t.biome[x][y]) for x, y in cells), "observed": "1" * len(cells),
+                "elev_m": [round(t.elev[x][y], 1) for x, y in cells], "veg_pct": [round(100 * t.veg[x][y]) for x, y in cells]}  # fmt: skip
+
     # ---------------------------------------------------------------- scenario (seed -> world)
     def _build_pois(self, r: random.Random) -> None:
         self.pois: list[dict] = []
@@ -896,7 +903,7 @@ class MissionSim:
             (e["timestamp"] for e in self.events if e["type"] == "SKILL_LEARNED"), None
         )
         st["finalSkillHolders"] = sum(1 for u in self.uavs if u.active_skill() and u.alive)
-        return {"meta": {"seed": self.cfg.seed, "dt": self.cfg.dt, "skillsEnabled": self.cfg.skills_enabled, "world": {"width": W, "height": H, "tileMeters": TILE_M, "tilesX": TILES_X, "tilesY": TILES_Y, "units": "meters"},
+        return {"meta": {"seed": self.cfg.seed, "dt": self.cfg.dt, "skillsEnabled": self.cfg.skills_enabled, "world": {"width": W, "height": H, "tileMeters": TILE_M, "tilesX": TILES_X, "tilesY": TILES_Y, "units": "meters", "cellMeters": CELL_M, "terrain": self.terrain_grid()},
                          "searchGrid": {"nx": NX, "ny": NY}, "uavSpec": self.spec(), "rfModel": self.rf_model(), "missionRules": self.rules(), "config": {k: v for k, v in self.cfg.__dict__.items()}},
                 "frames": self.frames, "events": self.events, "decisions": self.decisions, "stats": st}  # fmt: skip
 
