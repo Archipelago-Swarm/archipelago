@@ -89,7 +89,7 @@ Sources: `experiments/out/T30/curves.csv` (per-episode metrics, test rows are th
 | node-04 | 7847 | 8587 | 8120 | d001d764c7a9 | 393 | bbf79c7c |
 
 Distinct final policy hashes: fleet 3 of 4 (an accepted peer candidate replaces the receiver's parameters, so ties are expected there), isolated 4 of 4 (required). Over all 1 s status samples (all four nodes reachable): fleet {'n_samples': 863, 'share_with_4_distinct': 0.8667439165701043, 'min_distinct': 1, 'max_distinct': 4}, isolated {'n_samples': 1008, 'share_with_4_distinct': 1.0, 'min_distinct': 4, 'max_distinct': 4}. Fleet checks: every node train_steps > 0: True; every node own replay non-empty: True; local_update telemetry events on every node: True; backend is torch-cpu: True. Isolated checks: every node train_steps > 0: True; every node own replay non-empty: True; local_update telemetry events on every node: True; backend is torch-cpu: True; four distinct final policy hashes: True.
-Pointers: `experiments/out/T30/results.json:485` (fleet), `experiments/out/T30/raw/fleet/node_status_final.json` (full node status incl. `train_steps`, `replay_size`, `policy_sha256`, `backend`), `experiments/out/T30/raw/fleet/telemetry.jsonl.gz` (all shipped records; `local_update` LearningEvents), per-node checkpoints pointers `experiments/out/T30/raw/fleet/node_local/node-01/ckpt_current.json`. Each node has its own checkpoint directory and telemetry spool (`raw/<arm>/node_local/<node>`).
+Pointers: `experiments/out/T30/results.json:485` (fleet), `raw.tgz:raw/fleet/node_status_final.json` (full node status incl. `train_steps`, `replay_size`, `policy_sha256`, `backend`), `raw.tgz:raw/fleet/telemetry.jsonl.gz` (all shipped records; `local_update` LearningEvents), per-node checkpoints pointers `raw.tgz:raw/fleet/node_local/node-01/ckpt_current.json`. Each node has its own checkpoint directory and telemetry spool (`raw/<arm>/node_local/<node>`).
 
 ## B. Partition window
 
@@ -125,7 +125,7 @@ Counters per node (fleet), `offers_cut`/`summaries_cut` are sends suppressed by 
 | node-03 | 911 | 284 | 920 | 13 | 217 | 609 | 239 | 23160 | 5454 | 23159 | 0 | 0 |
 | node-04 | 928 | 284 | 914 | 28 | 273 | 502 | 263 | 23162 | 5454 | 23158 | 3 | 0 |
 
-Pointers: `experiments/out/T30/decisions.jsonl:2` (last cross-cut decision after a cut ended: exchange resumed), `experiments/out/T30/decisions.jsonl:3` (first accepted), `experiments/out/T30/decisions.jsonl:1` (first rejected, with reason), `experiments/out/T30/results.json:592` (fleet) and `experiments/out/T30/results.json:795` (isolated), `experiments/out/T30/results.json:607`, `experiments/out/T30/raw/fleet/samples.jsonl:5` (first 1 s status sample inside a cut), `experiments/out/T30/spool_excerpt.jsonl:1` (node-local spool record of the same decision).
+Pointers: `experiments/out/T30/decisions.jsonl:2` (last cross-cut decision after a cut ended: exchange resumed), `experiments/out/T30/decisions.jsonl:3` (first accepted), `experiments/out/T30/decisions.jsonl:1` (first rejected, with reason), `experiments/out/T30/results.json:592` (fleet) and `experiments/out/T30/results.json:795` (isolated), `experiments/out/T30/results.json:607`, `raw.tgz:raw/fleet/samples.jsonl:5` (first 1 s status sample inside a cut), `experiments/out/T30/spool_excerpt.jsonl:1` (node-local spool record of the same decision).
 
 ## C. SIGKILL and restart
 
@@ -169,3 +169,6 @@ Why: in the registered run the node keeps its visit-summary trace (`summaries.rx
 ## Files
 
 `results.json` (all numbers), `curves.csv`, `decisions.jsonl` (every telemetry decision of both arms with source, cut flags and reasons), `spool_excerpt.jsonl`, `raw/<arm>/` (`samples.jsonl` 1 s status polls, `telemetry.jsonl.gz`, `coordinator_events.jsonl.gz`, `run_status.json`, `kill.json`, `node_status_final.json`, `replays/`, `node_local/`, `logs/`).
+
+## Raw artifacts
+`raw.tgz` (4.3 MB) holds the per-node logs, spool segments, checkpoints manifests and coordinator events of the registered run (`raw/`) and the supplementary run (`supplement/fleet/`). Unpack with `tar xzf raw.tgz` inside `experiments/out/T30/`; the analysis scripts read the unpacked layout.

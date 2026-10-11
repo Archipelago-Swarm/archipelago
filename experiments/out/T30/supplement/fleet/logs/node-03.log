@@ -1,2 +1,0 @@
-{"event": "node_ready", "node_id": "node-03", "boot_id": "dfa6b09e", "control_url": "http://127.0.0.1:40381", "peer_url": "http://127.0.0.1:39509", "restore": {"restored": false}}
-{"event": "node_ready", "node_id": "node-03", "boot_id": "76375976", "control_url": "http://127.0.0.1:40381", "peer_url": "http://127.0.0.1:39509", "restore": {"restored": true, "generation": 13, "prev_boot_id": "dfa6b09e", "train_steps": 871, "pending": 0, "memory": true}}
