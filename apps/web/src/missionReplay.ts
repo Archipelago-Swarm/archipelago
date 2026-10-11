@@ -55,6 +55,7 @@ export interface Stats {
 export interface Meta {
   seed: number; dt: number; skillsEnabled: boolean;
   world: { width: number; height: number; tileMeters: number; tilesX: number; tilesY: number; units: "meters" };
+  terrain?: { size: number; height: number; biome: string; observed: string; elev_m: number[]; veg_pct: number[] };
   searchGrid: { nx: number; ny: number };
   uavSpec: any; rfModel: any; missionRules: any; config: { skill_transfer_s: number; n_uavs: number }; // eslint-disable-line @typescript-eslint/no-explicit-any
 }

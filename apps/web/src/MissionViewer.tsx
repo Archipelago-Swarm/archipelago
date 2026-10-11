@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MissionMap } from "./MissionMap";
+import type { WorldSnapshot } from "@archipelago/contracts";
+import { FlightMap } from "./FlightMap";
 import {
   BASE, SERVER_CMD, applyMessage, decisionText, demoFeed, disruptionLabel, emptyBuffer, explainLink, feedAt, feedText, frameAt, hms, km, loadOfflineReplay, pct,
   type Buffer, type MapSummary, type Meta, type RFLink, type UavState, type View,
@@ -31,6 +32,40 @@ function useMissionBuffer(seed: number, uavs: number) {
     return () => { closed = true; es.close(); };
   }, [seed, uavs]);
   return { buf, origin, err };
+}
+
+/** The mission frame as a contracts snapshot, so the mission viewer uses the same 3D terrain renderer as the fixture. */
+/** Fog of war: terrain cells within any live UAV's sensor radius in frames 0..i. Memoised so playback only scans new frames. */
+function useObserved(buf: Buffer, meta: Meta | null, t: number) {
+  const memo = useRef<{ key: unknown; i: number; seen: Uint8Array; str: string }>({ key: null, i: -1, seen: new Uint8Array(0), str: "" });
+  const ter = meta?.terrain;
+  if (!ter || !meta || !buf.frames.length) return "";
+  const i = Math.min(buf.frames.length - 1, Math.floor(t / meta.dt)), m = memo.current, cell = meta.world.tileMeters / 10;
+  if (m.key !== meta || i < m.i) Object.assign(m, { key: meta, i: -1, seen: new Uint8Array(ter.size * ter.height), str: "" });
+  if (i === m.i) return m.str;
+  for (let f = m.i + 1; f <= i; f++) for (const u of buf.frames[f].uavs) {
+    if (u.status === "FAILED") continue;
+    const r = u.sensorRadius, x0 = Math.max(0, Math.floor((u.position.x - r) / cell)), x1 = Math.min(ter.size - 1, Math.floor((u.position.x + r) / cell));
+    const y0 = Math.max(0, Math.floor((u.position.y - r) / cell)), y1 = Math.min(ter.height - 1, Math.floor((u.position.y + r) / cell));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (((x + 0.5) * cell - u.position.x) ** 2 + ((y + 0.5) * cell - u.position.y) ** 2 <= r * r) m.seen[y * ter.size + x] = 1;
+  }
+  m.i = i; m.str = Array.from(m.seen, (b) => (b ? "1" : "0")).join("");
+  return m.str;
+}
+
+/** Active disruption zones (area denial) as the contract's obstacle polygons, which FlightMap already draws. */
+const hazards = (v: View) => v.floor.disruptions.filter((d) => d.active && d.position && d.radius).map((d) => ({
+  id: d.id, points: Array.from({ length: 36 }, (_, i) => [d.position!.x + d.radius! * Math.cos((i * Math.PI) / 18), d.position!.y + d.radius! * Math.sin((i * Math.PI) / 18)]),
+}));
+
+function snapshotOf(meta: Meta, v: View, seed: number, observed: string): WorldSnapshot {
+  const poses = Object.fromEntries(v.uavs.map((u) => [u.id, { x: u.position.x, y: u.position.y, z: 0, heading_rad: u.heading, speed_mps: u.speed }]));
+  return {
+    schema_version: "0.1.0", event_id: `m-${seed}`, run_id: `mission-${seed}`, source_node_id: null, sim_tick: Math.round(v.t * 100), emitted_at_utc: "1970-01-01T00:00:00Z", sequence: 0,
+    kind: "world_snapshot", run_status: "running", poses, obstacles: [], coverage: v.floor.mission.fleetKnowledgeCoverage,
+    topology: { links: v.floor.links.filter((l) => l.connected).map((l) => [l.sourceNodeId, l.targetNodeId]) },
+    world: { width_m: meta.world.width, height_m: meta.world.height, cell_m: meta.world.tileMeters / 10, sensor_radius_m: meta.uavSpec.sensor.radiusMeters, shapes: hazards(v), targets_found: v.floor.pois.filter((p) => p.state !== "UNKNOWN").map((p) => ({ x: p.position.x, y: p.position.y, radius: 0 })), terrain: meta.terrain && { ...meta.terrain, observed } },
+  } as unknown as WorldSnapshot;
 }
 
 function Spec({ meta }: { meta: Meta }) {
@@ -119,14 +154,14 @@ export function MissionViewer({ seed, uavs, compare, onBack }: { seed: number; u
     return () => cancelAnimationFrame(raf);
   }, [playing, rate]);
 
-  const meta = buf.meta, view = useMemo(() => (meta ? frameAt(buf.frames, meta.dt, t) : null), [buf.frames, meta, t]);
+  const meta = buf.meta, observed = useObserved(buf, buf.meta, t), view = useMemo(() => (meta ? frameAt(buf.frames, meta.dt, t) : null), [buf.frames, meta, t]);
   if (origin === "error") return <div role="alert" className="m-err"><p>Mission server not reachable and no offline replay ({err}).</p><p>Start the server from the repo root:</p><pre>{SERVER_CMD}</pre><button onClick={onBack}>Back</button></div>;
   if (!meta || !view) return <p>Connecting to the mission server… <button onClick={onBack}>Cancel</button></p>;
 
   const m = view.floor.mission, feed = (debug ? feedAt(buf.events, t) : demoFeed(buf.events, t)).slice(-40).reverse();
   const u = view.uavs.find((x) => x.id === selUav), link = view.floor.links.find((x) => x.id === selLink);
   const holders = view.uavs.filter((x) => x.skills.length);
-  const ended = m.status !== "RUNNING";
+  const snap = snapshotOf(meta, view, seed, observed), ended = m.status !== "RUNNING";
   return (
     <div className="m-view">
       <div className="row"><button onClick={onBack}>← Setup</button>
@@ -143,8 +178,8 @@ export function MissionViewer({ seed, uavs, compare, onBack }: { seed: number; u
       </section>
       <div className="m-grid">
         <div>
-          <MissionMap meta={meta} view={view} events={buf.events} selUav={selUav} selLink={selLink} showWeak={showWeak} showRings={rings}
-            onUav={(id) => { setSelUav(id); setSelLink(null); }} onLink={(id) => { setSelLink(id); setSelUav(null); }} />
+          <FlightMap snap={snap} height="88vh" instant />
+          <div className="row" role="group" aria-label="Select UAV">{view.uavs.map((x) => <button key={x.id} aria-pressed={x.id === selUav} onClick={() => { setSelUav(x.id); setSelLink(null); }}>{x.id.replace("UAV-", "U")}</button>)}</div>
           <div className="row" role="group" aria-label="Playback">
             <button onClick={() => { if (ended && t >= tmax) setT(0); setPlaying(!playing); }}>{playing ? "Pause" : "Play"}</button>
             {RATES.map((r) => <button key={r} aria-pressed={r === rate} onClick={() => setRate(r)}>{r}x</button>)}

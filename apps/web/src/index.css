@@ -54,7 +54,7 @@ figcaption { color: var(--muted); font-size: .8125rem; }
 .m-main { max-width: 80rem; }
 .m-form { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; background: var(--surface); border: 1px solid var(--rule); padding: 1rem; }
 .m-form label { display: flex; flex-direction: column; font: .75rem var(--mono); text-transform: uppercase; color: var(--muted); gap: .25rem; }
-.m-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 1rem; }
+.m-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 @media (max-width: 52rem) { .m-grid { grid-template-columns: 1fr; } }
 .m-map { width: 100%; max-height: 80vh; border: 1px solid var(--rule); }
 .m-hud { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; align-items: center; background: var(--surface); border: 1px solid var(--rule); padding: .5rem 1rem; margin: .5rem 0; }
