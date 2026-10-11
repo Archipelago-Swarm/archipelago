@@ -416,7 +416,6 @@ def test_janitor_mode_claims_one_task_at_a_time() -> None:
         c.load_ownership = orig  # type: ignore[method-assign]
 
 
-
 def test_unpushed_local_work_counts_as_progress_not_a_stall(
     origin: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

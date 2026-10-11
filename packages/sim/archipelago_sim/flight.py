@@ -1,12 +1,12 @@
 """Continuous-flight world (environment_mode "continuous_flight").
 
-A GridWorld subclass. The hidden grid stays the perception/learning substrate (observations, rewards,
-coverage and collisions are unchanged), but every drone is a fixed-wing point mass with continuous
-x/y (meters), heading and speed. The policy's five actions are an adapter onto flight dynamics:
-north/east/south/west set a *desired heading*, "stay" holds the current course (a fixed wing cannot
-hover). Heading turns at a bounded rate and the aircraft integrates at physics_hz between decisions, so
-paths are arcs. A drone's grid cell is always floor(position / cell_m), with at most one edge step per
-decision, which keeps GridWorld's collision/reward bookkeeping valid.
+A GridWorld subclass. The hidden grid stays the perception/learning substrate (observations,
+rewards, coverage and collisions are unchanged), but every drone is a fixed-wing point mass with
+continuous x/y (meters), heading and speed. The policy's five actions are an adapter onto flight
+dynamics: north/east/south/west set a *desired heading*, "stay" holds the current course (a fixed
+wing cannot hover). Heading turns at a bounded rate and the aircraft integrates at physics_hz
+between decisions, so paths are arcs. A drone's grid cell is always floor(position / cell_m), with
+at most one edge step per decision, which keeps GridWorld's collision/reward bookkeeping valid.
 """
 
 from __future__ import annotations
@@ -157,17 +157,24 @@ class FlightWorld(GridWorld):
                 nx = f["x"] + math.cos(f["heading"]) * f["speed"] * dt
                 ny = f["y"] + math.sin(f["heading"]) * f["speed"] * dt
                 nc, cc = self._cell_of(nx, ny), self._cell_of(f["x"], f["y"])
-                if self._cell(nc) == WALL:  # terrain or map edge: hold position, deflect, report a hit
+                if (
+                    self._cell(nc) == WALL
+                ):  # terrain or map edge: hold position, deflect, report a hit
                     bump = _NAME.get((nc[0] - cc[0], nc[1] - cc[1])) or bump
                     f["heading"] = wrap(math.pi - f["heading"] if nc[0] != cc[0] else -f["heading"])
                     continue
-                if abs(nc[0] - c0[0]) + abs(nc[1] - c0[1]) > 1:  # at most one edge step per decision
+                if (
+                    abs(nc[0] - c0[0]) + abs(nc[1] - c0[1]) > 1
+                ):  # at most one edge step per decision
                     continue
                 f["x"], f["y"] = nx, ny
             fc = self._cell_of(f["x"], f["y"])
             cmds[a] = _NAME.get((fc[0] - c0[0], fc[1] - c0[1])) or bump or "stay"
         out = super().step(cmds)
-        for a, prev in before.items():  # the grid refused a drone-drone clash: undo the flown distance
+        for (
+            a,
+            prev,
+        ) in before.items():  # the grid refused a drone-drone clash: undo the flown distance
             d = self.drones.get(a)
             f = self.fs[a]
             if d is not None and self._cell_of(f["x"], f["y"]) != d.pos:
@@ -179,7 +186,9 @@ class FlightWorld(GridWorld):
 
     def world_state(self) -> dict:
         s = super().world_state()
-        s["flight"] = {a: [round(f[k], 3) for k in ("x", "y", "heading")] for a, f in sorted(self.fs.items())}
+        s["flight"] = {
+            a: [round(f[k], 3) for k in ("x", "y", "heading")] for a, f in sorted(self.fs.items())
+        }
         return s
 
     def revealed_shapes(self, discovered: set[tuple[int, int]]) -> list[dict]:

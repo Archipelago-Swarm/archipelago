@@ -142,7 +142,9 @@ class Sim2DAdapter:
         s = self.world.world_state()  # type: ignore[union-attr]
         poses = {n: Pose(x=p[0] + 0.5, y=p[1] + 0.5) for n, p in s["poses"].items()}
         geometry = None
-        if isinstance(self.world, FlightWorld):  # continuous flight: poses in meters, grid stays hidden
+        if isinstance(
+            self.world, FlightWorld
+        ):  # continuous flight: poses in meters, grid stays hidden
             w = self.world
             poses = {
                 n: Pose(x=f["x"], y=f["y"], heading_rad=f["heading"], speed_mps=f["speed"])
