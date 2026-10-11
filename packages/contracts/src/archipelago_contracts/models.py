@@ -123,6 +123,20 @@ class Marker(Strict):
     radius: Finite
 
 
+class TerrainGrid(Strict):
+    """Whole-map terrain for display, row-major (index = y * size + x, size columns, height rows).
+
+    `observed` marks the cells the fleet has actually sensed, so a viewer can draw unobserved
+    terrain dimmed. Display only: nodes never get it."""
+
+    size: Annotated[int, Field(ge=1, le=256)]  # width in cells
+    height: Annotated[int, Field(ge=1, le=256)]
+    biome: str  # one digit per cell: 0 grass, 1 forest, 2 jungle
+    observed: str  # one char per cell: "1" observed by some node, "0" not
+    elev_m: list[Finite]
+    veg_pct: list[Annotated[int, Field(ge=0, le=100)]]
+
+
 class WorldGeometry(Strict):
     """Continuous-flight world description (meters). Absent for the legacy grid world."""
 
@@ -132,6 +146,7 @@ class WorldGeometry(Strict):
     sensor_radius_m: Annotated[float, Field(ge=0, allow_inf_nan=False)]
     shapes: list[Shape] = []
     targets_found: list[Marker] = []
+    terrain: TerrainGrid | None = None  # absent for uniform worlds
 
 
 class WorldSnapshot(Event):
@@ -172,6 +187,12 @@ class LearningEvent(Event):
     candidate_score: Finite | None = None
     bytes: Annotated[int, Field(ge=0)] = 0
     wall_seconds: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 0.0
+    # Lineage DAG node: the candidate if rejected, the adopted policy if accepted.
+    policy_id: Id | None = None
+    parent_ids: list[Id] = []
+    origin_node: Id | None = None
+    generation_count: Annotated[int, Field(ge=0)] = 0
+    flagged_peer: Id | None = None  # set when the candidate failed a safety check
 
 
 class MetricSample(Event):

@@ -63,7 +63,7 @@ x-node-env: &node-env
   # and rejoin (tick 600). With 0 targets the episode lasts until max_ticks or battery exhaustion (A13); the
   # return is exploration reward only. Raise DEMO_N_TARGETS only after measuring that episodes still reach tick 600.
   WORLD_N_TARGETS: ${DEMO_N_TARGETS:-0}
-  WORLD_SIZE: ${DEMO_WORLD_SIZE:-32}  # continuous_flight demo: 32 cells x 625 m = 20 km (legacy_grid: DEMO_ENV_MODE=legacy_grid DEMO_WORLD_SIZE=16)
+  WORLD_SIZE: ${DEMO_WORLD_SIZE:-80}  # continuous_flight demo: 80 x 45 cells (DEMO_WORLD_HEIGHT) x 625 m = 50 x 28 km; the node-private validation world stays square (legacy_grid: DEMO_ENV_MODE=legacy_grid DEMO_WORLD_SIZE=16)
   # A18 versioned ids the demo plans select (infra/demo/plans). The coordinator's `configure` message
   # is authoritative at run start; these make a node that boots (or restarts) before any run consistent
   # with them: observation grid-flat-v2-visits-shared (82 floats), reward rew-v1, learner schedule
@@ -138,7 +138,7 @@ services:
       NODE_CONTROL_TOKEN: ${NODE_CONTROL_TOKEN:?set in .env}
       COORDINATOR_DATA_DIR: /data/coordinator
       COORDINATOR_NODE_URLS: node-01=http://node-01:8080,node-02=http://node-02:8080,node-03=http://node-03:8080,node-04=http://node-04:8080
-      COORDINATOR_WORLD_KWARGS: '{"n_targets": ${DEMO_N_TARGETS:-0}, "environment_mode": "${DEMO_ENV_MODE:-continuous_flight}", "size": ${DEMO_WORLD_SIZE:-32}}'
+      COORDINATOR_WORLD_KWARGS: '{"n_targets": ${DEMO_N_TARGETS:-0}, "environment_mode": "${DEMO_ENV_MODE:-continuous_flight}", "size": ${DEMO_WORLD_SIZE:-80}, "height": ${DEMO_WORLD_HEIGHT:-45}, "terrain_seed": ${DEMO_TERRAIN_SEED:-1}, "terrain_style": "${DEMO_TERRAIN_STYLE:-alpine}"}'
       COORDINATOR_PLAN_FILE: /plans/${DEMO_PLAN:-smoke}.json
       ARCHIPELAGO_COMMIT: ${ARCHIPELAGO_COMMIT:-unknown}
     volumes:

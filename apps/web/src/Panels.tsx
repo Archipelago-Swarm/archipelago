@@ -1,3 +1,5 @@
+import { LineagePanel } from "./Lineage";
+import { MissionHUD } from "./MissionHUD";
 import { freshness, type Curve, type Panels } from "./live";
 
 const MIB = 1024 * 1024;
@@ -44,6 +46,7 @@ export function LivePanels({ p, now, recorded }: { p: Panels; now: number; recor
   const fresh = (at?: number) => (recorded ? "recorded" : freshness(at, now));
   return (
     <section aria-label="Live panels">
+      <MissionHUD p={p} />
       <p role="status" aria-label="Fault phase" data-phase={p.faultPhase ?? "unknown"}>
         Network: <strong>{p.faultPhase ?? "not reported"}</strong> · links: {p.links.length ? p.links.map(([a, b]) => `${a}↔${b}`).join(", ") : "none"}
       </p>
@@ -72,6 +75,7 @@ export function LivePanels({ p, now, recorded }: { p: Panels; now: number; recor
           )) : <tr><td colSpan={7}>No offers recorded.</td></tr>}
         </tbody>
       </table>
+      <LineagePanel lineage={p.lineage} />
       <h2>Training vs frozen evaluation</h2>
       <Curves train={p.train} ev={p.eval} />
       <h2>Resources</h2>

@@ -48,7 +48,12 @@ PROFILES: dict[str, dict[str, Any]] = {
     "smoke": {"max_ticks": 150, "timeout_s": 900, "max_wall_seconds": 900.0},
     "demo": {"max_ticks": 900, "timeout_s": 7200, "max_wall_seconds": 7200.0},
 }
-START_POSES = ((3, 3), (28, 3), (3, 28), (28, 28))  # distinct, inside the 32x32 hidden grid (continuous_flight demo)
+START_POSES = (
+    (8, 8),
+    (71, 8),
+    (8, 36),
+    (71, 36),
+)  # distinct, inside the 80x45 hidden grid (continuous_flight demo)
 
 
 class DemoError(RuntimeError):

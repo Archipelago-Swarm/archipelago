@@ -82,6 +82,12 @@ export type Radius = number;
 export type X1 = number;
 export type Y1 = number;
 export type TargetsFound = Marker[];
+export type Biome = string;
+export type ElevM = number[];
+export type Height = number;
+export type Observed = string;
+export type Size = number;
+export type VegPct = number[];
 export type WidthM = number;
 export type ArchitectureHash = string;
 export type EmittedAtUtc3 = string;
@@ -106,9 +112,14 @@ export type Bytes = number;
 export type CandidateScore = number | null;
 export type EmittedAtUtc4 = string;
 export type EventId4 = string;
+export type FlaggedPeer = string | null;
+export type GenerationCount = number;
 export type Kind5 = "learning_event";
 export type Loss = number | null;
 export type NewVersion = number;
+export type OriginNode = string | null;
+export type ParentIds = string[];
+export type PolicyId = string | null;
 export type PreviousVersion = number;
 export type Reason = string | null;
 export type RunId5 = string;
@@ -250,6 +261,7 @@ export interface WorldGeometry {
   sensor_radius_m: SensorRadiusM;
   shapes?: Shapes;
   targets_found?: TargetsFound;
+  terrain?: TerrainGrid | null;
   width_m: WidthM;
 }
 /**
@@ -263,6 +275,20 @@ export interface Marker {
   radius: Radius;
   x: X1;
   y: Y1;
+}
+/**
+ * Whole-map terrain for display, row-major (index = y * size + x, size columns, height rows).
+ *
+ * `observed` marks the cells the fleet has actually sensed, so a viewer can draw unobserved
+ * terrain dimmed. Display only: nodes never get it.
+ */
+export interface TerrainGrid {
+  biome: Biome;
+  elev_m: ElevM;
+  height: Height;
+  observed: Observed;
+  size: Size;
+  veg_pct: VegPct;
 }
 export interface PeerEnvelope {
   architecture_hash: ArchitectureHash;
@@ -290,9 +316,14 @@ export interface LearningEvent {
   candidate_score?: CandidateScore;
   emitted_at_utc: EmittedAtUtc4;
   event_id: EventId4;
+  flagged_peer?: FlaggedPeer;
+  generation_count?: GenerationCount;
   kind?: Kind5;
   loss: Loss;
   new_version: NewVersion;
+  origin_node?: OriginNode;
+  parent_ids?: ParentIds;
+  policy_id?: PolicyId;
   previous_version: PreviousVersion;
   reason?: Reason;
   run_id: RunId5;
