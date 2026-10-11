@@ -18,7 +18,6 @@ from .env import ACTIONS, DELTA, WALL, GridWorld
 
 # y grows downward (south), like the map. east = 0, south = +90 degrees.
 DESIRED_HEADING = {"east": 0.0, "south": math.pi / 2, "west": math.pi, "north": -math.pi / 2}
-_CALM = {"turn": 1.0, "wind": 0.0}
 _NAME = {v: k for k, v in DELTA.items() if k != "stay"}
 
 
@@ -153,16 +152,12 @@ class FlightWorld(GridWorld):
             want = actions.get(a)
             desired = DESIRED_HEADING.get(want) if want in ACTIONS else None
             bump = None
-            for k in range(self.substeps):
-                m = self.terrain.mods(self._cell_of(f["x"], f["y"])) if self.terrain else _CALM
+            for _ in range(self.substeps):
                 if desired is not None:
-                    lim = turn * m["turn"]  # canyon walls cap the turn radius
-                    f["heading"] += max(-lim, min(lim, wrap(desired - f["heading"])))
+                    f["heading"] += max(-turn, min(turn, wrap(desired - f["heading"])))
                 f["heading"] = wrap(f["heading"])
-                # deterministic turbulence: crosswind that flips sign over ~20 s
-                gust = m["wind"] * math.sin(0.3 * (self.tick * self.substeps + k) * dt + f["x"] / 900.0)
-                nx = f["x"] + (math.cos(f["heading"]) * f["speed"] - math.sin(f["heading"]) * gust) * dt
-                ny = f["y"] + (math.sin(f["heading"]) * f["speed"] + math.cos(f["heading"]) * gust) * dt
+                nx = f["x"] + math.cos(f["heading"]) * f["speed"] * dt
+                ny = f["y"] + math.sin(f["heading"]) * f["speed"] * dt
                 nc, cc = self._cell_of(nx, ny), self._cell_of(f["x"], f["y"])
                 if (
                     self._cell(nc) == WALL
