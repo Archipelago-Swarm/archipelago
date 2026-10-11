@@ -149,6 +149,31 @@ class WorldGeometry(Strict):
     terrain: TerrainGrid | None = None  # absent for uniform worlds
 
 
+class ObjectiveStatus(Strict):
+    id: Id
+    kind: Literal["find_targets", "cover_fraction"]
+    target: Annotated[float, Field(gt=0, allow_inf_nan=False)]  # count to find / coverage fraction
+    progress: Unit01  # fraction of the target reached
+    done: bool
+
+
+class MissionStatus(Strict):
+    """What the fleet is asked to do and how it is going. `map_seed` identifies the (replayable)
+    map of this episode; `completed_tick` is the episode tick the mission succeeded (time to
+    complete), null while active or failed."""
+
+    id: Id
+    type: Id
+    map_seed: Annotated[int, Field(ge=0)]
+    status: Literal["active", "succeeded", "failed"]
+    objectives: list[ObjectiveStatus]
+    time_budget_ticks: Annotated[int, Field(ge=1)]
+    energy_budget: Annotated[float, Field(gt=0, le=1, allow_inf_nan=False)] | None = None
+    energy_spent: Unit01 = 0.0
+    completed_tick: Tick | None = None
+    dynamics: list[Id] = []  # which scheduled changes are on: targets_move, targets_appear, ...
+
+
 class WorldSnapshot(Event):
     kind: Literal["world_snapshot"] = "world_snapshot"
     run_status: Literal[
@@ -159,6 +184,7 @@ class WorldSnapshot(Event):
     coverage: Unit01
     topology: Topology
     world: WorldGeometry | None = None
+    mission: MissionStatus | None = None  # absent when the run has no mission
 
 
 class PeerEnvelope(Event):
@@ -193,6 +219,9 @@ class LearningEvent(Event):
     origin_node: Id | None = None
     generation_count: Annotated[int, Field(ge=0)] = 0
     flagged_peer: Id | None = None  # set when the candidate failed a safety check
+    # Peer decisions: the skill the candidate improved most and its measured proficiency gain.
+    skill: Id | None = None
+    skill_gain: Finite | None = None
 
 
 class MetricSample(Event):

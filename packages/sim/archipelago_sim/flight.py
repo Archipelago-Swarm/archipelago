@@ -80,6 +80,34 @@ class FlightWorld(GridWorld):
     def _cell_of(self, x: float, y: float) -> tuple[int, int]:
         return (math.floor(x / self.cell_m), math.floor(y / self.cell_m))
 
+    def _cells_in(self, poly: list[tuple[float, float]]) -> set[tuple[int, int]]:
+        cm = self.cell_m
+        return {
+            (i, j)
+            for i in range(self.size)
+            for j in range(self.height)
+            if _inside(poly, (i + 0.5) * cm, (j + 0.5) * cm)
+        }
+
+    def _shift_obstacles(self, r: random.Random) -> dict | None:
+        """Slide one whole terrain feature by a cell (polygon and raster together); refused if it
+        would leave the map or cover a drone, target or start cell."""
+        if not self.shapes:
+            return None
+        sid = r.choice(sorted(self.shapes))
+        dx, dy = r.choice(((1, 0), (-1, 0), (0, 1), (0, -1)))
+        cm = self.cell_m
+        pts = [(x + dx * cm, y + dy * cm) for x, y in self.shapes[sid]["points"]]
+        if not all(0 <= x <= self.width_m and 0 <= y <= self.height_m for x, y in pts):
+            return None
+        cells = self._cells_in(pts)
+        blocked = self._keep_clear | set(self.targets) | {d.pos for d in self.drones.values()}
+        if cells & blocked:
+            return None
+        self.shapes[sid] = {"points": pts, "cells": cells}
+        self.obstacles = set().union(*(v["cells"] for v in self.shapes.values())) - self._keep_clear
+        return {"shape": sid, "dx": dx, "dy": dy}
+
     def _gen_obstacles(self, rng, cells, starts) -> set[tuple[int, int]]:
         """Sparse large-area terrain: rotated blocks, blobs and one two-wall corridor, rasterised
         onto the hidden grid by cell centre. Start cells are kept clear."""
@@ -114,12 +142,7 @@ class FlightWorld(GridWorld):
         obstacles: set[tuple[int, int]] = set()
         self.shapes = {}
         for poly in polys:
-            cs = {
-                (i, j)
-                for i in range(self.size)
-                for j in range(self.height)
-                if _inside(poly, (i + 0.5) * cm, (j + 0.5) * cm)
-            }
+            cs = self._cells_in(poly)
             if not cs or any(_inside(poly, *p) for p in start_xy):
                 continue
             self.shapes[f"s{len(self.shapes) + 1}"] = {"points": poly, "cells": cs}

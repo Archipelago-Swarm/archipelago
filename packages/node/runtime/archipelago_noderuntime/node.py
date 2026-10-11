@@ -47,6 +47,7 @@ from archipelago_learning import (
     encode,
     offer,
     schedules,
+    skills,
 )
 from archipelago_learning.checkpoint import CheckpointError, SequenceAllocator, checkpoint_due
 from archipelago_peer import post
@@ -810,6 +811,7 @@ class Node:
             transfer="accepted" if ok else "rejected", reason=reason,
             candidate_score=cand if cand is not None and math.isfinite(cand) else None,
             bytes=ev["bytes"], wall_seconds=float(ev.get("validation_seconds", 0.0)),
+            skill=ev.get("skill"), skill_gain=ev.get("skill_gain"),
         )  # fmt: skip
         # A7: decision evidence that LearningEvent has no field for rides as MetricSamples
         phase = self._phase()
@@ -982,12 +984,29 @@ class Node:
             cands = self._collect(sched, tick)
             if cands:
                 res["decisions"] = self._decide(cands, w, res)
+            elif w.final:
+                self._measure_own_skills(w)
+            self._emit_skills(tick)
             self._flush_window(tick)
         else:
             res["skipped"] = "eval_mode"
         if w.final:  # A17: a generation at each episode_end
             res["checkpoint"] = self.checkpoint()["generation"]
         return res
+
+    def _measure_own_skills(self, w: Job) -> None:
+        """Episode-end skill measurement when no peer candidate triggered a validation."""
+        with self.mu:
+            own = self.learner.params_numpy()
+        measured = self.validator.run(own, w.cancel)[1]
+        with self.mu:
+            skills.record(self.learner, measured, self.cfg.node_id)
+
+    def _emit_skills(self, tick: int) -> None:
+        for name, sk in (getattr(self.learner, "skills", None) or {}).items():
+            self._metric(f"skill.{name}", sk["proficiency"], "score", "eval")
+            # unit carries the node the proficiency came from: "source:<node>"
+            self._metric(f"skill_version.{name}", sk["version"], f"source:{sk['source']}", "eval")
 
     def _offer_phase(self, w: Job, sched: Schedule, res: dict) -> None:
         cfg, me, tick = self.cfg, self.cfg.node_id, w.tick
@@ -1060,18 +1079,23 @@ class Node:
         decisions: list[dict] = []
         try:
             cache: dict[str, float] = {}
+            skill_cache: dict[str, dict[str, float]] = {}
             spent = {"seconds": 0.0}
 
             def timed(p) -> float:
                 t = time.perf_counter()
-                s = self.validator.evaluate(p, w.cancel)
+                s, sk = self.validator.run(p, w.cancel)
                 spent["seconds"] += time.perf_counter() - t
-                cache[params_digest(p)] = s
+                cache[params_digest(p)], skill_cache[params_digest(p)] = s, sk
                 return s
 
             def eval_fn(p):
                 s = cache.get(params_digest(p))
                 return s if s is not None else timed(p)
+
+            def skills_fn(p):
+                eval_fn(p)
+                return skill_cache[params_digest(p)]
 
             for env in cands:
                 self._check_cancel(w)
@@ -1085,6 +1109,8 @@ class Node:
                                     for k in KEYS}  # fmt: skip
                         if params_digest(own) not in cache:
                             timed(own)  # current policy: once per window
+                            with self.mu:  # training moved our proficiencies: version them
+                                skills.record(L, skill_cache[params_digest(own)], cfg.node_id)
                         eval_fn(cand)
                     except PeerError:
                         pass  # offer() below records the named reject reason
@@ -1092,7 +1118,7 @@ class Node:
                 with self.mu:
                     self._check_cancel(w)  # never apply a candidate after the window was cancelled
                     ev = offer(L, env.payload, eval_fn, cfg.peer_margin, alpha, sender=env.src,
-                               window=window)  # fmt: skip
+                               window=window, skills_fn=skills_fn)  # fmt: skip
                     ev.setdefault("source", env.src)
                     ev.setdefault("source_version", env.seq)
                     ev["validation_seconds"] = spent["seconds"] - seconds0
@@ -1152,6 +1178,7 @@ class Node:
             "sequence_ceiling": self.seq.ceiling, "peer_seq_ceiling": self.peer_seq.ceiling,
             "config_hash": self.config_hash, "configured_run": self.configured_run,
             "spool": self.spool.state(),
+            "skills": getattr(self.learner, "skills", {}),
         }  # fmt: skip
 
     def checkpoint(self) -> dict:
@@ -1191,6 +1218,7 @@ class Node:
             except ValueError:
                 self.memory.reset()  # unreadable memory: start the episode's memory fresh
                 mem_ok = False
+        self.learner.skills = n.get("skills", {})
         self.train_paused = bool(n.get("train_paused", False))
         self.act_count = int(n.get("act_count", 0))
         self.loss_ema = n.get("loss_ema")
@@ -1260,6 +1288,7 @@ class Node:
                 "double_dqn": self.cfg.double_dqn, "obs_dim": self.enc.obs_dim,
                 "train_episode": self.train_ep,
                 "summaries": self._summary_status(),
+                "skills": getattr(L, "skills", {}),
                 "counters": dict(self.counters), "restore": self.restore_info,
                 "validation_evaluations": self.validator.episodes_run,
                 "act_latency_ms": {"n": len(lat), "p50": _pct(lat, 50), "p99": _pct(lat, 99),

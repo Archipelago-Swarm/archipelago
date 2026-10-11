@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 
 KEEP = 3
@@ -45,6 +46,8 @@ class DurableIO:
 
     def fsync_dir(self, path: Path) -> None:
         self.hook("fsync_dir", str(path))
+        if sys.platform == "win32":  # directories cannot be opened there; rename is the barrier
+            return
         fd = os.open(path, os.O_RDONLY)
         try:
             os.fsync(fd)

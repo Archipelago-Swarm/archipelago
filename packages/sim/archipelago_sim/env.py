@@ -11,6 +11,7 @@ import json
 import random
 from dataclasses import dataclass, field
 
+from .mission import MissionSpec
 from .terrain import Terrain
 
 ACTIONS = ("stay", "north", "east", "south", "west")
@@ -61,6 +62,7 @@ class GridWorld:
         terrain_seed: int | None = None,
         height: int | None = None,
         terrain_style: str = "classic",
+        mission: MissionSpec | dict | None = None,
     ):
         if reward_id not in REWARD_SPECS:
             raise ValueError(f"unknown reward_id {reward_id!r}")
@@ -75,6 +77,11 @@ class GridWorld:
             str, list[float]
         ] = {}  # PRIVILEGED, evaluation only: true p of each logged attempt; never in observe()
         self.r_revisit, self.pay_spawn_targets = REWARD_EXTRA[reward_id]
+        if isinstance(mission, dict):
+            mission = MissionSpec.from_dict(mission)
+        self.mission = mission
+        if mission is not None:  # the mission owns the target count
+            n_targets = mission.n_targets
         self.size, self.n_targets, self.radius = size, n_targets, sense_radius
         # `size` is the width in cells; `height` defaults to a square. Height may not exceed
         # the width, so
@@ -98,6 +105,7 @@ class GridWorld:
         n = self.size
         cells = [(x, y) for x in range(n) for y in range(self.height)]
         starts = starts or {}
+        self.map_seed, self._keep_clear = seed, set(starts.values())
         self.obstacles = self._gen_obstacles(rng, cells, starts)
         self.terrain = (
             None
@@ -132,7 +140,147 @@ class GridWorld:
         self.counters = dict.fromkeys(
             ("new_cells", "revisits", "wall_collisions", "agent_collisions", "agent_ticks"), 0
         )
+        self._start_mission(free)
         return {a: self.observe(a) for a in self.agents}
+
+    # ------------------------------------------------------------------ mission + dynamics
+    @property
+    def time_budget(self) -> int:
+        m = self.mission
+        return min(self.max_ticks, m.time_budget_ticks or self.max_ticks) if m else self.max_ticks
+
+    def _start_mission(self, free: list[tuple[int, int]]) -> None:
+        self.mission_result, self.mission_end_tick, self._obj_done = "active", None, {}
+        self._spawns: list[list] = []
+        m = self.mission
+        if m is None:
+            return
+        d = m.dynamics
+        taken = set(self.targets) | {dr.pos for dr in self.drones.values()}
+        spare = [c for c in free if c not in taken]
+        lo, hi = d.appear_window
+        for i in range(d.targets_appear):  # appearance ticks and fallback cells, from the map seed
+            r = random.Random(f"{self.map_seed}:appear:{i}")
+            tick = max(1, round(r.uniform(lo, hi) * self.time_budget))
+            self._spawns.append([tick, r.sample(spare, min(8, len(spare)))])
+        self._spawns.sort(key=lambda s: s[0])
+        self._update_mission()
+
+    def _near_free(self, c: tuple[int, int]) -> list[tuple[int, int]]:
+        occupied = set(self.targets) | {dr.pos for dr in self.drones.values()}
+        found = self.found_targets.union(*(dr.found for dr in self.drones.values()))
+        out = [
+            (c[0] + dx, c[1] + dy)
+            for dx, dy in DELTA.values()
+            if (dx or dy) and self._cell((c[0] + dx, c[1] + dy)) == FREE
+        ]
+        return sorted(n for n in out if n not in occupied and n not in found)
+
+    def _apply_dynamics(self) -> None:
+        """Scheduled world changes, applied at the start of a tick before anyone senses. Every
+        random draw comes from the map seed and the tick, so replays reproduce them exactly."""
+        m, t = self.mission, self.tick
+        if m is None:
+            return
+        d = m.dynamics
+        if d.targets_move_every and t % d.targets_move_every == 0:
+            r = random.Random(f"{self.map_seed}:move:{t}")
+            found = self.found_targets.union(*(dr.found for dr in self.drones.values()))
+            for i, c in enumerate(self.targets):
+                opts = [] if c in found else self._near_free(c)
+                if opts:
+                    self.targets[i] = r.choice(opts)
+                    self.events.append(
+                        {
+                            "tick": t,
+                            "event": "target_moved",
+                            "from": list(c),
+                            "to": list(self.targets[i]),
+                        }
+                    )
+        for sp in [s for s in self._spawns if s[0] <= t]:
+            occupied = set(self.targets) | {dr.pos for dr in self.drones.values()}
+            cell = next((c for c in sp[1] if self._cell(c) == FREE and c not in occupied), None)
+            if cell is not None:  # else retry next tick
+                self._spawns.remove(sp)
+                self.targets.append(cell)
+                self.events.append({"tick": t, "event": "target_appeared", "at": list(cell)})
+        if d.obstacles_shift_every and t % d.obstacles_shift_every == 0:
+            ev = self._shift_obstacles(random.Random(f"{self.map_seed}:shift:{t}"))
+            if ev:
+                self.events.append({"tick": t, "event": "obstacle_shifted", **ev})
+
+    def _shift_obstacles(self, r: random.Random) -> dict | None:
+        """Move one obstacle cell to a free neighbour (never onto a drone, target or start)."""
+        blocked = self._keep_clear | set(self.targets) | {dr.pos for dr in self.drones.values()}
+        for c in r.sample(sorted(self.obstacles), min(5, len(self.obstacles))):
+            opts = [n for n in self._near_free(c) if n not in blocked]
+            if opts:
+                new = r.choice(opts)
+                self.obstacles.remove(c)
+                self.obstacles.add(new)
+                return {"from": list(c), "to": list(new)}
+        return None
+
+    def _update_mission(self) -> None:
+        m = self.mission
+        if m is None or self.mission_result != "active":
+            return
+        values = {"find_targets": len(self.found_targets), "cover_fraction": self.coverage}
+        for o in m.objectives:
+            if o.id not in self._obj_done and values[o.kind] >= o.target:
+                self._obj_done[o.id] = self.tick
+        if len(self._obj_done) == len(m.objectives):
+            self.mission_result, self.mission_end_tick = "succeeded", self.tick
+        elif (
+            self.tick >= self.time_budget
+            or (m.energy_budget is not None and self.energy_spent > m.energy_budget)
+            or not any(dr.alive for dr in self.drones.values())
+        ):
+            self.mission_result, self.mission_end_tick = "failed", self.tick
+
+    @property
+    def energy_spent(self) -> float:
+        """Fraction of the fleet's battery capacity consumed so far."""
+        drones = self.drones.values()
+        return sum(1 - dr.battery / self.battery_scale for dr in drones) / max(1, len(drones))
+
+    def mission_status(self) -> dict | None:
+        """Mission progress for telemetry (None when the world has no mission)."""
+        m = self.mission
+        if m is None:
+            return None
+        values = {"find_targets": len(self.found_targets), "cover_fraction": self.coverage}
+        d = m.dynamics
+        return {
+            "id": m.id,
+            "type": m.type,
+            "map_seed": self.map_seed,
+            "status": self.mission_result,
+            "objectives": [
+                {
+                    "id": o.id,
+                    "kind": o.kind,
+                    "target": o.target,
+                    "progress": round(min(1.0, values[o.kind] / o.target), 4),
+                    "done": o.id in self._obj_done,
+                }
+                for o in m.objectives
+            ],
+            "time_budget_ticks": self.time_budget,
+            "energy_budget": m.energy_budget,
+            "energy_spent": round(max(0.0, self.energy_spent), 4),
+            "completed_tick": self.mission_end_tick if self.mission_result == "succeeded" else None,
+            "dynamics": [
+                n
+                for n, on in (
+                    ("targets_move", d.targets_move_every),
+                    ("targets_appear", d.targets_appear),
+                    ("obstacles_shift", d.obstacles_shift_every),
+                )
+                if on
+            ],
+        }
 
     def _gen_obstacles(self, rng: random.Random, cells, starts) -> set[tuple[int, int]]:
         return {c for c in cells if rng.random() < self.density} - set(starts.values())
@@ -245,6 +393,7 @@ class GridWorld:
         if not self.agents:
             raise RuntimeError("step() on a finished episode; call reset()")
         self.tick += 1
+        self._apply_dynamics()
         ev = self.events
         rewards = {a: self.r_step for a in self.agents}
         cmds: dict[str, str] = {}
@@ -314,7 +463,11 @@ class GridWorld:
         for _ in self.found_targets - before:
             for a in self.agents:
                 rewards[a] += self.r_target / len(self.agents)
-        done = bool(self.targets) and len(self.found_targets) == len(self.targets)
+        self._update_mission()
+        if self.mission is not None:
+            done = self.mission_result != "active"
+        else:
+            done = bool(self.targets) and len(self.found_targets) == len(self.targets)
         terms = {a: done or not self.drones[a].alive for a in self.agents}
         for a in self.agents:
             if not self.drones[a].alive:
@@ -346,7 +499,7 @@ class GridWorld:
 
     def world_state(self) -> dict:
         """Privileged snapshot (hidden cells included). Never hand to a node."""
-        return {
+        s = {
             "tick": self.tick,
             "size": self.size,
             "height": self.height,
@@ -357,6 +510,9 @@ class GridWorld:
             "battery": {a: round(d.battery, 6) for a, d in self.drones.items()},
             "coverage": self.coverage,
         }
+        if self.mission is not None:
+            s["mission"] = self.mission_status()
+        return s
 
     def trace_hash(self) -> str:
         return hashlib.sha256(json.dumps(self.world_state(), sort_keys=True).encode()).hexdigest()

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { WorldSnapshot } from "@archipelago/contracts";
 import { FlightMap } from "./FlightMap";
+import { MISSION_LEGEND, drawMission, objectiveColor } from "./missionOverlay";
 import {
   BASE, SERVER_CMD, applyMessage, decisionText, demoFeed, disruptionLabel, emptyBuffer, explainLink, feedAt, feedText, frameAt, hms, km, loadOfflineReplay, pct,
   type Buffer, type MapSummary, type Meta, type RFLink, type UavState, type View,
@@ -11,12 +12,12 @@ const RATES = [15, 60, 120, 300];
 const MARKERS = new Set(["POI_VERIFIED", "NETWORK_PARTITIONED", "SKILL_LEARNED", "DISRUPTION_STARTED", "UAV_FAILED", "MISSION_SUCCESS", "MISSION_FAILED"]);
 
 /** Live SSE buffer; falls back to the committed replay (seed 1002, 6 UAVs only), else an error panel. Never synthetic data. */
-function useMissionBuffer(seed: number, uavs: number) {
+function useMissionBuffer(seed: number, uavs: number, skills: boolean) {
   const [buf, setBuf] = useState<Buffer>(emptyBuffer), [origin, setOrigin] = useState<Origin>("loading"), [err, setErr] = useState("");
   useEffect(() => {
     let closed = false;
     setBuf(emptyBuffer()); setOrigin("loading"); setErr("");
-    const es = new EventSource(`${BASE}/api/mission/stream?seed=${seed}&uavs=${uavs}&tps=30`);
+    const es = new EventSource(`${BASE}/api/mission/stream?seed=${seed}&uavs=${uavs}&skills=${skills ? 1 : 0}&tps=30`);
     const on = (name: "meta" | "tick" | "end") => es.addEventListener(name, (e) => {
       setOrigin("live"); setBuf((b) => applyMessage(b, name, JSON.parse((e as MessageEvent).data)));
       if (name === "end") { closed = true; es.close(); } // else EventSource would restart the mission
@@ -25,12 +26,12 @@ function useMissionBuffer(seed: number, uavs: number) {
     es.onerror = () => {
       es.close();
       if (closed) return;
-      (uavs === 6 ? loadOfflineReplay(seed) : Promise.reject(new Error("offline replays exist for 6 UAVs only")))
+      (uavs === 6 && skills ? loadOfflineReplay(seed) : Promise.reject(new Error("the offline replay is skilled, 6 UAVs only")))
         .then((b) => { setBuf(b); setOrigin("offline"); })
         .catch((e) => { setErr(String(e.message ?? e)); setOrigin("error"); });
     };
     return () => { closed = true; es.close(); };
-  }, [seed, uavs]);
+  }, [seed, uavs, skills]);
   return { buf, origin, err };
 }
 
@@ -53,18 +54,13 @@ function useObserved(buf: Buffer, meta: Meta | null, t: number) {
   return m.str;
 }
 
-/** Active disruption zones (area denial) as the contract's obstacle polygons, which FlightMap already draws. */
-const hazards = (v: View) => v.floor.disruptions.filter((d) => d.active && d.position && d.radius).map((d) => ({
-  id: d.id, points: Array.from({ length: 36 }, (_, i) => [d.position!.x + d.radius! * Math.cos((i * Math.PI) / 18), d.position!.y + d.radius! * Math.sin((i * Math.PI) / 18)]),
-}));
-
 function snapshotOf(meta: Meta, v: View, seed: number, observed: string): WorldSnapshot {
   const poses = Object.fromEntries(v.uavs.map((u) => [u.id, { x: u.position.x, y: u.position.y, z: 0, heading_rad: u.heading, speed_mps: u.speed }]));
   return {
     schema_version: "0.1.0", event_id: `m-${seed}`, run_id: `mission-${seed}`, source_node_id: null, sim_tick: Math.round(v.t * 100), emitted_at_utc: "1970-01-01T00:00:00Z", sequence: 0,
     kind: "world_snapshot", run_status: "running", poses, obstacles: [], coverage: v.floor.mission.fleetKnowledgeCoverage,
     topology: { links: v.floor.links.filter((l) => l.connected).map((l) => [l.sourceNodeId, l.targetNodeId]) },
-    world: { width_m: meta.world.width, height_m: meta.world.height, cell_m: meta.world.cellMeters, sensor_radius_m: meta.uavSpec.sensor.radiusMeters, shapes: hazards(v), targets_found: v.floor.pois.filter((p) => p.state !== "UNKNOWN").map((p) => ({ x: p.position.x, y: p.position.y, radius: 0 })), terrain: { ...meta.world.terrain, observed } },
+    world: { width_m: meta.world.width, height_m: meta.world.height, cell_m: meta.world.cellMeters, sensor_radius_m: meta.uavSpec.sensor.radiusMeters, shapes: [], targets_found: [], terrain: { ...meta.world.terrain, observed } },
   } as unknown as WorldSnapshot;
 }
 
@@ -139,7 +135,8 @@ function LinkInspector({ l, cfgTransfer }: { l: RFLink; cfgTransfer: number }) {
 }
 
 export function MissionViewer({ seed, uavs, compare, onBack }: { seed: number; uavs: number; compare?: MapSummary; onBack(): void }) {
-  const { buf, origin, err } = useMissionBuffer(seed, uavs);
+  const [skilled, setSkilled] = useState(() => new URLSearchParams(location.search).get("skills") !== "0"); // which demo to fetch; the badge below shows what the server actually ran
+  const { buf, origin, err } = useMissionBuffer(seed, uavs, skilled);
   const [t, setT] = useState(0), [playing, setPlaying] = useState(true), [rate, setRate] = useState(60);
   const [selUav, setSelUav] = useState<string | null>(null), [selLink, setSelLink] = useState<string | null>(null);
   const [showWeak, setShowWeak] = useState(false), [rings, setRings] = useState(false), [debug, setDebug] = useState(false), [spec, setSpec] = useState(false);
@@ -166,9 +163,11 @@ export function MissionViewer({ seed, uavs, compare, onBack }: { seed: number; u
     <div className="m-view">
       <div className="row"><button onClick={onBack}>← Setup</button>
         <button onClick={() => setSpec(!spec)} aria-pressed={spec}>{meta.config.n_uavs} identical UAVs · {meta.uavSpec.cruiseSpeedMps} m/s · {km(meta.uavSpec.sensor.radiusMeters)} km sensor · {km(meta.uavSpec.comms.nominalRangeMeters)} km radio</button>
+        <button onClick={() => { setSkilled(!skilled); setT(0); setPlaying(true); }} title="Reload this map with skills switched">Watch {skilled ? "unskilled" : "skilled"} instead</button>
         <span className="pill">seed {seed}</span>{origin === "offline" && <span className="pill" role="status">offline replay</span>}
         <span className="note">{meta.world.tilesX} x {meta.world.tilesY} tiles · {km(meta.world.width)} x {km(meta.world.height)} km · skills {meta.skillsEnabled ? "on" : "off"}</span></div>
       {spec && <aside aria-label="Platform spec"><Spec meta={meta} /></aside>}
+      <p role="status" className={`m-demo ${meta.skillsEnabled ? "skilled" : "unskilled"}`}><b>{meta.skillsEnabled ? "SKILLED DEMO" : "UNSKILLED DEMO"}</b> {meta.skillsEnabled ? "UAVs learn skills and share them over radio links." : "Baseline: no skill learning or sharing between UAVs."}</p>
       <section aria-label="Mission HUD" className={`m-hud ${m.status}`}>
         <b className="m-status">{m.status}</b>
         <span>Clock {hms(m.elapsedTime)} · remaining {hms(m.timeLimit - m.elapsedTime)}</span>
@@ -178,7 +177,7 @@ export function MissionViewer({ seed, uavs, compare, onBack }: { seed: number; u
       </section>
       <div className="m-grid">
         <div>
-          <FlightMap snap={snap} height="88vh" instant />
+          <FlightMap snap={snap} height="88vh" instant legendRows={MISSION_LEGEND} colors={Object.fromEntries(view.uavs.map((x) => [x.id, objectiveColor(x)]))} overlay={(o) => drawMission(o, { view, showWeak, showRings: rings, selUav, selLink, skilled: meta.skillsEnabled })} />
           <div className="row" role="group" aria-label="Select UAV">{view.uavs.map((x) => <button key={x.id} aria-pressed={x.id === selUav} onClick={() => { setSelUav(x.id); setSelLink(null); }}>{x.id.replace("UAV-", "U")}</button>)}</div>
           <div className="row" role="group" aria-label="Playback">
             <button onClick={() => { if (ended && t >= tmax) setT(0); setPlaying(!playing); }}>{playing ? "Pause" : "Play"}</button>

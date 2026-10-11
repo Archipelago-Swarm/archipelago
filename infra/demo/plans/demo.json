@@ -34,6 +34,12 @@
       ]
     }
   ],
+  "mission": {
+    "id": "sar-demo",
+    "type": "search_rescue",
+    "n_targets": 6,
+    "dynamics": {"targets_move_every": 20, "targets_appear": 2, "obstacles_shift_every": 50}
+  },
   "kill_node": null,
   "telemetry_outage": null
 }

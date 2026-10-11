@@ -21,6 +21,17 @@ def plan(name):
     return Plan.model_validate(json.loads((ROOT / f"infra/demo/plans/{name}.json").read_text()))
 
 
+def test_demo_plan_mission_is_dynamic_and_valid_in_the_sim():
+    sys.path[:0] = [str(ROOT / "packages/sim")]
+    from archipelago_sim.mission import MissionSpec
+
+    m = plan("demo").mission
+    spec = MissionSpec.from_dict(m.model_dump(mode="json"))
+    assert spec.type == "search_rescue" and spec.n_targets > 0
+    assert spec.dynamics.targets_move_every and spec.dynamics.targets_appear
+    assert spec.dynamics.obstacles_shift_every
+
+
 @pytest.mark.parametrize("name", ["smoke", "demo"])
 def test_plan_loads_through_the_coordinator_model(name):
     p = plan(name)

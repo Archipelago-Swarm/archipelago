@@ -1,4 +1,4 @@
-import type { LearningEvent, MetricSample, WorldSnapshot } from "@archipelago/contracts";
+import type { LearningEvent, MetricSample, MissionStatus, WorldSnapshot } from "@archipelago/contracts";
 import type { Conn, Source } from "./status";
 import { isTerminal } from "./status";
 
@@ -40,8 +40,13 @@ export function searchBoost(m: Mission, now: number): number | null {
   if (!before) return null;
   return Math.round(((m.finds.length - before) / (now - a) / (before / a) - 1) * 100);
 }
+// Skills a node has learned: node -> skill -> measured proficiency (0..1), version and the node it came from.
+export interface Skill { proficiency: number; version: number; source: string | null }
+export type Skills = Record<string, Record<string, Skill>>;
 export interface Panels {
   mission: Mission;
+  missionStatus: MissionStatus | null; // active mission, objectives and map seed from the newest snapshot
+  skills: Skills;
   lineage: Lineage;
   runId: string | null; lastSequence: number; lastEventAt: number | null;
   nodes: Record<string, NodeCard>; offers: Offer[]; envelopes: Envelope[]; links: [string, string][];
@@ -55,6 +60,8 @@ export type PanelAction = { t: "record"; record: unknown; at: number } | { t: "r
 
 export const emptyPanels = (): Panels => ({
   mission: { total: null, finds: [], adoptTick: null },
+  missionStatus: null,
+  skills: {},
   lineage: { dag: {}, holders: {}, status: {}, flagged: [] },
   runId: null, lastSequence: 0, lastEventAt: null, nodes: {}, offers: [], envelopes: [], links: [], positions: {},
   runStatus: null, coverage: null, tick: null, faultPhase: null,
@@ -76,11 +83,11 @@ function applySnapshot(s: Panels, r: WorldSnapshot): Panels {
   for (const [id, p] of Object.entries(r.poses)) {
     positions[id] = { x: p.x, y: p.y };
     const prev = s.positions[id];
-    if (r.world) { nodes[id] = { ...nodes[id], lastAction: `${Math.round(((((p.heading_rad ?? 0) * 180) / Math.PI + 90) % 360 + 360) % 360)}° at ${Math.round(p.speed_mps ?? 0)} m/s` }; continue; }
+    if (r.world) { nodes[id] = { ...nodes[id], lastAction: `${Math.round(((((p.heading_rad ?? 0) * 180) / Math.PI + 90) % 360 + 360) % 360)}ï¿½ at ${Math.round(p.speed_mps ?? 0)} m/s` }; continue; }
     const lastAction = !prev ? nodes[id]?.lastAction : prev.x === p.x && prev.y === p.y ? "hold" : `move (${signed(p.x - prev.x)}, ${signed(p.y - prev.y)}) cells`;
     nodes[id] = { ...nodes[id], lastAction };
   }
-  return { ...s, nodes, positions, links: r.topology.links as [string, string][], runStatus: r.run_status, coverage: r.coverage, tick: r.sim_tick };
+  return { ...s, missionStatus: r.mission ?? s.missionStatus, nodes, positions, links: r.topology.links as [string, string][], runStatus: r.run_status, coverage: r.coverage, tick: r.sim_tick };
 }
 
 function applyMetric(s: Panels, r: MetricSample, at: number): Panels {
@@ -106,7 +113,14 @@ function applyMetric(s: Panels, r: MetricSample, at: number): Panels {
       if (!key) return s;
       return { ...s, [key]: { unit: r.unit, points: bounded([...s[key].points, { tick: r.sim_tick, value: v }], MAX_CURVE_POINTS) } };
     }
-    default: return node({});
+    default: {
+      // skill.<name> = proficiency; skill_version.<name> = version, unit "source:<node>" names where it came from.
+      const [kind, name] = r.metric.split(".", 2);
+      if (!id || !name || (kind !== "skill" && kind !== "skill_version")) return node({});
+      const prev = s.skills[id]?.[name] ?? { proficiency: 0, version: 0, source: null };
+      const skill: Skill = kind === "skill" ? { ...prev, proficiency: v } : { ...prev, version: v, source: r.unit.startsWith("source:") ? r.unit.slice(7) : prev.source };
+      return { ...node({}), skills: { ...s.skills, [id]: { ...s.skills[id], [name]: skill } } };
+    }
   }
 }
 

@@ -40,7 +40,7 @@ def test_paired_bootstrap_separates_a_clear_gain_and_keeps_noise_inconclusive():
 
 
 # ------------------------------------------------------------------------------------ outcomes
-def one_episode(policy_maker, ticks=20, seed=7, n=4):
+def one_episode(policy_maker, ticks=20, seed=1, n=4):  # maps derive from (seed, episode)
     cfg = make_config(seed, ticks, n)
     kw = {"size": 8, "n_targets": 3, "battery_scale": 4.0}
     return cfg, kw, A.play_policy(cfg, kw, policy_maker)
@@ -54,7 +54,9 @@ def test_idle_return_is_the_revisit_plus_step_penalty_only():
 
 
 def test_rule_explorer_beats_idle_and_is_deterministic():
-    cfg, kw, rule = one_episode(A.rule_policy, ticks=40)
+    cfg, kw, rule = one_episode(
+        A.rule_policy, ticks=40, seed=1
+    )  # seed 1: maps are now derived from (seed, episode)
     assert rule["coverage_gain"] > 0.2 and rule["ref_return"] > -0.26 * 40
     assert A.play_policy(cfg, kw, A.rule_policy) == rule
 

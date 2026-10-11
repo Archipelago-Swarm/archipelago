@@ -210,6 +210,8 @@ class Coordinator:
             shift = req.map_offset
             eps = [e.model_copy(update={"seed": e.seed + shift}) for e in loaded.plan.episodes]
             loaded = replace(loaded, plan=loaded.plan.model_copy(update={"episodes": eps}))
+        if req.mission is not None:
+            loaded = replace(loaded, plan=loaded.plan.model_copy(update={"mission": req.mission}))
         plan_reward = loaded.plan.reward_id
         if plan_reward is not None:  # A18: the plan's versioned reward id is authoritative
             if req.run_config.reward_id not in (plan_reward, "rew-v0"):

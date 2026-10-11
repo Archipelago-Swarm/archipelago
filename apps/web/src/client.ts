@@ -19,9 +19,10 @@ export const login = (token: string, f: Fetch = fetch) => call(f, "/v1/login", j
 export const getRun = (id: string, f: Fetch = fetch) => call<RunView>(f, `/v1/runs/${id}`);
 
 // The scenario is the shared run_config; map_offset shifts the server plan's episode seeds, so each offset is a different set of maps.
-export function startRun(base: Record<string, unknown>, mapSeed: number, f: Fetch = fetch) {
+// `mission` optionally selects the mission and its dynamics (validated by the coordinator; omitted = the plan's).
+export function startRun(base: Record<string, unknown>, mapSeed: number, f: Fetch = fetch, mission?: Record<string, unknown>) {
   const run_id = `run-${Date.now().toString(36)}-${mapSeed}`;
-  const config = { ...base, run_id, map_offset: mapSeed };
+  const config = { ...base, run_id, map_offset: mapSeed, ...(mission ? { mission } : {}) };
   return call<RunView>(f, "/v1/runs", { ...json(config), headers: { "content-type": "application/json", "Idempotency-Key": run_id } });
 }
 

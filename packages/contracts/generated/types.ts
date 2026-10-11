@@ -60,6 +60,21 @@ export type Coverage = number;
 export type EmittedAtUtc2 = string;
 export type EventId2 = string;
 export type Kind3 = "world_snapshot";
+export type CompletedTick = number | null;
+export type Dynamics = string[];
+export type EnergyBudget = number | null;
+export type EnergySpent = number;
+export type Id = string;
+export type MapSeed = number;
+export type Done = boolean;
+export type Id1 = string;
+export type Kind4 = "find_targets" | "cover_fraction";
+export type Progress = number;
+export type Target = number;
+export type Objectives = ObjectiveStatus[];
+export type Status = "active" | "succeeded" | "failed";
+export type TimeBudgetTicks = number;
+export type Type = string;
 export type Obstacles = [unknown, unknown][];
 export type RunId3 = string;
 export type RunStatus =
@@ -72,7 +87,7 @@ export type Links = [unknown, unknown][];
 export type CellM = number;
 export type HeightM = number;
 export type SensorRadiusM = number;
-export type Id = string;
+export type Id2 = string;
 /**
  * @minItems 3
  */
@@ -93,7 +108,7 @@ export type ArchitectureHash = string;
 export type EmittedAtUtc3 = string;
 export type EncoderHash = string;
 export type EventId3 = string;
-export type Kind4 = "peer_envelope";
+export type Kind5 = "peer_envelope";
 export type MessageId = string;
 export type ModelVersion = number;
 export type PayloadLength = number;
@@ -107,14 +122,14 @@ export type Sequence3 = number;
 export type SimTick3 = number;
 export type SourceNodeId3 = string | null;
 export type TtlTicks = number;
-export type Type = "hello" | "model_offer" | "model_request" | "model_payload" | "ack";
+export type Type1 = "hello" | "model_offer" | "model_request" | "model_payload" | "ack";
 export type Bytes = number;
 export type CandidateScore = number | null;
 export type EmittedAtUtc4 = string;
 export type EventId4 = string;
 export type FlaggedPeer = string | null;
 export type GenerationCount = number;
-export type Kind5 = "learning_event";
+export type Kind6 = "learning_event";
 export type Loss = number | null;
 export type NewVersion = number;
 export type OriginNode = string | null;
@@ -126,13 +141,15 @@ export type RunId5 = string;
 export type SchemaVersion5 = string;
 export type Sequence4 = number;
 export type SimTick4 = number;
+export type Skill = string | null;
+export type SkillGain = number | null;
 export type SourceNodeId4 = string | null;
 export type Transfer = "none" | "accepted" | "rejected";
 export type UpdateCount = number;
 export type WallSeconds = number;
 export type EmittedAtUtc5 = string;
 export type EventId5 = string;
-export type Kind6 = "metric_sample";
+export type Kind7 = "metric_sample";
 export type Metric = string;
 export type Phase = "train" | "eval" | "partition" | "recovery" | "other";
 export type RunId6 = string;
@@ -146,7 +163,7 @@ export type Commit = string;
 export type ConfigHash = string;
 export type Format = string;
 export type FormatVersion = string;
-export type Kind7 = "artifact_manifest";
+export type Kind8 = "artifact_manifest";
 export type NodeId1 = string | null;
 export type Path = string;
 export type RunId7 = string;
@@ -235,6 +252,7 @@ export interface WorldSnapshot {
   emitted_at_utc: EmittedAtUtc2;
   event_id: EventId2;
   kind?: Kind3;
+  mission?: MissionStatus | null;
   obstacles: Obstacles;
   poses: Poses;
   run_id: RunId3;
@@ -245,6 +263,30 @@ export interface WorldSnapshot {
   source_node_id: SourceNodeId2;
   topology: Topology;
   world?: WorldGeometry | null;
+}
+/**
+ * What the fleet is asked to do and how it is going. `map_seed` identifies the (replayable)
+ * map of this episode; `completed_tick` is the episode tick the mission succeeded (time to
+ * complete), null while active or failed.
+ */
+export interface MissionStatus {
+  completed_tick?: CompletedTick;
+  dynamics?: Dynamics;
+  energy_budget?: EnergyBudget;
+  energy_spent?: EnergySpent;
+  id: Id;
+  map_seed: MapSeed;
+  objectives: Objectives;
+  status: Status;
+  time_budget_ticks: TimeBudgetTicks;
+  type: Type;
+}
+export interface ObjectiveStatus {
+  done: Done;
+  id: Id1;
+  kind: Kind4;
+  progress: Progress;
+  target: Target;
 }
 export interface Poses {
   [k: string]: Pose;
@@ -268,7 +310,7 @@ export interface WorldGeometry {
  * Obstacle polygon in world meters (a publicly revealed one: some node has sensed it).
  */
 export interface Shape {
-  id: Id;
+  id: Id2;
   points: Points;
 }
 export interface Marker {
@@ -295,7 +337,7 @@ export interface PeerEnvelope {
   emitted_at_utc: EmittedAtUtc3;
   encoder_hash: EncoderHash;
   event_id: EventId3;
-  kind?: Kind4;
+  kind?: Kind5;
   message_id: MessageId;
   model_version: ModelVersion;
   payload_length: PayloadLength;
@@ -309,7 +351,7 @@ export interface PeerEnvelope {
   sim_tick: SimTick3;
   source_node_id: SourceNodeId3;
   ttl_ticks: TtlTicks;
-  type: Type;
+  type: Type1;
 }
 export interface LearningEvent {
   bytes?: Bytes;
@@ -318,7 +360,7 @@ export interface LearningEvent {
   event_id: EventId4;
   flagged_peer?: FlaggedPeer;
   generation_count?: GenerationCount;
-  kind?: Kind5;
+  kind?: Kind6;
   loss: Loss;
   new_version: NewVersion;
   origin_node?: OriginNode;
@@ -330,6 +372,8 @@ export interface LearningEvent {
   schema_version: SchemaVersion5;
   sequence: Sequence4;
   sim_tick: SimTick4;
+  skill?: Skill;
+  skill_gain?: SkillGain;
   source_node_id: SourceNodeId4;
   transfer: Transfer;
   update_count: UpdateCount;
@@ -338,7 +382,7 @@ export interface LearningEvent {
 export interface MetricSample {
   emitted_at_utc: EmittedAtUtc5;
   event_id: EventId5;
-  kind?: Kind6;
+  kind?: Kind7;
   metric: Metric;
   phase: Phase;
   run_id: RunId6;
@@ -354,7 +398,7 @@ export interface ArtifactManifest {
   config_hash: ConfigHash;
   format: Format;
   format_version: FormatVersion;
-  kind?: Kind7;
+  kind?: Kind8;
   node_id: NodeId1;
   path: Path;
   run_id: RunId7;

@@ -84,7 +84,10 @@ class NodeHealth:
 
 def adapter_kwargs(settings: Settings, plan: Plan) -> dict[str, Any]:
     """World parameters for the adapter: operator kwargs plus the plan's battery scale (A13)."""
-    return {**settings.world_kwargs, "battery_scale": plan.battery_scale}
+    kw = {**settings.world_kwargs, "battery_scale": plan.battery_scale}
+    if plan.mission is not None:
+        kw["mission"] = plan.mission.model_dump(mode="json")
+    return kw
 
 
 def _stay(node: str, run_id: str, tick: int) -> Action:
@@ -323,6 +326,7 @@ class Run:
                 coverage=snap.coverage,
                 topology=Topology(links=links),
                 world=snap.world,
+                mission=snap.mission,
             ),
         )
 
@@ -502,6 +506,7 @@ class Run:
             obs = adapter.reset(cfg, episode=ep.index)
             old, self.adapter = self.adapter, adapter
             self._seen_finds: set = set()
+            self._mission_closed = False
         if old is not None:
             old.close()
         if self.configure_body is None:
@@ -630,10 +635,24 @@ class Run:
             w = self.adapter.world
             finds = new_finds(w, self._seen_finds)
             total = len(w.targets)
+            map_seed = self.adapter.map_seed
+            mission = w.mission_status()
         for i, (_, node) in enumerate(finds):  # value = targets found so far
             n_found = len(self._seen_finds) - len(finds) + i + 1
             self._metric("target_found", float(n_found), "count", ep.mode, t + 1, node)
         self._metric("targets_total", float(total), "count", ep.mode, t + 1)
+        if t == 0:  # the replayable map identity of this episode, recorded with its events
+            self._metric("map_seed", float(map_seed), "seed", ep.mode, 1)
+        if mission and mission["status"] != "active" and not self._mission_closed:
+            self._mission_closed = True  # once per episode: time to complete, or the failure
+            done = mission["status"] == "succeeded"
+            self._metric(
+                "mission_complete" if done else "mission_failed",
+                float(mission["completed_tick"] if done else t + 1),
+                "ticks",
+                ep.mode,
+                t + 1,
+            )
         self._metric("coverage", cov, "fraction", ep.mode, t + 1)
         self._emit_snapshot(t + 1)
 
@@ -682,6 +701,7 @@ class Run:
             manifest = adapter.write_replay(self.out_dir / f"ep-{ep.index:04d}")
             cov = adapter.world.coverage
             state_hash = adapter.world.trace_hash()
+            map_seed, mission = adapter.map_seed, adapter.world.mission_status()
         for n, r in returns.items():
             self._metric("episode_return", r, "reward", ep.mode, ticks, n)
         self._metric("coverage", cov, "fraction", ep.mode, ticks)
@@ -699,6 +719,8 @@ class Run:
                     "episode": ep.index,
                     "kind": ep.kind,
                     "seed": ep.seed,
+                    "map_seed": map_seed,
+                    "mission": mission,
                     "ticks": ticks,
                     "final_state_hash": state_hash,
                     "coverage": cov,
