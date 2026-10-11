@@ -12,3 +12,6 @@ Rules that apply to every agent, including delegated ones:
 - Validate with `make check-fast` constantly and `make check-integration` before REVIEW. Say exactly what you did not run.
 - Same failure twice, or a retry budget spent: BLOCKED with a complete `BLOCKER.md`. Make reversible decisions yourself and document them; escalate only what PROTOCOL section 10 lists.
 - Do not confuse coding agents with simulated drone nodes. Do not start `tools/agents/night.py` until its preflight and `tests/agents` pass.
+
+## Hang protection (Windows dev machine)
+Node-process, Docker and e2e tests hang here. `.claude/settings.json` runs `scripts/hook_no_hang.py` before every Bash call and blocks: pytest without `timeout N`, pytest on `tests/infra|e2e|swarm|noderuntime|experiments`, `vitest` watch mode, Docker and `make demo/check-full/check-integration`. The root `conftest.py` also kills any test over 120 s and any pytest run over 420 s, and skips those suites on win32 (`ARCH_ALLOW_SLOW=1` re-enables them; run them in CI/Linux). Test logic in-process instead.
