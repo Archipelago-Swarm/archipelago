@@ -287,7 +287,7 @@ def analyze(out: Path, smoke: bool = False) -> dict[str, Any]:
     prereg_sha = git("log", "-1", "--format=%H", "--", "experiments/prereg/T30.yaml")
     res: dict[str, Any] = {
         "id": "T30", "smoke": smoke, "prereg_commit": prereg_sha, "code_commit": git("rev-parse", "HEAD"),
-        "git_dirty": bool(git("status", "--porcelain", "--", "experiments", "packages", "services")),
+        "git_dirty": bool(git("status", "--porcelain", "--", "experiments", ":!experiments/out", "packages", "services")),
         "test_seeds": seeds, "outcomes": outcomes,
         "episode_kinds": {a: {k: sum(r["kind"] == k for r in tables[a]) for k in ("train", "validation", "test")}
                           for a in ARMS},  # fmt: skip
