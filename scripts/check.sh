@@ -12,7 +12,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PART="${CHECK_PART:-all}"
-LIVE=(tests/learning tests/noderuntime tests/coordinator tests/experiments)
+LIVE=(tests/learning tests/noderuntime tests/coordinator tests/experiments tests/swarm)
 IGNORE_LIVE=()
 for d in "${LIVE[@]}"; do IGNORE_LIVE+=("--ignore=$d"); done
 
