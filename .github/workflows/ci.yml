@@ -1,30 +1,43 @@
-name: ci
+name: PR Gate
+# Tier 1. The only required merge check is the aggregate job "PR Gate" (set it as the sole required status).
+# Everything deeper lives in main.yml (on push to main) and full.yml (nightly / manual / label "full").
 on:
   pull_request:
-    paths-ignore: &ledger_only
-      # Ledger and handoff bookkeeping commits change no code; they must not queue a full run.
-      - "agents/TASKS.yaml"
-      - "agents/STATUS.yaml"
-      - "agents/handoffs/**"
-  push:
-    branches: [main]
-    paths-ignore: *ledger_only
   workflow_dispatch:
 
-# A newer push to the same ref supersedes the running one (ADR-0005).
+# A newer push to the same PR supersedes the running one (ADR-0005).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: pr-gate-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
-# One slice per job, all in parallel (scripts/check.sh CHECK_PART); the slowest slice sets the
-# wall-clock time. Python slices share the uv cache; torch comes from the CPU index.
 jobs:
-  fast:
+  changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 2
+    outputs:
+      web: ${{ steps.f.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: f
+        run: |
+          # Web checks only when frontend code, JS tooling, or contracts shared with the frontend change.
+          if [ "${{ github.event_name }}" != pull_request ]; then echo web=true >> "$GITHUB_OUTPUT"; exit 0; fi
+          base="${{ github.event.pull_request.base.sha }}"
+          if git diff --name-only "$base"...HEAD | grep -Eq '^(apps/|packages/contracts/|package(-lock)?\.json$|eslint\.config|tsconfig)'; then
+            echo web=true >> "$GITHUB_OUTPUT"
+          else
+            echo web=false >> "$GITHUB_OUTPUT"
+          fi
+
+  # Static checks cheapest-first, then fast torch-free tests. No torch, no node, no docker.
+  core-fast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -33,51 +46,12 @@ jobs:
           enable-cache: true
       - run: uv sync --frozen
       - run: make check-fast
-      - run: CHECK_PART=lint scripts/check.sh
 
-  py-live:
+  web-fast:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          python-version: "3.12"
-          enable-cache: true
-      - run: uv sync --frozen
-      - run: scripts/install-torch-cpu.sh
-      - run: CHECK_PART=py-live scripts/check.sh
-
-  py-rest:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          python-version: "3.12"
-          enable-cache: true
-      - run: uv sync --frozen
-      - run: scripts/install-torch-cpu.sh
-      - run: CHECK_PART=py-rest scripts/check.sh
-
-  # Docker-marked tests build images; runners have a daemon.
-  docker:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          python-version: "3.12"
-          enable-cache: true
-      - run: uv sync --frozen
-      - run: scripts/install-torch-cpu.sh  # test modules import torch at collection time
-      - run: CHECK_PART=docker scripts/check.sh
-
-  web:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -92,11 +66,12 @@ jobs:
       - run: npm ci
       - run: CHECK_PART=web scripts/check.sh
 
-  container-smoke:
-    if: github.event_name != 'pull_request' || contains(join(github.event.pull_request.labels.*.name, ','), 'full')
+  # Stable required-check name; passes when every non-skipped job passed.
+  pr-gate:
+    name: PR Gate
+    if: always()
+    needs: [core-fast, web-fast]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - run: docker build -f infra/docker/ci.Dockerfile -t archipelago-ci .
-      - run: docker run --rm archipelago-ci
+      - run: |
+          if echo '${{ join(needs.*.result, ' ') }}' | grep -Eq 'failure|cancelled'; then exit 1; fi

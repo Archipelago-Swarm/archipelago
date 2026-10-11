@@ -1,15 +1,15 @@
 # Validation tiers (agents/PROTOCOL.md section 11). Run from the repository root.
-.PHONY: check-fast check-affected check-integration check-full
+.PHONY: check-fast format check-affected check-integration check-full
 
-# Seconds: docs/ledger, lint, format, controller tests.
+# PR gate, seconds: static checks (cheapest first) + fast torch-free tests. Same command CI runs.
 check-fast:
-	python3 tools/check_foundation.py
-	uv run python agents/controller.py validate
-	uv run ruff check packages services tests infra/vultr experiments agents/controller.py agents/launch.py
-	uv run ruff format --check packages services tests infra/vultr experiments agents/controller.py agents/launch.py
-	uv run pytest -q tests/agents
+	CHECK_PART=gate scripts/check.sh
 
-# Lint plus only the tests touched by this branch (pre-push gate; CI runs everything, in parallel slices).
+# Auto-fix what check-fast would reject on lint/format. Run before pushing.
+format:
+	CHECK_PART=format scripts/check.sh
+
+# Lint plus only the tests touched by this branch (pre-push gate; full suite runs on main/nightly).
 check-affected:
 	scripts/check-affected.sh
 
@@ -17,7 +17,7 @@ check-affected:
 check-integration:
 	SKIP_DOCKER=1 scripts/check.sh
 
-# Expensive: everything including Docker-marked tests; CI runs this on main.
+# Expensive: everything including Docker-marked tests; the Full Regression workflow runs this.
 check-full:
 	scripts/check.sh
 	docker build -f infra/docker/ci.Dockerfile -t archipelago-ci .
