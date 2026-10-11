@@ -27,7 +27,9 @@ def prof(skills):
 def test_training_moves_node_skills_and_fixed_policy_does_not(tmp_path):
     n = node(tmp_path, "node-01")
     first = measure(n)
-    assert set(first) == SKILLS and all(v["version"] == 1 and v["source"] == "node-01" for v in first.values())
+    assert set(first) == SKILLS and all(
+        v["version"] == 1 and v["source"] == "node-01" for v in first.values()
+    )
     assert prof(measure(n)) == prof(first)  # control: nothing trained, nothing moved
     assert {k: v["version"] for k, v in n.learner.skills.items()} == dict.fromkeys(SKILLS, 1)
     drive(n, 120)
@@ -49,7 +51,10 @@ def test_peer_adoption_changes_receiver_skills_and_emits_trace(tmp_path):
     got = student.learner.skills
     assert prof(got) == prof(want)
     assert d["skill"] in SKILLS and d["skill_gain"] > 0
-    assert any(v["source"] == "node-02" and v["version"] == before[k]["version"] + 1 for k, v in got.items())
+    assert any(
+        v["source"] == "node-02" and v["version"] == before[k]["version"] + 1
+        for k, v in got.items()
+    )
     student._emit_skills(5)
     recs = [r["record"] for r in spooled(student.cfg)]
     learn = [r for r in recs if r["kind"] == "learning_event" and r["transfer"] == "accepted"]

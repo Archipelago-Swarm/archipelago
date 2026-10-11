@@ -47,8 +47,8 @@ from archipelago_learning import (
     encode,
     offer,
     schedules,
+    skills,
 )
-from archipelago_learning import skills
 from archipelago_learning.checkpoint import CheckpointError, SequenceAllocator, checkpoint_due
 from archipelago_peer import post
 from archipelago_transport import Envelope

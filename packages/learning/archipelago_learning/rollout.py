@@ -109,7 +109,9 @@ def eval_skills(params, seeds):
     for s in seeds:
         obs = reset(env, s)
         while env.agents:
-            acts = {a: int(np.argmax(Learner.forward(params, _norm(obs[a]))[1])) for a in env.agents}
+            acts = {
+                a: int(np.argmax(Learner.forward(params, _norm(obs[a]))[1])) for a in env.agents
+            }
             obs = env.step(acts)[0]
         runs.append(skills.world_skills(env.world))
     return skills.mean_skills(runs)

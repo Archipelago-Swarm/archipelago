@@ -18,9 +18,18 @@ def skills_view(events: Iterable[dict[str, Any]]) -> dict[str, Any]:
         kind, node = e.get("kind"), e.get("source_node_id")
         if kind == "learning_event" and e.get("transfer") == "accepted" and e.get("skill"):
             adoptions.append(
-                {"node": node, "skill": e["skill"], "gain": e.get("skill_gain"), "sequence": e["sequence"]}
+                {
+                    "node": node,
+                    "skill": e["skill"],
+                    "gain": e.get("skill_gain"),
+                    "sequence": e["sequence"],
+                }
             )
-        elif kind == "metric_sample" and node and e["metric"].startswith(("skill.", "skill_version.")):
+        elif (
+            kind == "metric_sample"
+            and node
+            and e["metric"].startswith(("skill.", "skill_version."))
+        ):
             what, name = e["metric"].split(".", 1)
             s = nodes.setdefault(node, {}).setdefault(
                 name, {"proficiency": None, "version": 0, "source": None}

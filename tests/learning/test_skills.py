@@ -69,7 +69,9 @@ def test_peer_adoption_changes_receiver_skills_and_is_traced():
     want = measure(teacher.params)
     assert {k: s["proficiency"] for k, s in student.skills.items()} == want
     for k in skills.SKILLS:
-        assert student.skills[k]["version"] == before[k]["version"] + (want[k] != before[k]["proficiency"])
+        assert student.skills[k]["version"] == before[k]["version"] + (
+            want[k] != before[k]["proficiency"]
+        )
     assert any(student.skills[k]["source"] == "teacher" for k in skills.SKILLS)
     assert ev["skill"] in skills.SKILLS and ev["skill_gain"] > 0
     assert ev["skill_gain"] == pytest.approx(want[ev["skill"]] - before[ev["skill"]]["proficiency"])
