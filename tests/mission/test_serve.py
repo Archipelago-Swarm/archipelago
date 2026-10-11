@@ -1,5 +1,6 @@
 import json
 import threading
+import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer
 
@@ -23,5 +24,13 @@ def test_live_endpoints_simulate_on_the_spot():
         ticks = [json.loads(x[6:]) for x in raw.split("\n") if x.startswith("data: ")][1:-1]
         assert ticks[-1]["frame"]["mission"] == a["frames"][-1]["mission"]  # stream == batch run
         assert sum(len(t["events"]) for t in ticks) == len(a["events"])
+        sm = json.load(urllib.request.urlopen(f"{base}/summary?seed=1002&uavs=4"))
+        assert sm["uavs"] == 4 and sm["on"]["mission"]["totalNodes"] == 4
+        assert sm["off"]["stats"]["skillsLearned"] == 0
+        try:
+            urllib.request.urlopen(f"{base}/summary?uavs=99")
+            raise AssertionError("expected 400")
+        except urllib.error.HTTPError as e:
+            assert e.code == 400
     finally:
         srv.shutdown()
