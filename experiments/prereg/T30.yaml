@@ -1,0 +1,86 @@
+# T30 pre-registration. Committed BEFORE the comparison run; the commit sha is recorded in
+# experiments/out/T30/results.json and summary.md. Code: experiments/t30_live.py (+ t30_cluster.py,
+# t30_analysis.py). Reproduce (one command, ~40 min wall on 4 cores, no Docker, no cloud):
+#   uv run python experiments/t30_live.py all
+id: T30
+question: >
+  Does the live decentralized runtime (real coordinator + four real node processes, real PyTorch
+  optimizer updates, real peer exchange) (A) learn locally on every node, (B) keep learning locally
+  while a partition blocks all model and visit-summary traffic across the cut and resume validation-
+  gated exchange afterwards, (C) survive a SIGKILL of one node by restarting from its checkpoint with
+  continued sequence numbers, and (D) produce better exploration outcomes than idle, than the rule
+  explorer, and than an isolated-nodes control, on the frozen test worlds 200-219?
+processes: "1 coordinator + 4 node runtime processes per arm on localhost (tests/e2e/procs.py Cluster); telemetry sink in the driver process stands in for the API ingest"
+config_under_test: "T37-selected variant as adopted by T38: encoder grid-flat-v2-visits-shared, reward rew-v1, schedule sched-t37-v1 (Adam lr 1e-3, gamma 0.95, batch 32, hidden 32, double DQN, replay 50000, eps 1 -> 0.05 over first 50% of training episodes, target sync 50, one step per transition)"
+world:
+  size: 16
+  n_targets: 8
+  max_ticks: 150
+  battery_scale: 4        # the live runtime requires battery_scale >= 4 for long schedules (A13); T37 used 1 (episodes there end before the battery matters)
+  n_drones: 4             # T37 used 2; four live nodes
+  starts: {node-01: [0, 0], node-02: [15, 0], node-03: [0, 15], node-04: [15, 15]}
+  obstacle_density: 0.12  # simulator default
+  deadline_ms: 2000
+budget_note: >
+  The demo plan (infra/demo/plans/demo.json) uses 900-tick episodes. Measured cost on this machine is
+  ~12 s per 150-tick training episode per arm (about 80 ms per tick: HTTP act + feedback to four
+  processes, one optimizer step per node per tick), with the two arms running concurrently. T37 trained
+  400 episodes per agent; that is ~80 min per arm and does not fit the 60 minute compute cap. The plan
+  below is therefore reduced BEFORE any result was seen: 150 training episodes of 150 ticks per node
+  (about 35 min wall per arm, arms in parallel). Consequence stated up front: the learner is trained for
+  well under half of T37's budget and its epsilon schedule decays over the first 75 episodes.
+arms:
+  fleet:
+    description: "live-trained fleet with exchange; partition between halves {node-01,node-02} | {node-03,node-04} during ticks [40,90) of EVERY episode"
+    fault_schedule: [{start_tick: 40, end_tick: 90, cut_links: [[node-01, node-03], [node-01, node-04], [node-02, node-03], [node-02, node-04]]}]
+  isolated:
+    description: "isolated-nodes control: all six links cut for the whole run (ticks [0,900) of every episode), so no model offer and no visit summary is ever delivered; otherwise identical"
+    fault_schedule: [{start_tick: 0, end_tick: 900, cut_links: ALL_PAIRS}]
+plan:   # identical for both arms; seeds never overlap
+  episodes:
+    - {kind: train, seed: 1000, count: 50}
+    - {kind: validation, seed: 100, count: 3}     # greedy, frozen, learning-curve checkpoint (not used for any decision)
+    - {kind: train, seed: 1050, count: 50}
+    - {kind: validation, seed: 100, count: 3}
+    - {kind: train, seed: 1100, count: 50}
+    - {kind: validation, seed: 100, count: 3}
+    - {kind: test, seed: 200, count: 20}          # frozen test worlds 200-219, run ONCE per arm after training
+  node_config: {learner_schedule_id: sched-t37-v1, encoder_id: grid-flat-v2-visits-shared, exchange_every_ticks: 25, gate_seeds: [9001, 9002, 9003], margin: 0.0}
+  reward_id: rew-v1
+  exchange_note: "windows at ticks 25,50,75,100,125,150; windows at 50 and 75 fall inside the fleet cut"
+fault_injection:
+  sigkill: {node: node-03, at_episode_index: 70, at_tick_min: 60, signal: SIGKILL, restart: "immediately, same checkpoint directory and ports", both_arms: true}
+  note: "episode index 70 is a training episode (indices 0-49 train, 50-52 validation, 53-102 train). The coordinator marks the node unavailable after 5 missed deadlines and calls it again at the next reset."
+evaluation:
+  same_as_T37: "reference return = rew-v1 components re-scored from environment counters (new cells, revisits, wall+agent collisions, agent ticks, targets found after spawn), per agent; plus coverage gain after spawn and targets after spawn (reward-free); secondary: wall collisions, revisit rate. Computed by re-executing the actions the live nodes chose (coordinator replay, final state hash checked) on the same simulator."
+  learner_eval: "test episodes run through the live cluster in frozen eval mode (no exploration, no optimizer step, no replay write); nodes' own greedy policies; the cluster's fault schedule of the arm applies to the test episodes too"
+  baselines: ["idle (all stay)", "rule explorer (archipelago_sim.env.explorer_policy, rng Random(f'{seed}-{node}'))", "isolated control (the other arm)"]
+  baseline_world: "identical Sim2DAdapter, world kwargs, starts, battery_scale, seeds 200-219"
+  not_run: ["untrained same-architecture network", "random policy", "more than one training run per arm (training seed is fixed)"]
+metrics:
+  primary: [ref_return, coverage_gain, targets_after_spawn]
+  secondary: [wall_collisions, revisit_rate, ticks]
+statistics: >
+  Paired differences over the 20 test worlds (same world for both sides). 95% percentile bootstrap,
+  4000 resamples, seed 0, resampling worlds. There is ONE training run per arm, so the CI covers
+  test-world sampling only, not variation between training runs; "better" means the CI lower bound > 0.
+decision:
+  claim_A: "each of the four nodes has train_steps > 0 and a non-empty own replay at the end of training, optimizer steps rose monotonically inside the cut windows, and the four final policy hashes differ; evidence from node status counters, telemetry and per-node checkpoint directories"
+  claim_B: >
+    SUPPORTED iff, in the fleet arm, (i) for every node train_steps increase inside the cut windows,
+    (ii) zero telemetry decisions whose offer source is across the cut have a decision tick inside the
+    cut window, (iii) zero visit summaries from across the cut are applied at a receiver tick inside
+    the cut window (node status summaries.rx_ticks), (iv) counters offers_cut and summaries_cut are
+    > 0 and summaries_received_cut and received_cut are 0, (v) cross-cut offers ARE decided at ticks
+    outside the cut (exchange resumes) with accepted/rejected decisions each carrying a reason. In
+    the isolated arm, zero cross-node decisions and zero applied summaries at any tick.
+  claim_C: >
+    SUPPORTED iff after the SIGKILL the node restarts (new boot_id), restores its checkpoint
+    (train_steps and replay_size after restart are > 0 and <= the values just before the kill),
+    its telemetry sequence numbers continue strictly above every pre-kill sequence with no event_id
+    reused, and its train_steps increase again within the run.
+  claim_D_learning_helps: "fleet minus idle on frozen test seeds: CI lower bound > 0 on ALL THREE primary metrics (as in T37's idle criterion). Otherwise NOT supported."
+  claim_D_beats_rule: "fleet minus rule: CI lower bound > 0 on ref_return. A CI containing 0 is reported as inconclusive, entirely below 0 as the fleet being worse."
+  claim_D_exchange_helps: "fleet minus isolated: CI lower bound > 0 on ref_return. Containing 0: inconclusive; entirely below 0: exchange (and visit sharing) hurt."
+  isolated_learning_helps: "isolated minus idle, same rule as claim_D_learning_helps."
+negative_results: "Reported as they are. A failed/aborted arm is reported with its logs and not re-run for a better outcome; no tuning on test seeds; the test stage runs once per arm. If an arm crashes, the harness exits non-zero and the summary says which claims are therefore unsupported."
