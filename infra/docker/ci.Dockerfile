@@ -6,4 +6,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends git nodejs npm 
 WORKDIR /repo
 COPY . .
 RUN uv sync --frozen && scripts/install-torch-cpu.sh && npm ci
+# No Docker daemon or CLI inside this image: the docker-marked tests run in the CI `docker` slice.
+ENV SKIP_DOCKER=1
 CMD ["bash", "scripts/check.sh"]
