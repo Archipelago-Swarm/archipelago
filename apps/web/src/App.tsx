@@ -106,7 +106,6 @@ export function App() {
           <section className="hero">
             <p className="kicker">No mainland required.</p>
             <h2>Decentralized learning across UAV squadrons.</h2>
-            <p className="lede">A decentralized capability-sharing layer for autonomous edge systems. Simulated platforms explore together, share what they learn over unreliable links, and hand improved flight policies from one to another.</p>
             <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> </p>
           </section>
           <PastRuns />
