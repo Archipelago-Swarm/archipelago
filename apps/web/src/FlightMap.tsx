@@ -291,12 +291,11 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
       if (sp?.dim) { g.fillStyle = "rgba(10,10,10,0.62)"; g.fillRect(0, 0, W, H); }
       if (terr) legend(g, [...(styleRef.current === "topo" ? [`Contours ${CONTOUR_M} m, bold every ${CONTOUR_M * INDEX_EVERY} m`, "Blue grid: 1 km squares"] : []), ...(m3 ? [`Vertical scale x${ex}, pitch ${Math.round(pitchFor(zr))} deg (zoom-linked)`] : [])]); // after the demo dim (which dims the map, keeps links and aircraft bright) so the key stays readable
       const ids = Object.keys(poses).sort();
-      const color = (_id: string) => BR.stone;
       if (zr >= LOD_ICON) { // trails: medium and close only
         for (const id of ids) {
           const t = trails.current[id]; if (!t || t.length < 2) continue;
           g.beginPath(); t.forEach(([x, y, z], i) => { const [px, py] = S(x, y, z + AGL_M); if (i) g.lineTo(px, py); else g.moveTo(px, py); });
-          g.strokeStyle = color(id) + "55"; g.lineWidth = 1.5; g.stroke();
+          g.strokeStyle = BR.stone + "55"; g.lineWidth = 1.5; g.stroke();
         }
       }
       g.lineWidth = 1; g.strokeStyle = "rgba(237,231,223,0.28)"; // topology links follow the moving aircraft
@@ -325,7 +324,7 @@ export function FlightMap({ snap, panels, height, instant = false, getPoses, foc
         const p = poses[id], [px, py] = Sa(p.x, p.y), [gx, gy] = Sg(p.x, p.y);
         proj.current[id] = [px, py];
         if (px < -40 || py < -40 || px > W + 40 || py > H + 40) continue;
-        const isSel = id === sel.current, col = color(id);
+        const isSel = id === sel.current, col = BR.stone;
         if (isSel || zr >= LOD_CLOSE) { // sensor footprint: the real perception radius
           ring(p.x, p.y, w.sensor_radius_m);
           g.fillStyle = col + "14"; g.fill(); g.strokeStyle = col + "88"; g.lineWidth = 1; g.setLineDash([6, 4]); g.stroke(); g.setLineDash([]);
