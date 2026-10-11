@@ -60,6 +60,7 @@ class GridWorld:
         reward_id: str = "rew-v0",
         terrain_seed: int | None = None,
         height: int | None = None,
+        terrain_style: str = "classic",
     ):
         if reward_id not in REWARD_SPECS:
             raise ValueError(f"unknown reward_id {reward_id!r}")
@@ -68,6 +69,7 @@ class GridWorld:
         )
         self.reward_id = reward_id
         self.terrain_seed = terrain_seed  # None = uniform world (the pre-terrain behaviour)
+        self.terrain_style = terrain_style
         self.terrain: Terrain | None = None
         self.eval_p: dict[
             str, list[float]
@@ -101,7 +103,11 @@ class GridWorld:
             None
             if self.terrain_seed is None
             else Terrain.generate(
-                n, getattr(self, "cell_m", 625.0), self.terrain_seed, height=self.height
+                n,
+                getattr(self, "cell_m", 625.0),
+                self.terrain_seed,
+                height=self.height,
+                style=self.terrain_style,
             )
         )
         free = [c for c in cells if c not in self.obstacles]
