@@ -33,6 +33,6 @@ def _hang_guard(request):
 
 
 def pytest_sessionstart(session):
-    t = threading.Timer(SESSION, _die, args=("<whole session>", None))
+    t = threading.Timer(SESSION, _die, args=("<whole session>", session.config.pluginmanager.getplugin("capturemanager")))
     t.daemon = True
     t.start()
