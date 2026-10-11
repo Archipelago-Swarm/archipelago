@@ -15,7 +15,7 @@ import numpy as np
 from archipelago_sim.env import ACTIONS, GridWorld
 
 from .config import Config
-from .encoder import encode_raw, for_world
+from .encoder import encode_raw, for_id
 
 KEYS = ("w1", "b1", "w2", "b2")
 
@@ -44,7 +44,7 @@ class ValidationWorld:
             battery_scale=cfg.world_battery_scale,
             reward_id=cfg.reward_id,
         )
-        self.enc = for_world(cfg.world_size, cfg.world_sense_radius)
+        self.enc = for_id(cfg.encoder_id, cfg.world_size, cfg.world_sense_radius)
         self.seeds = tuple(cfg.validation_seeds)
         self.episodes_run = 0  # evaluations performed over the node's lifetime
 
@@ -59,12 +59,28 @@ class ValidationWorld:
         for seed in self.seeds:
             obs = self.world.reset(seed)
             ret = 0.0
+            # v2 encoders need node-local memory: one per drone, built from its own observations
+            # only, plus (shared id) the visited-cell summaries the drones swap every tick, i.e.
+            # the study's information bus with every link up (the private world has no cuts).
+            mems = (
+                {a: self.enc.new_memory() for a in self.world.agents} if self.enc.stateful else {}
+            )
             while self.world.agents:
                 if cancel is not None and cancel.is_set():
                     raise WindowCancelled
+                tick = self.world.tick
+                if mems:
+                    for a in self.world.agents:
+                        (px, py), crop = obs[a]["pose"], obs[a]["crop"]
+                        mems[a].observe(tick, px, py, crop)
+                    if self.enc.shared:
+                        for a in self.world.agents:
+                            for b in self.world.agents:
+                                if a != b:
+                                    mems[b].merge_peer(a, mems[a].own_cells())
                 acts = {}
                 for a in self.world.agents:
-                    x = encode_raw(self.enc, obs[a])
+                    x = encode_raw(self.enc, obs[a], mems.get(a), tick)
                     q = np.maximum(x @ w1 + b1, 0) @ w2 + b2
                     acts[a] = ACTIONS[int(np.argmax(q))]
                 obs, rew, _, _, _ = self.world.step(acts)

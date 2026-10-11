@@ -24,6 +24,8 @@ class Runtime:
             allowed_src=set(cfg.node_ids) - {cfg.node_id},
             gate=lambda src: self.node.link_cut(src),
             on_cut=self._on_cut,
+            on_info=lambda env: self.node.receive_summary(env),
+            on_info_cut=self._on_info_cut,
         )
         self.node.peer = self.peer
         self.control = ControlServer(self.node, cfg.bind_host, cfg.control_port)
@@ -37,6 +39,10 @@ class Runtime:
 
     def _on_cut(self, src: str) -> None:
         self.node.counters["received_cut"] += 1
+
+    def _on_info_cut(self, src: str) -> None:
+        self.node._bump("summaries_received")
+        self.node._bump("summaries_received_cut")  # a summary is not a model offer: own counters
 
     @property
     def control_url(self) -> str:

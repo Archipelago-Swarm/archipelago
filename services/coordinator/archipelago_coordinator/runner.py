@@ -43,7 +43,15 @@ from archipelago_contracts.models import (
     WorldSnapshot,
 )
 
-from .models import Episode, Plan, canonical_hash, expand_episodes, schedule_json
+from .models import (
+    Episode,
+    Plan,
+    canonical_hash,
+    expand_episodes,
+    resolve_encoder_id,
+    resolve_schedule,
+    schedule_json,
+)
 from .nodeclient import NodeClient, Reply
 from .settings import Settings
 from .spool import EventSpool, safe_name
@@ -140,6 +148,12 @@ class Run:
         self.adapter: Any = None
         self.configured: dict[str, str] = {}  # node -> config_hash it acknowledged
         self.configure_body: dict[str, Any] | None = None
+        self.ids: dict[str, Any] = {  # versioned ids recorded in the manifest (A18)
+            "reward_id": cfg.reward_id,
+            "reward_source": "plan" if plan.reward_id else "run_config",
+            "encoder_id": None,  # resolved against the live world at the first episode
+            "learner_schedule_id": plan.node_config.learner_schedule_id,
+        }
         self.priv_seq = 0
         self.summaries: list[dict[str, Any]] = []
         self.max_tick_ms = 0.0
@@ -177,6 +191,7 @@ class Run:
                     for n, h in self.health.items()
                 },
                 "config_hash": self.config_hash,
+                "ids": dict(self.ids),
                 "plan_name": self.plan_name,
                 "plan_file_sha256": self.plan_file_sha256,
                 "node_config_hashes": dict(self.configured),
@@ -384,11 +399,21 @@ class Run:
     def _configure_body(self, adapter: Any) -> dict[str, Any]:
         """The per-run configure message (section 14), from the plan and the live world."""
         w, nc = adapter.world, self.plan.node_config
+        n_train = sum(1 for e in self.episodes if e.kind == "train")
+        hyper, eps = resolve_schedule(nc, n_train)  # A18: a registered schedule fills/refuses
+        encoder_id = resolve_encoder_id(nc.encoder_id, w.size, w.radius)
+        self.ids = {
+            "reward_id": self.cfg.reward_id,
+            "reward_source": "plan" if self.plan.reward_id else "run_config",
+            "encoder_id": encoder_id,
+            "learner_schedule_id": nc.learner_schedule_id,
+        }
         return {
             "command": "configure",
             "run_id": self.run_id,
-            "hyperparameters": nc.hyperparameters.model_dump(),
-            "epsilon_schedule": nc.epsilon_schedule.model_dump(),
+            "hyperparameters": hyper,
+            "epsilon_schedule": eps,
+            "learner_schedule_id": nc.learner_schedule_id,
             "margin": nc.margin,
             "world_config": {
                 "size": w.size,
@@ -401,7 +426,7 @@ class Run:
             },
             "gate_seeds": list(nc.gate_seeds),
             "n_validation_agents": nc.n_validation_agents,
-            "encoder_id": nc.encoder_id or f"grid-flat-v1-s{w.size}-r{w.radius}",
+            "encoder_id": encoder_id,
             "exchange_every_ticks": nc.exchange_every_ticks,
             "seed": nc.seed,
         }

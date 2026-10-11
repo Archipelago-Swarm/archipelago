@@ -45,6 +45,8 @@ PEER_TOKEN = "e2e-peer-token-0123456789"
 TELEMETRY_TOKEN = "e2e-telemetry-token-0123456789"
 COORD_TOKEN = "e2e-coordinator-token-0123456789"
 ADMIN_TOKEN = "e2e-coordinator-admin-token-012345"
+T37_REWARD, T37_SCHEDULE = "rew-v1", "sched-t37-v1"
+T37_ENCODER_FAMILY = "grid-flat-v2-visits-shared"
 
 
 def free_ports(n: int) -> list[int]:
@@ -185,7 +187,12 @@ def child_env(paths: list[str], **extra: str) -> dict[str, str]:
 class Cluster:
     """Coordinator + four node processes. ``ticks`` is the episode length of both worlds."""
 
-    def __init__(self, tmp: Path, ticks: int = 80, **node_env: str) -> None:
+    def __init__(self, tmp: Path, ticks: int = 80, ids: str = "t37", **node_env: str) -> None:
+        """``ids`` selects the versioned ids the plans of this cluster carry: ``t37`` (reward rew-v1,
+        observation grid-flat-v2-visits-shared, learner schedule sched-t37-v1; the default since T38)
+        or ``legacy`` (rew-v0, grid-flat-v1, sched-v0)."""
+        assert ids in ("t37", "legacy"), ids
+        self.ids = ids
         self.tmp, self.ticks = Path(tmp), ticks
         self.logs = self.tmp / "logs"
         self.logs.mkdir(parents=True, exist_ok=True)
@@ -244,7 +251,7 @@ class Cluster:
             REPLAY_CAPACITY="2000", BATCH_SIZE="16", TARGET_EVERY="25", EPS_DECAY_ACTS="400",
             PEER_TIMEOUT="1.0", PEER_RETRIES="0", TELEMETRY_INTERVAL="0.2",
             OMP_NUM_THREADS="1", MKL_NUM_THREADS="1", TORCH_THREADS="1", SEED="0",
-            GIT_COMMIT="e2e",
+            GIT_COMMIT="e2e", SUMMARY_TRACE="1",
             **self.node_env,
         )  # fmt: skip
         return Proc(n, [sys.executable, "-m", "archipelago_noderuntime"], env, self.logs, self.tmp)
@@ -349,7 +356,7 @@ class Cluster:
             "simulator_version": "0.1.0", "scenario_hash": "0" * 64,
             "seeds": {"env": seed, "topology": 0, "learner": 0, "exploration": 0},
             "nodes": [{"node_id": n, "start_pose": {"x": x, "y": y, "z": 0.0, "heading_rad": 0.0}} for n, (x, y) in STARTS.items()],
-            "observation_id": "obs-v0", "action_id": "act-v0", "reward_id": "rew-v0",
+            "observation_id": "obs-v0", "action_id": "act-v0", "reward_id": "rew-v0",  # plan.reward_id wins
             "mode": "distributed", "learner": "peer_dqn",
             "budgets": {"max_ticks": ticks or self.ticks, "max_wall_seconds": 600.0},
             "fault_schedule": faults,
@@ -358,9 +365,27 @@ class Cluster:
             "run_config": cfg,
             "plan": {
                 "node_urls": {n: self.coord_node_url(n) for n in NODE_IDS}, "deadline_ms": 2000,
-                "battery_scale": 4.0, "episodes": episodes, "fault_schedule": faults, **plan,
+                "battery_scale": 4.0, "episodes": episodes, "fault_schedule": faults,
+                **self.id_plan(), **plan,
             },
         }  # fmt: skip
+
+    def id_plan(self) -> dict[str, Any]:
+        """Plan fields that select the versioned ids (A18)."""
+        if self.ids == "legacy":
+            return {}
+        return {
+            "reward_id": T37_REWARD,
+            "node_config": {"learner_schedule_id": T37_SCHEDULE, "encoder_id": T37_ENCODER_FAMILY},
+        }
+
+    @property
+    def expected_ids(self) -> dict[str, str]:
+        if self.ids == "legacy":
+            return {"reward_id": "rew-v0", "learner_schedule_id": "sched-v0",
+                    "encoder_id": "grid-flat-v1-s8-r2"}  # fmt: skip
+        return {"reward_id": T37_REWARD, "learner_schedule_id": T37_SCHEDULE,
+                "encoder_id": f"{T37_ENCODER_FAMILY}-s8-r2"}  # fmt: skip
 
     def run_status(self, run_id: str) -> dict[str, Any]:
         code, body = self.coord_call("GET", f"/v1/runs/{run_id}")

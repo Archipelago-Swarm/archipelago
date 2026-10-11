@@ -6,10 +6,12 @@ the attributes version, mode, events, previous and the compatibility header fiel
 (encoder, encoder_sha256, obs_dim, hidden, n_actions, reward_id, action_space, backend, node_id).
 
 Payload versioning (explicit choice): payloads carry ``format = "archipelago-peer-v2"`` and the
-header fields param_map/backend/reward_id/action_space/encoder_sha256. Payloads produced by the
-pre-T26 encoder have no ``format`` and are REJECTED ("incompatible format"): they cannot prove
-encoder/reward/action-space identity, and no persisted payloads exist. ``backend`` is recorded for
-evidence but is not a compatibility criterion (NumPy <-> Torch exchange is the point).
+header fields param_map/backend/reward_id/action_space/encoder_sha256 (and, recorded but not
+matched, learner_schedule: a network trained under another recipe is still a valid candidate).
+Payloads produced by the pre-T26 encoder have no ``format`` and are REJECTED ("incompatible
+format"): they cannot prove encoder/reward/action-space identity, and no persisted payloads
+exist. ``backend`` is recorded for evidence but is not a compatibility criterion (NumPy <-> Torch
+exchange is the point).
 """
 
 from __future__ import annotations
@@ -59,6 +61,7 @@ def encode(learner) -> bytes:
         "obs_dim": learner.obs_dim,
         "hidden": learner.hidden,
         "n_actions": learner.n_actions,
+        "learner_schedule": getattr(learner, "schedule_id", "sched-v0"),  # recorded, not matched
         "node": learner.node_id,
         "version": learner.version,
     }

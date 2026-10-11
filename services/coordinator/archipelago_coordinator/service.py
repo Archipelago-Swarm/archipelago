@@ -22,8 +22,11 @@ from .models import (
     CreateRun,
     LoadedPlan,
     PlanError,
+    check_encoder_id,
     expand_episodes,
     load_plan,
+    resolve_encoder_id,
+    resolve_schedule,
 )
 from .nodeclient import NodeClient
 from .runner import ACTIVE, Run, adapter_kwargs
@@ -158,13 +161,24 @@ class Coordinator:
         o = plan.telemetry_outage
         if o and o.start_tick >= o.end_tick:
             return "telemetry_outage must have start_tick < end_tick"
-        episode_seeds = {e.seed for e in expand_episodes(plan)}
+        episodes = expand_episodes(plan)
+        try:  # A18: the learner schedule must be known and consistent with the plan
+            resolve_schedule(plan.node_config, sum(1 for e in episodes if e.kind == "train"))
+        except ValueError as e:
+            return str(e)
+        episode_seeds = {e.seed for e in episodes}
         if episode_seeds & set(plan.node_config.gate_seeds):
             return "node_config.gate_seeds must be disjoint from the plan episode seeds"
         try:  # non-distinct or out-of-grid starts are rejected by the adapter itself
             probe = self.adapter_factory(adapter_kwargs(self.settings, plan))
             probe.reset(cfg)
+            w = probe.world
+            problem = check_encoder_id(
+                resolve_encoder_id(plan.node_config.encoder_id, w.size, w.radius), w.size, w.radius
+            )
             probe.close()
+            if problem:
+                return problem
         except (ValueError, TypeError) as e:
             return str(e)
         except Exception as e:  # any other adapter failure is a rejected request, not a crash
@@ -191,6 +205,17 @@ class Coordinator:
         except PlanError as e:
             err = "plan_unavailable" if e.status == 503 else "invalid_request"
             return e.status, {"error": err, "detail": str(e)}
+        plan_reward = loaded.plan.reward_id
+        if plan_reward is not None:  # A18: the plan's versioned reward id is authoritative
+            if req.run_config.reward_id not in (plan_reward, "rew-v0"):
+                return 422, {
+                    "error": "invalid_request",
+                    "detail": f"run_config.reward_id {req.run_config.reward_id!r} contradicts "
+                    f"the plan's reward_id {plan_reward!r}",
+                }
+            req = req.model_copy(
+                update={"run_config": req.run_config.model_copy(update={"reward_id": plan_reward})}
+            )
         problem = self._validate(req, loaded)
         if problem:
             return 422, {"error": "invalid_request", "detail": problem}

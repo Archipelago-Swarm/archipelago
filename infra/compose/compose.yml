@@ -63,6 +63,15 @@ x-node-env: &node-env
   # and rejoin (tick 600). With 0 targets the episode lasts until max_ticks or battery exhaustion (A13); the
   # return is exploration reward only. Raise DEMO_N_TARGETS only after measuring that episodes still reach tick 600.
   WORLD_N_TARGETS: ${DEMO_N_TARGETS:-0}
+  # A18 versioned ids the demo plans select (infra/demo/plans). The coordinator's `configure` message
+  # is authoritative at run start; these make a node that boots (or restarts) before any run consistent
+  # with them: observation grid-flat-v2-visits-shared (82 floats), reward rew-v1, learner schedule
+  # sched-t37-v1 (epsilon 1.0->0.05 over 50% of training episodes, lr 1e-3, replay 50000, double DQN).
+  # Legacy ids: DEMO_ENCODER_FAMILY=grid-flat-v1 DEMO_REWARD_ID=rew-v0 DEMO_LEARNER_SCHEDULE_ID=sched-v0
+  # (and plans without reward_id / node_config). Peers also exchange visited-cell summaries (non-model).
+  ENCODER_FAMILY: ${DEMO_ENCODER_FAMILY:-grid-flat-v2-visits-shared}
+  REWARD_ID: ${DEMO_REWARD_ID:-rew-v1}
+  LEARNER_SCHEDULE_ID: ${DEMO_LEARNER_SCHEDULE_ID:-sched-t37-v1}
   GIT_COMMIT: ${ARCHIPELAGO_COMMIT:-unknown}
 
 services:

@@ -33,6 +33,7 @@ from archipelago_learning.checkpoint import (
     CheckpointError,
 )
 from archipelago_learning.compat import KEYS, validate_params
+from archipelago_learning.torch_dqn import check_identity
 
 SCHEMA = "node-ckpt-v1"
 
@@ -46,6 +47,13 @@ def _npz(compressed: bool = False, **arrays) -> bytes:
 def _arrays(blob: bytes) -> dict[str, np.ndarray]:
     with np.load(io.BytesIO(blob), allow_pickle=False) as z:
         return {k: z[k] for k in z.files}
+
+
+def _filled(learner) -> dict[str, np.ndarray]:
+    """Only the rows ever written (the ring buffer's filled prefix): with a 50000-row replay an
+    early checkpoint must not serialise megabytes of zeros while holding the learner lock."""
+    rows = min(learner.n, learner.capacity)
+    return {k: v[:rows] for k, v in learner.replay.items()}
 
 
 def save(learner, root, node_state: dict, act_rng_state: dict, io_=None) -> dict:
@@ -74,7 +82,7 @@ def save(learner, root, node_state: dict, act_rng_state: dict, io_=None) -> dict
         ),
         FILE_TARGET: _npz(**{f"t_{k}": v for k, v in learner.target_numpy().items()}),
         FILE_OPTIMIZER: _npz(**learner._optimizer_arrays()),
-        FILE_REPLAY: _npz(compressed=True, **learner.replay),
+        FILE_REPLAY: _npz(compressed=True, **_filled(learner)),
         FILE_RNG: json.dumps(rng, sort_keys=True).encode(),
         FILE_COUNTERS: json.dumps(counters, sort_keys=True, allow_nan=False).encode(),
     }
@@ -92,9 +100,7 @@ def load(learner, root) -> dict:
         counters = json.loads(files[FILE_COUNTERS])
         if counters.get("schema") != SCHEMA:
             raise ValueError(f"unknown checkpoint schema {counters.get('schema')!r}")
-        for k, v in learner._identity().items():
-            if k != "node_id" and counters.get(k) != v:
-                raise ValueError(f"checkpoint {k} mismatch: {counters.get(k)!r} != {v!r}")
+        check_identity(counters, learner._identity())
         pol_all = _arrays(files[FILE_POLICY])
         pol = validate_params({k: pol_all[f"p_{k}"] for k in KEYS}, learner.shapes)
         prev = (
@@ -106,8 +112,15 @@ def load(learner, root) -> dict:
         tgt = validate_params({k: tgt_all[f"t_{k}"] for k in KEYS}, learner.shapes)
         opt = _arrays(files[FILE_OPTIMIZER])
         replay = _arrays(files[FILE_REPLAY])
+        rows = min(int(counters["n"]), learner.capacity)
         for k, v in learner.replay.items():
-            if replay[k].shape != v.shape or replay[k].dtype != v.dtype:
+            got = replay[k]
+            # the filled prefix (new files) or the whole ring (files written before the prefix form)
+            if (
+                got.dtype != v.dtype
+                or got.shape[1:] != v.shape[1:]
+                or got.shape[0] not in (rows, v.shape[0])
+            ):
                 raise ValueError(f"checkpoint replay mismatch for {k}")
         rng = json.loads(files[FILE_RNG])
         probe = np.random.default_rng()
@@ -122,7 +135,10 @@ def load(learner, root) -> dict:
     learner._import(learner.policy, pol)
     learner._import(learner.target_net, tgt)
     learner._restore_optimizer(opt)
-    learner.replay = {k: replay[k].copy() for k in learner.replay}
+    restored = {k: np.zeros_like(v) for k, v in learner.replay.items()}
+    for k, v in restored.items():
+        v[: len(replay[k])] = replay[k]
+    learner.replay = restored
     learner.rng.bit_generator.state = rng["learner_numpy"]
     learner.torch_gen.set_state(torch_state)
     learner.steps, learner.version, learner.n = (

@@ -121,8 +121,10 @@ def test_configure_is_sent_once_per_run_before_the_first_reset_with_the_plans_va
             "batch": 32,
             "target_every": 50,
             "train_steps_per_feedback": 1,
+            "double_dqn": False,
         },  # fmt: skip
         "epsilon_schedule": {"start": 0.9, "end": 0.1, "decay_episodes": 7},
+        "learner_schedule_id": "sched-v0",
         "margin": 0.25,
         "world_config": {
             "size": 16,
