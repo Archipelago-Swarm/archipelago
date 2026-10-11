@@ -124,3 +124,16 @@ def test_rectangular_world():
     assert w.world_state()["height"] == 20
     with pytest.raises(ValueError):
         FlightWorld(size=20, height=40)
+
+
+def test_alpine_terrain_is_taller_deterministic_and_occludes():
+    a, b = (Terrain.generate(80, 625.0, 1, height=45, style="alpine") for _ in range(2))
+    c = Terrain.generate(80, 625.0, 1, height=45)
+    assert a.elev == b.elev and a.elev != c.elev
+    assert max(map(max, a.elev)) > 2 * max(map(max, c.elev))  # real mountains, not hills
+    flat = [v for r in a.biome for v in r]
+    assert {0, 1, 2} <= set(flat)
+    cells = [(x, y) for x in range(0, 80, 3) for y in range(0, 45, 3)]
+    assert any(not a.los_clear((10, 20), (x, y)) for x, y in cells if abs(x - 10) <= 6)
+    with pytest.raises(ValueError):
+        Terrain.generate(8, 625.0, 1, style="nope")
