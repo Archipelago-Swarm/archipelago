@@ -146,6 +146,19 @@ def wait_status(run_id: str, want: str, timeout: float = 60) -> dict[str, Any]:
     raise AssertionError(f"run {run_id} never reached {want}: {view}")
 
 
+    """Wait until a finished run's event log stops growing (node shippers flush on their own)."""
+    """Wait until a finished run's event log stops growing (node shippers flush on their own clock)."""
+    end, last, since = time.time() + timeout, None, time.time()
+    while time.time() < end:
+        n = call("GET", f"/v1/runs/{run_id}/events?limit=500")["latest_sequence"]
+        if n != last:
+            last, since = n, time.time()
+        elif time.time() - since >= quiet:
+            return
+        time.sleep(1)
+    raise AssertionError(f"event log of {run_id} never settled (latest_sequence {last})")
+
+
 def stop(run: dict[str, Any]) -> dict[str, Any]:
     body = {
         "command_id": f"stop-{run['run_id']}",
@@ -198,6 +211,7 @@ def test_smoke_script_passes_and_run_state_survives_api_restart(stack):
     )  # stop with the latest revision, not the create view
     done = wait_status("run-t10-done", "completed")
     assert done["status"] == "completed" and done["completion_reason"] == "stopped"
+    settle_events("run-t10-done")  # node telemetry keeps shipping after the run ends
     before = call("GET", "/v1/runs/run-t10-done/events?limit=500")
     seqs = [e["sequence"] for e in before["events"]]
     assert seqs and seqs == sorted(seqs), "a finished run must have ordered events"
