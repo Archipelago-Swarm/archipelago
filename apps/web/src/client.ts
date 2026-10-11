@@ -58,3 +58,6 @@ export function nodeHealth(s: WorldSnapshot): Record<string, "linked" | "isolate
   const linked = new Set((s.topology.links as [string, string][]).flat());
   return Object.fromEntries(Object.keys(s.poses).map((id) => [id, linked.has(id) ? "linked" : "isolated"] as const));
 }
+
+export type RunSummary = Pick<RunView, "run_id" | "status" | "tick" | "completion_reason">;
+export const listRuns = (f: Fetch = fetch) => call<{ runs: RunSummary[] }>(f, "/v1/runs").then((r) => r.runs);

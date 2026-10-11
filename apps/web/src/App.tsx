@@ -10,6 +10,7 @@ import { startDemo } from "./demo";
 import { createDemoController, sceneAt } from "./demoScriptController";
 import { DemoControlsOverlay } from "./DemoControlsOverlay";
 import { usePlayback } from "./replay";
+import { PastRuns } from "./PastRuns";
 import { View } from "./View";
 
 // JSON imports widen tuples; the fixture is schema-validated by the contracts tests.
@@ -106,13 +107,14 @@ export function App() {
             <p className="kicker">No mainland required.</p>
             <h2>Decentralized learning across UAV squadrons.</h2>
             <p className="lede">A decentralized capability-sharing layer for autonomous edge systems. Simulated platforms explore together, share what they learn over unreliable links, and hand improved flight policies from one to another.</p>
-            <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> <span className="note">Runs in your browser. No backend needed.</span></p>
+            <p><a className="button" href="?demo=1">Watch the demo</a> <a className="button" href="?demo=guided">Guided showcase</a> </p>
           </section>
+          <PastRuns />
           <h2>Getting started</h2>
           <ol>
             <li><strong>Watch the demo.</strong> A fast synthetic run. Use the timeline to pause, rewind, or jump to a policy offer.</li>
             <li><strong>Start your own run.</strong> This needs the API: <code>python3 infra/demo/run_demo.py up --plan demo</code>, then <code>npm run dev</code> in <code>apps/web</code>. The seed fixes the random numbers, so the same seed gives the same run.{startForm}</li>
-            <li><strong>Replay a finished run.</strong> Open <code>?run=&lt;id&gt;&amp;replay=1</code> and drag the frame slider.</li>
+            <li><strong>Replay a finished run.</strong> Pick one under Past runs, or open <code>?run=&lt;id&gt;&amp;replay=1</code>.</li>
           </ol>
           <h2>Reading the map</h2>
           <dl>

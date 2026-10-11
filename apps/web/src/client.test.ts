@@ -35,3 +35,9 @@ describe("client", () => {
     expect(nodeHealth(s)).toEqual({ a: "linked", b: "linked", c: "isolated" });
   });
 });
+
+it("listRuns unwraps the runs array", async () => {
+  const { listRuns } = await import("./client");
+  const f = (async () => new Response(JSON.stringify({ runs: [{ run_id: "r1", status: "completed", tick: 3, completion_reason: null }] }))) as typeof fetch;
+  expect((await listRuns(f)).map((r) => r.run_id)).toEqual(["r1"]);
+});
