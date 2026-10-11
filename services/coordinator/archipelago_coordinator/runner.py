@@ -626,6 +626,7 @@ class Run:
         with self.world_lock:
             cov = self.adapter.world.coverage
             from archipelago_sim.mission import new_finds  # lazy: the sim is an optional dependency
+
             w = self.adapter.world
             finds = new_finds(w, self._seen_finds)
             total = len(w.targets)
