@@ -41,3 +41,11 @@ progress { accent-color: var(--accent); width: 12rem; vertical-align: middle; }
 figcaption { color: var(--muted); font-size: .8125rem; }
 [role="alert"] { border-left: 3px solid var(--accent); background: var(--surface); padding: .5rem 1rem; }
 @media (max-width: 40rem) { dl { grid-template-columns: 1fr; } }
+.hero { padding: 2rem 0 1rem; }
+.hero h2 { font: 700 clamp(2rem, 6vw, 3.5rem)/1.05 var(--sans); letter-spacing: -.02em; text-transform: none; color: var(--fg); border: 0; padding: 0; margin: .5rem 0 1rem; max-width: 40rem; }
+.kicker { font: 700 .875rem var(--mono); letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin: 0; }
+.tags { display: flex; flex-wrap: wrap; gap: .5rem; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; }
+.card { background: var(--surface); border: 1px solid var(--rule); padding: 1rem; }
+.card:nth-child(3) { border-color: var(--accent); }
+.card p { margin: .5rem 0 0; color: var(--muted); }
